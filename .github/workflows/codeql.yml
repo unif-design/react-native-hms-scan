@@ -1,0 +1,51 @@
+name: CodeQL
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '23 5 * * 1'   # 每周一巡检一次
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write   # 上传分析结果
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # JS/TS 源码分析,无需构建
+          - language: javascript-typescript
+            build-mode: none
+          # 原生 Kotlin(android/)用 build-mode: none —— CodeQL 直接抽取源码,
+          # 不跑 Gradle。RN 库的 android/ 是 library module,无法脱离宿主 App 单独
+          # 构建;autobuild 会退回 runner 系统 Gradle(8.6)与 AGP 8.7.2(需 ≥8.9)冲突。
+          - language: java-kotlin
+            build-mode: none
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
