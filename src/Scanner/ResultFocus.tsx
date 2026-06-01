@@ -1,8 +1,17 @@
 import { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radius, shadow } from './tokens';
-import { Icon } from './Icon';
-import { Monogram } from './Monogram';
+import { Animated, StyleSheet, Text, View } from 'react-native';
+import {
+  Avatar,
+  Button,
+  Card,
+  StatusDot,
+  useColors,
+  useThemedStyles,
+  r,
+  rf,
+  fw,
+  fontMono,
+} from '@unif/react-native-design';
 import type { ScanProduct } from '../types';
 
 interface ResultFocusProps {
@@ -14,7 +23,7 @@ interface ResultFocusProps {
   onConfirm: () => void;
 }
 
-// 聚焦款"浮层确认卡"：2px 橙边、悬浮在相机之上（无遮罩）。
+// 聚焦款"浮层确认卡"：design Card + 2px 主色描边，悬浮在相机之上（无遮罩）。
 export function ResultFocus({
   product,
   detectMs,
@@ -22,62 +31,47 @@ export function ResultFocus({
   onContinue,
   onConfirm,
 }: ResultFocusProps) {
+  const c = useColors();
+  const s = useThemedStyles(makeStyles);
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(anim, {
-      toValue: 1,
-      duration: 280,
-      useNativeDriver: true,
-    }).start();
+    Animated.timing(anim, { toValue: 1, duration: 280, useNativeDriver: true }).start();
   }, [anim]);
 
-  const brandChar =
-    product.brandChar ?? (product.brand ?? product.name).charAt(0);
-  const badge =
-    detectMs > 0 ? `已识别 · ${(detectMs / 1000).toFixed(1)}s` : '已识别';
+  const brandChar = product.brandChar ?? (product.brand ?? product.name).charAt(0);
+  const badge = detectMs > 0 ? `已识别 · ${(detectMs / 1000).toFixed(1)}s` : '已识别';
   const caption = product.priceCaption ?? '建议零售';
 
   return (
     <Animated.View
       style={[
         styles.wrap,
-        { bottom: bottomInset + 18 },
+        { bottom: bottomInset + r(18) },
         {
           opacity: anim,
-          transform: [
-            {
-              translateY: anim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [24, 0],
-              }),
-            },
-          ],
+          transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [r(24), 0] }) }],
         },
       ]}
     >
-      <View style={styles.card}>
-        {/* 头部：成功勾 · 已识别 · 条码 */}
+      <Card borderColor={c.primary} borderWidth={2} borderRadius={r(16)} padding={r(14)}>
+        {/* 头部：成功点 · 已识别 · 条码 */}
         <View style={styles.header}>
-          <View style={styles.checkDot}>
-            <Icon name="check" size={13} stroke={3} color={colors.onPrimary} />
-          </View>
-          <Text style={styles.badge}>{badge}</Text>
-          <View style={{ flex: 1 }} />
-          {!!(product.barcode ?? product.name) && (
-            <Text style={styles.barcode}>{product.barcode}</Text>
-          )}
+          <StatusDot status="done" size={r(20)} />
+          <Text style={s.badge}>{badge}</Text>
+          <View style={styles.spacer} />
+          {!!product.barcode && <Text style={s.barcode}>{product.barcode}</Text>}
         </View>
 
         {/* 商品行 */}
         <View style={styles.body}>
-          <Monogram char={brandChar} size={58} />
+          <Avatar label={brandChar} variant="brand" size="xl" />
           <View style={styles.info}>
-            <Text style={styles.name} numberOfLines={2}>
+            <Text style={s.name} numberOfLines={2}>
               {product.brand ? `${product.brand} ` : ''}
               {product.name}
             </Text>
             {!!(product.spec || product.stockShort) && (
-              <Text style={styles.sub} numberOfLines={1}>
+              <Text style={s.sub} numberOfLines={1}>
                 {[product.spec, product.stockShort ? `库存${product.stockShort}` : null]
                   .filter(Boolean)
                   .join(' · ')}
@@ -86,102 +80,39 @@ export function ResultFocus({
           </View>
           {!!product.price && (
             <View style={styles.priceCol}>
-              <Text style={styles.price}>{product.price}</Text>
-              <Text style={styles.caption}>{caption}</Text>
+              <Text style={s.price}>{product.price}</Text>
+              <Text style={s.caption}>{caption}</Text>
             </View>
           )}
         </View>
 
         {/* 操作 */}
         <View style={styles.actions}>
-          <Pressable
-            onPress={onContinue}
-            style={({ pressed }) => [styles.btn, styles.btnSecondary, pressed && styles.pressed]}
-            accessibilityRole="button"
-          >
-            <Text style={styles.btnSecondaryText}>继续扫描</Text>
-          </Pressable>
-          <Pressable
-            onPress={onConfirm}
-            style={({ pressed }) => [styles.btn, styles.btnPrimary, pressed && styles.pressed]}
-            accessibilityRole="button"
-          >
-            <Text style={styles.btnPrimaryText}>确认</Text>
-          </Pressable>
+          <Button label="继续扫描" variant="secondary" onPress={onContinue} style={styles.btn} />
+          <Button label="确认" variant="primary" onPress={onConfirm} style={styles.btn} />
         </View>
-      </View>
+      </Card>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    zIndex: 50,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    padding: 14,
-    ...shadow.pop,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    columnGap: 7,
-    marginBottom: 12,
-  },
-  checkDot: {
-    width: 20,
-    height: 20,
-    borderRadius: radius.pill,
-    backgroundColor: colors.success,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badge: { fontSize: 13, fontWeight: '600', color: colors.foreground },
-  barcode: {
-    fontSize: 12,
-    color: colors.foregroundSubtle,
-    fontVariant: ['tabular-nums'],
-  },
-  body: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    columnGap: 14,
-    marginBottom: 14,
-  },
+  wrap: { position: 'absolute', left: r(16), right: r(16), zIndex: 50 },
+  header: { flexDirection: 'row', alignItems: 'center', columnGap: r(7), marginBottom: r(12) },
+  spacer: { flex: 1 },
+  body: { flexDirection: 'row', alignItems: 'center', columnGap: r(14), marginBottom: r(14) },
   info: { flex: 1, minWidth: 0 },
-  name: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.foreground,
-    lineHeight: 21,
-  },
-  sub: { fontSize: 12.5, color: colors.foregroundMuted, marginTop: 4 },
   priceCol: { alignItems: 'flex-end' },
-  price: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: colors.primary,
-    lineHeight: 24,
-  },
-  caption: { fontSize: 11, color: colors.foregroundSubtle, marginTop: 3 },
-  actions: { flexDirection: 'row', columnGap: 10 },
-  btn: {
-    flex: 1,
-    height: 44,
-    borderRadius: radius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnSecondary: { backgroundColor: colors.surfaceContainer },
-  btnSecondaryText: { fontSize: 15.5, fontWeight: '600', color: colors.foreground },
-  btnPrimary: { backgroundColor: colors.primary },
-  btnPrimaryText: { fontSize: 15.5, fontWeight: '600', color: colors.onPrimary },
-  pressed: { opacity: 0.7 },
+  actions: { flexDirection: 'row', columnGap: r(10) },
+  btn: { flex: 1 },
 });
+
+const makeStyles = (c: ReturnType<typeof useColors>) =>
+  StyleSheet.create({
+    badge: { fontSize: rf(13), fontWeight: fw.semi, color: c.foreground },
+    barcode: { fontSize: rf(12), color: c.foregroundSubtle, fontFamily: fontMono },
+    name: { fontSize: rf(16), fontWeight: fw.semi, color: c.foreground, lineHeight: rf(21) },
+    sub: { fontSize: rf(12.5), color: c.foregroundMuted, marginTop: r(4) },
+    price: { fontSize: rf(24), fontWeight: fw.heavy, color: c.primary, lineHeight: rf(24) },
+    caption: { fontSize: rf(11), color: c.foregroundSubtle, marginTop: r(3) },
+  });

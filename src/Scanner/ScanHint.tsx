@@ -1,5 +1,6 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { colors } from './tokens';
+import { StyleSheet, Text, View } from 'react-native';
+import { Spinner, r, rf, fw } from '@unif/react-native-design';
+import { scanChrome } from './scanChrome';
 
 interface ScanHintProps {
   detecting: boolean;
@@ -7,13 +8,11 @@ interface ScanHintProps {
   text: string;
 }
 
-// 取景框下方提示。识别中显示白色小转圈 + "识别中…"。
+// 取景框下方提示。识别中显示 design 的 Spinner（白）+ "识别中…"。
 export function ScanHint({ detecting, text }: ScanHintProps) {
   return (
     <View style={styles.row}>
-      {detecting && (
-        <ActivityIndicator size="small" color={colors.onPrimary} style={styles.spinner} />
-      )}
+      {detecting && <Spinner size={r(15)} color={scanChrome.white} />}
       <Text style={styles.text}>{detecting ? '识别中…' : text}</Text>
     </View>
   );
@@ -21,21 +20,18 @@ export function ScanHint({ detecting, text }: ScanHintProps) {
 
 const styles = StyleSheet.create({
   row: {
-    marginTop: 18,
+    marginTop: r(18),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    columnGap: 7,
-  },
-  spinner: {
-    transform: [{ scale: 0.85 }],
+    columnGap: r(7),
   },
   text: {
-    color: colors.hintWhite,
-    fontSize: 13.5,
-    fontWeight: '500',
+    color: scanChrome.hintText,
+    fontSize: rf(13.5),
+    fontWeight: fw.medium,
     letterSpacing: 0.2,
-    textShadowColor: 'rgba(0,0,0,0.55)',
+    textShadowColor: scanChrome.textShadow,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
   },

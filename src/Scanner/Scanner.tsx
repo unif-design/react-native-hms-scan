@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
+import { ThemeProvider, ToastHost, toast } from '@unif/react-native-design';
 import { HmsScanView } from '../HmsScanView';
 import { decodeImage } from '../decodeImage';
 import {
@@ -7,14 +8,13 @@ import {
   requestCameraPermission,
 } from '../permissions';
 import type { BarcodeFormat, ScanProduct, ScanResult } from '../types';
-import { colors, insets as defaultInsets } from './tokens';
+import { scanChrome } from './scanChrome';
 import { Viewfinder } from './Viewfinder';
 import { ScanTopBar } from './ScanTopBar';
 import { ScanToolbar } from './ScanToolbar';
 import { ResultFocus } from './ResultFocus';
 import { ResultFail } from './ResultFail';
 import { DeniedOverlay } from './DeniedOverlay';
-import { Toast } from './Toast';
 
 type Phase = 'init' | 'scan' | 'detecting' | 'success' | 'fail' | 'denied';
 
@@ -51,15 +51,25 @@ export interface ScannerProps {
 }
 
 /**
- * 成品「扫一扫」界面（聚焦款，浅色）。
- * 底层用 <HmsScanView> 出相机画面，取景框 / 工具栏 / 结果卡等 UI 全用 RN 绘制。
+ * 成品「扫一扫」界面（聚焦款）。底层 <HmsScanView> 出相机画面，取景框 / 工具栏 / 结果卡
+ * 全用 @unif/react-native-design 的主题令牌与组件绘制（统一风格）。自带 ThemeProvider +
+ * ToastHost，可直接整屏接入；放进宿主已有的 ThemeProvider 里也兼容。
  */
-export function Scanner({
+export function Scanner(props: ScannerProps) {
+  return (
+    <ThemeProvider>
+      <ScannerInner {...props} />
+      <ToastHost />
+    </ThemeProvider>
+  );
+}
+
+function ScannerInner({
   title = '扫一扫',
   formats,
   hintText = DEFAULT_HINT,
-  topInset = defaultInsets.top,
-  bottomInset = defaultInsets.bottom,
+  topInset = 54,
+  bottomInset = 34,
   onClose,
   resolveProduct,
   onConfirm,
@@ -67,24 +77,13 @@ export function Scanner({
 }: ScannerProps) {
   const [phase, setPhase] = useState<Phase>('init');
   const [torch, setTorch] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
   const [product, setProduct] = useState<ScanProduct | null>(null);
   const [detectMs, setDetectMs] = useState(0);
 
   const handlingRef = useRef(false);
   const detectStartRef = useRef(0);
   const lastResultRef = useRef<ScanResult | null>(null);
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const mountedRef = useRef(true);
-
-  const after = useCallback((ms: number, fn: () => void) => {
-    const t = setTimeout(fn, ms);
-    timersRef.current.push(t);
-  }, []);
-  const clearTimers = useCallback(() => {
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
-  }, []);
 
   // 权限流：已授权 → scan；否则请求；仍未授权 → denied。
   useEffect(() => {
@@ -98,22 +97,19 @@ export function Scanner({
         if (!mountedRef.current) return;
         setPhase(status === 'granted' ? 'scan' : 'denied');
       } catch {
-        // 权限模块不可用时直接尝试取景，相机自身的错误会走 onScanError
         if (mountedRef.current) setPhase('scan');
       }
     })();
     return () => {
       mountedRef.current = false;
-      clearTimers();
     };
-  }, [clearTimers]);
+  }, []);
 
   const reset = useCallback(() => {
-    clearTimers();
     handlingRef.current = false;
     setProduct(null);
     setPhase('scan');
-  }, [clearTimers]);
+  }, []);
 
   const finalize = useCallback(
     async (result: ScanResult) => {
@@ -182,10 +178,9 @@ export function Scanner({
     const r = lastResultRef.current;
     const p = product;
     if (p && r) onConfirm?.(p, r);
-    setToast('已确认 · 扫描结果已填入上一级');
-    after(1500, () => mountedRef.current && setToast(null));
-    after(1700, () => mountedRef.current && reset());
-  }, [product, onConfirm, after, reset]);
+    toast.success('已确认 · 扫描结果已填入上一级');
+    reset();
+  }, [product, onConfirm, reset]);
 
   const showChrome = phase === 'scan' || phase === 'detecting';
 
@@ -203,11 +198,7 @@ export function Scanner({
       )}
 
       {showChrome && (
-        <Viewfinder
-          size={VF_SIZE}
-          detecting={phase === 'detecting'}
-          hintText={hintText}
-        />
+        <Viewfinder size={VF_SIZE} detecting={phase === 'detecting'} hintText={hintText} />
       )}
 
       {phase !== 'denied' && phase !== 'init' && (
@@ -233,19 +224,15 @@ export function Scanner({
         />
       )}
 
-      {phase === 'fail' && (
-        <ResultFail bottomInset={bottomInset} onRetry={reset} />
-      )}
+      {phase === 'fail' && <ResultFail bottomInset={bottomInset} onRetry={reset} />}
 
       {phase === 'denied' && (
-        <DeniedOverlay onSettings={() => Linking.openSettings()} />
+        <DeniedOverlay onClose={onClose} onSettings={() => Linking.openSettings()} />
       )}
-
-      <Toast text={toast} topInset={topInset} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.cameraBg },
+  root: { flex: 1, backgroundColor: scanChrome.cameraBg },
 });

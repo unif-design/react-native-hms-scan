@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radius } from './tokens';
-import { Icon } from './Icon';
+import { Icon, r, rf, fw } from '@unif/react-native-design';
+import { scanChrome } from './scanChrome';
 
 interface ScanTopBarProps {
   title: string;
@@ -10,19 +10,19 @@ interface ScanTopBarProps {
   trailing?: ReactNode;
 }
 
-// 顶栏：关闭键 · 标题 · 尾部插槽。叠在相机预览之上（深色背景，故文字/图标为白）。
-// 注：设计稿用了 backdrop-filter 毛玻璃，RN 无内建模糊（需额外原生库），此处以半透明底近似。
+// 顶栏：关闭键 · 标题 · 尾部插槽。叠在深色相机预览之上，故文字/图标恒为白（不随主题）。
+// 设计稿用了毛玻璃，RN 无内建模糊，这里以半透明深色底近似（design 的 BlurLayer 需额外原生模糊库）。
 export function ScanTopBar({ title, topInset, onClose, trailing }: ScanTopBarProps) {
   return (
     <View style={[styles.bar, { paddingTop: topInset }]} pointerEvents="box-none">
       <Pressable
         onPress={onClose}
         hitSlop={8}
-        style={({ pressed }) => [styles.disc, pressed && styles.pressed]}
         accessibilityRole="button"
         accessibilityLabel="关闭"
+        style={({ pressed }) => [styles.disc, pressed && styles.pressed]}
       >
-        <Icon name="close" size={20} stroke={2} color={colors.onPrimary} />
+        <Icon name="close" size={r(20)} color={scanChrome.white} />
       </Pressable>
 
       <Text style={styles.title}>{title}</Text>
@@ -39,35 +39,35 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 30,
-    paddingHorizontal: 14,
-    paddingBottom: 8,
+    paddingHorizontal: r(14),
+    paddingBottom: r(8),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   disc: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.pill,
+    width: r(38),
+    height: r(38),
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.glassDark,
+    backgroundColor: scanChrome.glassDisc,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.glassBorder,
+    borderColor: scanChrome.glassBorder,
   },
   pressed: { opacity: 0.6 },
   title: {
-    color: colors.onPrimary,
-    fontSize: 16,
-    fontWeight: '600',
+    color: scanChrome.white,
+    fontSize: rf(16),
+    fontWeight: fw.semi,
     letterSpacing: 0.2,
-    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowColor: scanChrome.textShadow,
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
   },
   trailing: {
-    width: 38,
-    height: 38,
+    width: r(38),
+    height: r(38),
     alignItems: 'center',
     justifyContent: 'center',
   },

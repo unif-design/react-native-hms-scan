@@ -1,7 +1,6 @@
-import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radius } from './tokens';
-import { Icon } from './Icon';
+import { Icon, useColors, r, rf, fw, type IconName } from '@unif/react-native-design';
+import { scanChrome } from './scanChrome';
 
 interface ScanToolbarProps {
   flash: boolean;
@@ -10,27 +9,18 @@ interface ScanToolbarProps {
   onAlbum: () => void;
 }
 
-// 底部工具栏：手电筒 · 相册（按定稿，去掉了搜索 / 输入码）。
+// 底部工具栏：手电筒 · 相册（按定稿，去掉了搜索 / 输入码）。点亮态用主题主色。
 export function ScanToolbar({ flash, bottomInset, onFlash, onAlbum }: ScanToolbarProps) {
+  const c = useColors();
   return (
-    <View
-      style={[styles.bar, { bottom: bottomInset + 50 }]}
-      pointerEvents="box-none"
-    >
+    <View style={[styles.bar, { bottom: bottomInset + r(50) }]} pointerEvents="box-none">
       <ToolbarItem
-        icon={
-          <Icon name="flash" size={23} color={colors.onPrimary} fill={flash} />
-        }
+        icon={flash ? 'flash-on' : 'flash-off'}
         label={flash ? '已开灯' : '手电筒'}
-        active={flash}
+        activeColor={flash ? c.primary : undefined}
         onPress={onFlash}
       />
-      <ToolbarItem
-        icon={<Icon name="image" size={22} color={colors.onPrimary} />}
-        label="相册"
-        active={false}
-        onPress={onAlbum}
-      />
+      <ToolbarItem icon="image" label="相册" onPress={onAlbum} />
     </View>
   );
 }
@@ -38,12 +28,12 @@ export function ScanToolbar({ flash, bottomInset, onFlash, onAlbum }: ScanToolba
 function ToolbarItem({
   icon,
   label,
-  active,
+  activeColor,
   onPress,
 }: {
-  icon: ReactNode;
+  icon: IconName;
   label: string;
-  active: boolean;
+  activeColor?: string;
   onPress: () => void;
 }) {
   return (
@@ -58,11 +48,13 @@ function ToolbarItem({
           <View
             style={[
               styles.circle,
-              active ? styles.circleActive : styles.circleIdle,
+              activeColor
+                ? { backgroundColor: activeColor, borderColor: scanChrome.glassBorderActive }
+                : { backgroundColor: scanChrome.glassDisc2, borderColor: scanChrome.glassBorder },
               pressed && { opacity: 0.7 },
             ]}
           >
-            {icon}
+            <Icon name={icon} size={r(23)} color={scanChrome.white} />
           </View>
           <Text style={styles.label}>{label}</Text>
         </>
@@ -79,38 +71,21 @@ const styles = StyleSheet.create({
     zIndex: 30,
     flexDirection: 'row',
     justifyContent: 'center',
-    columnGap: 40,
+    columnGap: r(40),
   },
-  item: {
-    width: 72,
-    alignItems: 'center',
-    rowGap: 7,
-  },
+  item: { width: r(72), alignItems: 'center', rowGap: r(7) },
   circle: {
-    width: 54,
-    height: 54,
-    borderRadius: radius.pill,
+    width: r(54),
+    height: r(54),
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
   },
-  circleIdle: {
-    backgroundColor: colors.glassDark2,
-    borderColor: colors.glassBorder,
-  },
-  circleActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.glassBorderActive,
-    shadowColor: colors.primary,
-    shadowOpacity: 0.45,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
   label: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.82)',
+    fontSize: rf(12),
+    fontWeight: fw.medium,
+    color: scanChrome.toolbarLabel,
     textShadowColor: 'rgba(0,0,0,0.4)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
