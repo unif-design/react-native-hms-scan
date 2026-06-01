@@ -1,0 +1,23 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- Camera preview / scanning (RemoteView). -->
+  <uses-permission android:name="android.permission.CAMERA" />
+
+  <!-- Reading a local image for decodeImage().
+       Android 13+ (API 33) uses the scoped media permission; older devices fall
+       back to READ_EXTERNAL_STORAGE (capped at API 32 so the merger doesn't
+       force it on newer OS versions). -->
+  <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+  <uses-permission
+    android:name="android.permission.READ_EXTERNAL_STORAGE"
+    android:maxSdkVersion="32" />
+
+  <!-- Camera is used but not strictly required (gallery decode works without it). -->
+  <uses-feature
+    android:name="android.hardware.camera"
+    android:required="false" />
+  <uses-feature
+    android:name="android.hardware.camera.autofocus"
+    android:required="false" />
+
+</manifest>
