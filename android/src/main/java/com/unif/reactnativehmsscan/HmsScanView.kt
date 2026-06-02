@@ -267,12 +267,19 @@ class HmsScanView(
     val dispatcher =
       UIManagerHelper.getEventDispatcherForReactTag(themedReactContext, reactTag)
     val surfaceId = themedReactContext.surfaceId
-    dispatcher?.dispatchEvent(
-      object : Event<Event<*>>(surfaceId, reactTag) {
-        override fun getEventName(): String = eventName
+    dispatcher?.dispatchEvent(ScanEvent(surfaceId, reactTag, eventName, payload))
+  }
 
-        override fun getEventData(): WritableMap = payload
-      },
-    )
+  // RN 0.85 的 Event<T : Event<T>> 是自递归泛型(CRTP),必须用命名子类 Event<Self>;
+  // 匿名 object : Event<Event<*>> 不满足该 bound(0.85 起加严,旧版 bound 宽松能编)。
+  private class ScanEvent(
+    surfaceId: Int,
+    viewTag: Int,
+    private val name: String,
+    private val data: WritableMap,
+  ) : Event<ScanEvent>(surfaceId, viewTag) {
+    override fun getEventName(): String = name
+
+    override fun getEventData(): WritableMap = data
   }
 }
