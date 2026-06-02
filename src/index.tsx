@@ -1,5 +1,5 @@
 // @unif/react-native-hms-scan —— 华为 HMS 统一扫码服务 RN bridge(Fabric 新架构)
-// 能力：定制视图扫码（底层 <HmsScanView> + 成品 <Scanner> 扫一扫页）+ 图片识别（decodeImage）。
+// 能力：定制视图扫码（底层 <HmsScanView> + 成品 <Scanner> 扫一扫页）+ 图片识别（decodeImage）+ 相机权限。
 
 // ── 类型与常量 ──
 export {
