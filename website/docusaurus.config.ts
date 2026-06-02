@@ -1,6 +1,7 @@
 import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
+import pkg from '../package.json';
 
 const config: Config = {
   title: 'Unif HMS Scan',
@@ -81,14 +82,9 @@ const config: Config = {
           label: '文档',
         },
         {
-          href: 'https://www.npmjs.com/package/@unif/react-native-hms-scan',
-          label: 'npm',
+          type: 'html',
           position: 'right',
-        },
-        {
-          href: 'https://github.com/unif-design/react-native-hms-scan',
-          label: 'GitHub',
-          position: 'right',
+          value: `<span class="navbar-version">v${pkg.version}</span>`,
         },
       ],
     },
@@ -106,6 +102,15 @@ const config: Config = {
           items: [
             { label: 'npm', href: 'https://www.npmjs.com/package/@unif/react-native-hms-scan' },
             { label: 'GitHub', href: 'https://github.com/unif-design/react-native-hms-scan' },
+          ],
+        },
+        {
+          title: 'Unif 生态',
+          items: [
+            { label: '文档总站', href: 'https://unif.design' },
+            { label: '设计系统 design', href: 'https://unif-design.github.io/react-native-design/' },
+            { label: '相机 camera', href: 'https://unif-design.github.io/react-native-camera/' },
+            { label: '友盟分享 umeng', href: 'https://unif-design.github.io/react-native-umeng/' },
           ],
         },
       ],
