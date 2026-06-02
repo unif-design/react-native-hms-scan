@@ -64,7 +64,7 @@
   "bugs": {
     "url": "https://github.com/unif-design/react-native-hms-scan/issues"
   },
-  "homepage": "https://github.com/unif-design/react-native-hms-scan#readme",
+  "homepage": "https://unif-design.github.io/react-native-hms-scan/",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
   },
