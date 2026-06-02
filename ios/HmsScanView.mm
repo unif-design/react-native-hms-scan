@@ -7,6 +7,7 @@
 #import "HmsScanResultMapper.h"
 
 #import <React/RCTConversions.h>
+#import <React/UIView+React.h>
 
 #import <react/renderer/components/ReactNativeHmsScanSpec/ComponentDescriptors.h>
 #import <react/renderer/components/ReactNativeHmsScanSpec/EventEmitters.h>
