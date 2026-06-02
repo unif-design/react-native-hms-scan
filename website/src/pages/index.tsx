@@ -10,7 +10,7 @@ export default function Home(): React.JSX.Element {
     >
       <header className="unif-hero">
         <div className="unif-hero__inner">
-          <span className="unif-hero__pill">@UNIF/REACT-NATIVE-HMS-SCAN · v0.1</span>
+          <span className="unif-hero__pill">@UNIF/REACT-NATIVE-HMS-SCAN</span>
           <h1 className="unif-hero__title">华为统一扫码 · 定制视图 + 图片识别</h1>
           <p className="unif-hero__lede">
             华为 HMS 统一扫码服务 React Native 封装（新架构）：成品扫一扫页 + 底层 headless 相机组件 + 图片识别，基于 Scan SDK-Plus / ScanKitFrameWork。
