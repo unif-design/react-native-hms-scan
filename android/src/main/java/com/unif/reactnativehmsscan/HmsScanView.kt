@@ -26,9 +26,10 @@ import com.huawei.hms.ml.scan.HmsScan
  * forwarded both from the View attach/detach callbacks and from the host
  * Activity's lifecycle via [LifecycleEventListener].
  */
-class HmsScanView(context: Context) :
-  FrameLayout(context), LifecycleEventListener {
-
+class HmsScanView(
+  context: Context,
+) : FrameLayout(context),
+  LifecycleEventListener {
   private val themedReactContext: ThemedReactContext = context as ThemedReactContext
 
   private var remoteView: RemoteView? = null
@@ -117,15 +118,17 @@ class HmsScanView(context: Context) :
     if (activity == null) {
       emitError(
         "E_CAMERA_INIT",
-        "Cannot start camera: no host Activity available for RemoteView"
+        "Cannot start camera: no host Activity available for RemoteView",
       )
       return
     }
 
     try {
-      val builder = RemoteView.Builder()
-        .setContext(activity)
-        .setContinuouslyScan(continuous)
+      val builder =
+        RemoteView
+          .Builder()
+          .setContext(activity)
+          .setContinuouslyScan(continuous)
 
       val types = HmsScanResultMapper.parseFormatsCsv(formatsCsv)
       if (types != null && types.isNotEmpty()) {
@@ -140,14 +143,14 @@ class HmsScanView(context: Context) :
 
       view.setOnResultCallback(OnResultCallback { result -> onScanResult(result) })
       view.setOnLightVisibleCallback(
-        OnLightVisibleCallBack { visible -> onTorchVisible(visible) }
+        OnLightVisibleCallBack { visible -> onTorchVisible(visible) },
       )
 
       // onCreate must run after build() and before addView (per HMS docs/demo).
       view.onCreate(Bundle())
       addView(
         view,
-        LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+        LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT),
       )
 
       remoteView = view
@@ -220,38 +223,63 @@ class HmsScanView(context: Context) :
     val json = HmsScanResultMapper.toJson(result)
     // toJson skips value-less hits; avoid emitting an empty "[]" event.
     if (json == "[]") return
-    emitEvent("topScanResult", Arguments.createMap().apply {
-      putString("resultsJson", json)
-    })
+    emitEvent(
+      "topScanResult",
+      Arguments.createMap().apply {
+        putString("resultsJson", json)
+      },
+    )
   }
 
   private fun onTorchVisible(visible: Boolean) {
     // Keep our cached torch flag in sync with the actual hardware state.
     val on = remoteView?.lightStatus ?: torch
     torch = on
-    emitEvent("topTorchStatus", Arguments.createMap().apply {
-      putBoolean("available", visible)
-      putBoolean("on", on)
-    })
+    emitEvent(
+      "topTorchStatus",
+      Arguments.createMap().apply {
+        putBoolean("available", visible)
+        putBoolean("on", on)
+      },
+    )
   }
 
-  private fun emitError(code: String, message: String) {
-    emitEvent("topScanError", Arguments.createMap().apply {
-      putString("code", code)
-      putString("message", message)
-    })
+  private fun emitError(
+    code: String,
+    message: String,
+  ) {
+    emitEvent(
+      "topScanError",
+      Arguments.createMap().apply {
+        putString("code", code)
+        putString("message", message)
+      },
+    )
   }
 
   // ── Fabric event dispatch ──────────────────────────────────────────────────
 
-  private fun emitEvent(eventName: String, payload: WritableMap) {
+  private fun emitEvent(
+    eventName: String,
+    payload: WritableMap,
+  ) {
     val reactTag = id
     val dispatcher =
       UIManagerHelper.getEventDispatcherForReactTag(themedReactContext, reactTag)
     val surfaceId = themedReactContext.surfaceId
-    dispatcher?.dispatchEvent(object : Event<Event<*>>(surfaceId, reactTag) {
-      override fun getEventName(): String = eventName
-      override fun getEventData(): WritableMap = payload
-    })
+    dispatcher?.dispatchEvent(ScanEvent(surfaceId, reactTag, eventName, payload))
+  }
+
+  // RN 0.85 的 Event<T : Event<T>> 是自递归泛型(CRTP),必须用命名子类 Event<Self>;
+  // 匿名 object : Event<Event<*>> 不满足该 bound(0.85 起加严,旧版 bound 宽松能编)。
+  private class ScanEvent(
+    surfaceId: Int,
+    viewTag: Int,
+    private val name: String,
+    private val data: WritableMap,
+  ) : Event<ScanEvent>(surfaceId, viewTag) {
+    override fun getEventName(): String = name
+
+    override fun getEventData(): WritableMap = data
   }
 }

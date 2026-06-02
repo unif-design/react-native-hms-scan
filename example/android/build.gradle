@@ -19,3 +19,13 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+allprojects {
+    repositories {
+        // HUAWEI Maven —— Scan Kit 的 com.huawei.hms:scanplus 等 artifact 在华为私有源。
+        // :app 解析 @unif/react-native-hms-scan 的 transitive scanplus 时,用的是 :app 自己的
+        // repositories,库 android/build.gradle 里声明的华为 repo 不会传播给 consumer —— 所以
+        // example / 宿主 app 必须自己加华为源,否则报 Could not find com.huawei.hms:scanplus。
+        maven { url 'https://developer.huawei.com/repo/' }
+    }
+}

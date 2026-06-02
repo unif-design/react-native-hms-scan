@@ -7,6 +7,7 @@
 #import "HmsScanResultMapper.h"
 
 #import <React/RCTConversions.h>
+#import <React/UIView+React.h>
 
 #import <react/renderer/components/ReactNativeHmsScanSpec/ComponentDescriptors.h>
 #import <react/renderer/components/ReactNativeHmsScanSpec/EventEmitters.h>
@@ -37,21 +38,19 @@ using namespace facebook::react;
 
 #pragma mark - Codegen wiring
 
-+ (ComponentDescriptorProvider)componentDescriptorProvider
-{
++ (ComponentDescriptorProvider)componentDescriptorProvider {
   return concreteComponentDescriptorProvider<HmsScanViewComponentDescriptor>();
 }
 
-- (instancetype)initWithFrame:(CGRect)frame
-{
+- (instancetype)initWithFrame:(CGRect)frame {
   if (self = [super initWithFrame:frame]) {
     static const auto defaultProps = std::make_shared<const HmsScanViewProps>();
     _props = defaultProps;
 
-    _appliedContinuous = YES;  // matches WithDefault<boolean, true>
+    _appliedContinuous = YES; // matches WithDefault<boolean, true>
     _appliedPaused = NO;
     _appliedTorch = NO;
-    _appliedFormatsCsv = @"";  // matches WithDefault<string, ''> (= all formats)
+    _appliedFormatsCsv = @""; // matches WithDefault<string, ''> (= all formats)
     _hasAppliedOnce = NO;
     _childAttached = NO;
 
@@ -62,20 +61,17 @@ using namespace facebook::react;
 
 #pragma mark - Scan view controller lifecycle
 
-- (void)buildScanViewControllerWithCsv:(NSString *)csv
-{
+- (void)buildScanViewControllerWithCsv:(NSString *)csv {
   // (Re)create the VC. HmsCustomScanViewController takes its format set at init
   // via HmsScanOptions and exposes no setter to change it later, so a formatsCsv
   // change requires rebuilding the controller.
   [self teardownScanViewController];
 
   unsigned int formatType = [HmsScanResultMapper scanFormatTypeFromCsv:csv];
-  HmsScanOptions *options =
-      [[HmsScanOptions alloc] initWithScanFormatType:formatType Photo:NO];
+  HmsScanOptions *options = [[HmsScanOptions alloc] initWithScanFormatType:formatType Photo:NO];
 
-  HmsCustomScanViewController *vc =
-      [[HmsCustomScanViewController alloc] initCustomizedScanWithFormatType:options];
-  vc.backButtonHidden = YES;            // we render our own chrome from JS
+  HmsCustomScanViewController *vc = [[HmsCustomScanViewController alloc] initCustomizedScanWithFormatType:options];
+  vc.backButtonHidden = YES; // we render our own chrome from JS
   vc.customizedScanDelegate = self;
   vc.continuouslyScan = _appliedContinuous;
 
@@ -101,8 +97,7 @@ using namespace facebook::react;
   }
 }
 
-- (void)teardownScanViewController
-{
+- (void)teardownScanViewController {
   if (_scanVC == nil) {
     return;
   }
@@ -114,14 +109,13 @@ using namespace facebook::react;
   _scanVC = nil;
 }
 
-- (void)attachChildViewController
-{
+- (void)attachChildViewController {
   if (_scanVC == nil || _childAttached) {
     return;
   }
   UIViewController *parent = [self reactViewController];
   if (parent == nil) {
-    return;  // try again on next didMoveToWindow
+    return; // try again on next didMoveToWindow
   }
   [parent addChildViewController:_scanVC];
   // The view is already in our hierarchy (set as contentView); just notify.
@@ -129,8 +123,7 @@ using namespace facebook::react;
   _childAttached = YES;
 }
 
-- (void)detachChildViewController
-{
+- (void)detachChildViewController {
   if (_scanVC == nil || !_childAttached) {
     return;
   }
@@ -139,8 +132,7 @@ using namespace facebook::react;
   _childAttached = NO;
 }
 
-- (void)didMoveToWindow
-{
+- (void)didMoveToWindow {
   [super didMoveToWindow];
   if (self.window != nil) {
     [self attachChildViewController];
@@ -151,8 +143,7 @@ using namespace facebook::react;
 
 #pragma mark - Props
 
-- (void)updateProps:(Props::Shared const &)props oldProps:(Props::Shared const &)oldProps
-{
+- (void)updateProps:(Props::Shared const &)props oldProps:(Props::Shared const &)oldProps {
   const auto &newViewProps = *std::static_pointer_cast<HmsScanViewProps const>(props);
 
   NSString *newCsv = [NSString stringWithUTF8String:newViewProps.formatsCsv.c_str()];
@@ -205,8 +196,7 @@ using namespace facebook::react;
 // torch directly through AVFoundation as a best-effort convenience. This is NOT
 // guaranteed to stay in sync with HUAWEI's built-in torch button, and may be a
 // no-op if HUAWEI holds an exclusive lock on the capture device's configuration.
-- (void)applyTorch:(BOOL)on
-{
+- (void)applyTorch:(BOOL)on {
   BOOL available = NO;
   BOOL torchOn = [self setTorchHardwareOn:on available:&available];
   [self emitTorchStatusAvailable:available on:torchOn];
@@ -215,8 +205,7 @@ using namespace facebook::react;
 // Mutates the capture device's torch. Returns the resulting on-state and writes
 // hardware availability into `available`. Does NOT emit any event (so it can be
 // reused on teardown/recycle without firing onTorchStatus on a stale emitter).
-- (BOOL)setTorchHardwareOn:(BOOL)on available:(BOOL *)available
-{
+- (BOOL)setTorchHardwareOn:(BOOL)on available:(BOOL *)available {
   AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
   BOOL isAvailable = (device != nil && device.hasTorch && device.isTorchAvailable);
   if (available != NULL) {
@@ -246,8 +235,7 @@ using namespace facebook::react;
 
 // Called by HUAWEI on every decode (repeatedly in continuous mode). `resultDic`
 // is a single result dictionary; we wrap it into the contract's top-level array.
-- (void)customizedScanDelegateForResult:(NSDictionary *)resultDic
-{
+- (void)customizedScanDelegateForResult:(NSDictionary *)resultDic {
   NSDictionary *mapped = [HmsScanResultMapper scanResultFromHuaweiDict:resultDic];
   if (mapped == nil) {
     // Decoded payload had no usable value; surface as a soft error event.
@@ -260,8 +248,7 @@ using namespace facebook::react;
 
 #pragma mark - Event emitters
 
-- (void)emitScanResultJson:(NSString *)json
-{
+- (void)emitScanResultJson:(NSString *)json {
   if (!_eventEmitter) {
     return;
   }
@@ -272,8 +259,7 @@ using namespace facebook::react;
       });
 }
 
-- (void)emitScanErrorWithCode:(NSString *)code message:(NSString *)message
-{
+- (void)emitScanErrorWithCode:(NSString *)code message:(NSString *)message {
   if (!_eventEmitter) {
     return;
   }
@@ -284,8 +270,7 @@ using namespace facebook::react;
       });
 }
 
-- (void)emitTorchStatusAvailable:(BOOL)available on:(BOOL)on
-{
+- (void)emitTorchStatusAvailable:(BOOL)available on:(BOOL)on {
   if (!_eventEmitter) {
     return;
   }
@@ -298,8 +283,7 @@ using namespace facebook::react;
 
 #pragma mark - Cleanup
 
-- (void)prepareForRecycle
-{
+- (void)prepareForRecycle {
   // Reset imperative state so a recycled view re-applies props cleanly.
   // Turn the torch off WITHOUT emitting (the emitter is being torn down).
   [self setTorchHardwareOn:NO available:NULL];
@@ -312,8 +296,7 @@ using namespace facebook::react;
   [super prepareForRecycle];
 }
 
-- (void)dealloc
-{
+- (void)dealloc {
   if (_scanVC != nil) {
     _scanVC.customizedScanDelegate = nil;
   }
