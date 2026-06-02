@@ -16,6 +16,11 @@ Pod::Spec.new do |s|
   s.source_files = "ios/**/*.{h,m,mm,swift,cpp}"
   s.private_header_files = "ios/**/*.h"
 
+  # hms-scan 自己用 AVFoundation(摄像头权限 + torch);UIKit / Foundation 显式声明保险。
+  # 之前 podspec 缺这个 —— 被 EXCLUDED_ARCHS 排掉模拟器 arm64 编译掩盖了;现在去掉
+  # EXCLUDED_ARCHS(xcframework 已补 arm64-sim 切片)、arm64 模拟器真编译就暴露了缺链接。
+  s.frameworks = "AVFoundation", "UIKit", "Foundation"
+
   # 华为 HUAWEI Scan Kit（iOS 自包含，无需 AppGallery Connect / API Key）。
   # 提供 HmsCustomScanViewController（定制视图）与 HmsBitMap（图片识别）。
   #
