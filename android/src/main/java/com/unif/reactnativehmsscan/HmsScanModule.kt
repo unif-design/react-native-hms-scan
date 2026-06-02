@@ -23,9 +23,9 @@ import java.io.InputStream
  *   - decodeImage(): decode a local image into a ScanResult[] JSON string.
  *   - getCameraPermissionStatus() / requestCameraPermission(): camera permission.
  */
-class HmsScanModule(reactContext: ReactApplicationContext) :
-  NativeHmsScanSpec(reactContext) {
-
+class HmsScanModule(
+  reactContext: ReactApplicationContext,
+) : NativeHmsScanSpec(reactContext) {
   override fun getName(): String = NAME
 
   // ── decodeImage ──────────────────────────────────────────────────────────
@@ -36,7 +36,11 @@ class HmsScanModule(reactContext: ReactApplicationContext) :
    * (photo mode), and resolves the ScanResult[] JSON. Never rejects on "no code
    * found" — it resolves an empty array, matching the JS contract.
    */
-  override fun decodeImage(uri: String, formatsCsv: String, promise: Promise) {
+  override fun decodeImage(
+    uri: String,
+    formatsCsv: String,
+    promise: Promise,
+  ) {
     val bitmap = loadBitmap(uri)
     if (bitmap == null) {
       promise.reject(E_IMAGE_LOAD_FAILED, "Failed to load image from uri: $uri")
@@ -67,8 +71,8 @@ class HmsScanModule(reactContext: ReactApplicationContext) :
   }
 
   /** Resolve a uri/path to a decoded [Bitmap], or null on any failure. */
-  private fun loadBitmap(uri: String): Bitmap? {
-    return try {
+  private fun loadBitmap(uri: String): Bitmap? =
+    try {
       val parsed = Uri.parse(uri)
       val scheme = parsed.scheme?.lowercase()
       when (scheme) {
@@ -82,11 +86,13 @@ class HmsScanModule(reactContext: ReactApplicationContext) :
             stream?.close()
           }
         }
+
         null -> {
           // No scheme -> treat as an absolute filesystem path.
           val path = parsed.path ?: uri
           decodeFile(path)
         }
+
         else -> {
           // Unsupported scheme (e.g. http/https): JS contract forbids remote URLs.
           null
@@ -95,7 +101,6 @@ class HmsScanModule(reactContext: ReactApplicationContext) :
     } catch (e: Throwable) {
       null
     }
-  }
 
   private fun decodeFile(path: String): Bitmap? {
     val file = File(path)
@@ -137,43 +142,48 @@ class HmsScanModule(reactContext: ReactApplicationContext) :
       // current (not-granted) state rather than hanging the promise.
       promise.reject(
         E_NO_ACTIVITY,
-        "Cannot request camera permission: no current PermissionAwareActivity"
+        "Cannot request camera permission: no current PermissionAwareActivity",
       )
       return
     }
 
     val permissionAwareActivity = activity as PermissionAwareActivity
-    val listener = PermissionListener { requestCode, _, grantResults ->
-      if (requestCode != CAMERA_PERMISSION_REQUEST_CODE) {
-        return@PermissionListener false
+    val listener =
+      PermissionListener { requestCode, _, grantResults ->
+        if (requestCode != CAMERA_PERMISSION_REQUEST_CODE) {
+          return@PermissionListener false
+        }
+        val granted =
+          grantResults.isNotEmpty() &&
+            grantResults[0] == PackageManager.PERMISSION_GRANTED
+        val status =
+          when {
+            granted -> GRANTED
+
+            // After a denial: rationale==true means the user can be asked again;
+            // rationale==false means "don't ask again" (blocked).
+            ActivityCompat.shouldShowRequestPermissionRationale(
+              activity,
+              Manifest.permission.CAMERA,
+            ) -> DENIED
+
+            else -> BLOCKED
+          }
+        promise.resolve(status)
+        true
       }
-      val granted = grantResults.isNotEmpty() &&
-        grantResults[0] == PackageManager.PERMISSION_GRANTED
-      val status = when {
-        granted -> GRANTED
-        // After a denial: rationale==true means the user can be asked again;
-        // rationale==false means "don't ask again" (blocked).
-        ActivityCompat.shouldShowRequestPermissionRationale(
-          activity,
-          Manifest.permission.CAMERA
-        ) -> DENIED
-        else -> BLOCKED
-      }
-      promise.resolve(status)
-      true
-    }
 
     permissionAwareActivity.requestPermissions(
       arrayOf(Manifest.permission.CAMERA),
       CAMERA_PERMISSION_REQUEST_CODE,
-      listener
+      listener,
     )
   }
 
   private fun hasCameraPermission(): Boolean =
     ContextCompat.checkSelfPermission(
       reactApplicationContext,
-      Manifest.permission.CAMERA
+      Manifest.permission.CAMERA,
     ) == PackageManager.PERMISSION_GRANTED
 
   companion object {

@@ -16,34 +16,30 @@ import com.facebook.react.uimanager.ViewManager
  * getReactModuleInfoProvider，视图走 createViewManagers + listOf(ViewManager)。
  */
 class ReactNativeHmsScanPackage : BaseReactPackage() {
-
   override fun getModule(
     name: String,
-    reactContext: ReactApplicationContext
-  ): NativeModule? {
-    return if (name == HmsScanModule.NAME) {
+    reactContext: ReactApplicationContext,
+  ): NativeModule? =
+    if (name == HmsScanModule.NAME) {
       HmsScanModule(reactContext)
     } else {
       null
     }
-  }
 
-  override fun getReactModuleInfoProvider() = ReactModuleInfoProvider {
-    mapOf(
-      HmsScanModule.NAME to ReactModuleInfo(
-        name = HmsScanModule.NAME,
-        className = HmsScanModule.NAME,
-        canOverrideExistingModule = false,
-        needsEagerInit = false,
-        isCxxModule = false,
-        isTurboModule = true
+  override fun getReactModuleInfoProvider() =
+    ReactModuleInfoProvider {
+      mapOf(
+        HmsScanModule.NAME to
+          ReactModuleInfo(
+            name = HmsScanModule.NAME,
+            className = HmsScanModule.NAME,
+            canOverrideExistingModule = false,
+            needsEagerInit = false,
+            isCxxModule = false,
+            isTurboModule = true,
+          ),
       )
-    )
-  }
+    }
 
-  override fun createViewManagers(
-    reactContext: ReactApplicationContext
-  ): List<ViewManager<*, *>> {
-    return listOf(HmsScanViewManager())
-  }
+  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = listOf(HmsScanViewManager())
 }

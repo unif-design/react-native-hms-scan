@@ -24,34 +24,27 @@ RCT_EXPORT_MODULE(HmsScan)
 
 // AVAuthorizationStatus -> our CameraPermissionStatus string.
 // authorized -> granted; notDetermined -> undetermined; denied/restricted -> blocked.
-+ (NSString *)stringForAuthorizationStatus:(AVAuthorizationStatus)status
-{
++ (NSString *)stringForAuthorizationStatus:(AVAuthorizationStatus)status {
   switch (status) {
-    case AVAuthorizationStatusAuthorized:
-      return @"granted";
-    case AVAuthorizationStatusNotDetermined:
-      return @"undetermined";
-    case AVAuthorizationStatusDenied:
-    case AVAuthorizationStatusRestricted:
-      return @"blocked";
-    default:
-      return @"undetermined";
+  case AVAuthorizationStatusAuthorized:
+    return @"granted";
+  case AVAuthorizationStatusNotDetermined:
+    return @"undetermined";
+  case AVAuthorizationStatusDenied:
+  case AVAuthorizationStatusRestricted:
+    return @"blocked";
+  default:
+    return @"undetermined";
   }
 }
 
-- (void)getCameraPermissionStatus:(RCTPromiseResolveBlock)resolve
-                           reject:(RCTPromiseRejectBlock)reject
-{
-  AVAuthorizationStatus status =
-      [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
+- (void)getCameraPermissionStatus:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+  AVAuthorizationStatus status = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
   resolve([HmsScanModule stringForAuthorizationStatus:status]);
 }
 
-- (void)requestCameraPermission:(RCTPromiseResolveBlock)resolve
-                         reject:(RCTPromiseRejectBlock)reject
-{
-  AVAuthorizationStatus current =
-      [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
+- (void)requestCameraPermission:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject {
+  AVAuthorizationStatus current = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
 
   // Only notDetermined can present the system prompt. For an already-resolved
   // state, return it directly (requestAccess would still call back immediately,
@@ -63,12 +56,12 @@ RCT_EXPORT_MODULE(HmsScan)
 
   [AVCaptureDevice requestAccessForMediaType:AVMediaTypeVideo
                            completionHandler:^(BOOL granted) {
-    // Re-read the authoritative status rather than inferring from `granted`,
-    // so restricted/denied are reported correctly.
-    AVAuthorizationStatus updated =
-        [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
-    resolve([HmsScanModule stringForAuthorizationStatus:updated]);
-  }];
+                             // Re-read the authoritative status rather than inferring from `granted`,
+                             // so restricted/denied are reported correctly.
+                             AVAuthorizationStatus updated =
+                                 [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeVideo];
+                             resolve([HmsScanModule stringForAuthorizationStatus:updated]);
+                           }];
 }
 
 #pragma mark - Image loading
@@ -76,8 +69,7 @@ RCT_EXPORT_MODULE(HmsScan)
 // Load a UIImage from a local URI: file:// , an absolute/relative file path,
 // or a data: URI. Remote URLs and Photos (ph:// / assets-library://) are not
 // supported here -> returns nil so the caller rejects E_IMAGE_LOAD_FAILED.
-+ (nullable UIImage *)imageForURI:(NSString *)uri
-{
++ (nullable UIImage *)imageForURI:(NSString *)uri {
   if (uri.length == 0) {
     return nil;
   }
@@ -121,13 +113,11 @@ RCT_EXPORT_MODULE(HmsScan)
 - (void)decodeImage:(NSString *)uri
          formatsCsv:(NSString *)formatsCsv
             resolve:(RCTPromiseResolveBlock)resolve
-             reject:(RCTPromiseRejectBlock)reject
-{
+             reject:(RCTPromiseRejectBlock)reject {
   UIImage *image = [HmsScanModule imageForURI:uri];
   if (image == nil) {
     reject(kErrImageLoadFailed,
-           [NSString stringWithFormat:@"无法从 URI 加载图片（仅支持 file:// / 绝对路径 / data:）：%@",
-            uri ?: @"(nil)"],
+           [NSString stringWithFormat:@"无法从 URI 加载图片（仅支持 file:// / 绝对路径 / data:）：%@", uri ?: @"(nil)"],
            nil);
     return;
   }
@@ -135,8 +125,7 @@ RCT_EXPORT_MODULE(HmsScan)
   @try {
     unsigned int formatType = [HmsScanResultMapper scanFormatTypeFromCsv:formatsCsv];
     // photoMode/Photo=YES: still-image (album) decode path, per HUAWEI guidance.
-    HmsScanOptions *options =
-        [[HmsScanOptions alloc] initWithScanFormatType:formatType Photo:YES];
+    HmsScanOptions *options = [[HmsScanOptions alloc] initWithScanFormatType:formatType Photo:YES];
 
     NSArray *raw = [HmsBitMap multiDecodeBitMapForImage:image withOptions:options];
     NSString *json = [HmsScanResultMapper jsonStringFromHuaweiArray:raw];
@@ -144,17 +133,14 @@ RCT_EXPORT_MODULE(HmsScan)
     // JS parseResultsJson handles the empty case.
     resolve(json);
   } @catch (NSException *exception) {
-    reject(kErrDecodeFailed,
-           exception.reason ?: @"HUAWEI Scan Kit 解码图片时发生异常",
-           nil);
+    reject(kErrDecodeFailed, exception.reason ?: @"HUAWEI Scan Kit 解码图片时发生异常", nil);
   }
 }
 
 #pragma mark - TurboModule
 
 - (std::shared_ptr<facebook::react::TurboModule>)getTurboModule:
-    (const facebook::react::ObjCTurboModule::InitParams &)params
-{
+    (const facebook::react::ObjCTurboModule::InitParams &)params {
   return std::make_shared<facebook::react::NativeHmsScanSpecJSI>(params);
 }
 
