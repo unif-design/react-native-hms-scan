@@ -1,5 +1,10 @@
 # @unif/react-native-hms-scan
 
+[![npm](https://img.shields.io/npm/v/@unif/react-native-hms-scan.svg?color=cb3837&logo=npm)](https://www.npmjs.com/package/@unif/react-native-hms-scan)
+[![CI](https://github.com/unif-design/react-native-hms-scan/actions/workflows/ci.yml/badge.svg)](https://github.com/unif-design/react-native-hms-scan/actions/workflows/ci.yml)
+[![License](https://img.shields.io/npm/l/@unif/react-native-hms-scan.svg?color=blue)](https://github.com/unif-design/react-native-hms-scan/blob/main/LICENSE)
+[![Docs](https://img.shields.io/badge/docs-unif--design.github.io-orange.svg)](https://unif-design.github.io/react-native-hms-scan/)
+
 华为 **HMS 统一扫码服务**（HUAWEI Scan Kit）的 React Native 封装，新架构（TurboModule + Fabric）。聚焦两件事：
 
 - **定制视图扫码** —— 底层 headless `<HmsScanView>` 相机组件，外加按设计稿做好的成品 `<Scanner>` 扫一扫页（聚焦款，浅色）。
