@@ -5,8 +5,10 @@ import { scanChrome } from './scanChrome';
 interface ScanToolbarProps {
   flash: boolean;
   bottomInset: number;
-  onFlash: () => void;
-  onAlbum: () => void;
+  /** 不传则不显示手电筒按钮。 */
+  onFlash?: () => void;
+  /** 不传则不显示相册按钮(库不内置图片选择器,需宿主提供 pickImage)。 */
+  onAlbum?: () => void;
 }
 
 // 底部工具栏：手电筒 · 相册（按定稿，去掉了搜索 / 输入码）。点亮态用主题主色。
@@ -14,13 +16,15 @@ export function ScanToolbar({ flash, bottomInset, onFlash, onAlbum }: ScanToolba
   const c = useColors();
   return (
     <View style={[styles.bar, { bottom: bottomInset + r(50) }]} pointerEvents="box-none">
-      <ToolbarItem
-        icon={flash ? 'flash-on' : 'flash-off'}
-        label={flash ? '已开灯' : '手电筒'}
-        activeColor={flash ? c.primary : undefined}
-        onPress={onFlash}
-      />
-      <ToolbarItem icon="image" label="相册" onPress={onAlbum} />
+      {onFlash && (
+        <ToolbarItem
+          icon={flash ? 'flash-on' : 'flash-off'}
+          label={flash ? '已开灯' : '手电筒'}
+          activeColor={flash ? c.primary : undefined}
+          onPress={onFlash}
+        />
+      )}
+      {onAlbum && <ToolbarItem icon="image" label="相册" onPress={onAlbum} />}
     </View>
   );
 }
