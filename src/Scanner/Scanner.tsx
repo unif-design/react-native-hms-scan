@@ -32,6 +32,8 @@ export interface ScannerProps {
   topInset?: number;
   /** 底部安全区（默认 34）。 */
   bottomInset?: number;
+  /** 是否显示手电筒按钮，默认 true。手电由库内自管（Android 可用；iOS 为 best-effort，可在 iOS 上关掉）。 */
+  showTorch?: boolean;
   /** 左上角关闭。 */
   onClose?: () => void;
   /**
@@ -45,7 +47,7 @@ export interface ScannerProps {
   onConfirm?: (product: ScanProduct, result: ScanResult) => void;
   /**
    * 点"相册"：宿主用自己的图片选择器选图并返回本地 uri（取消则返回 null）。
-   * 不传则相册按钮不可用。
+   * 库不内置图片选择器（遵循 RN 惯例）：**传了才显示相册按钮**，不传则隐藏。
    */
   pickImage?: () => Promise<string | null>;
 }
@@ -70,6 +72,7 @@ function ScannerInner({
   hintText = DEFAULT_HINT,
   topInset = 54,
   bottomInset = 34,
+  showTorch = true,
   onClose,
   resolveProduct,
   onConfirm,
@@ -205,12 +208,12 @@ function ScannerInner({
         <ScanTopBar title={title} topInset={topInset} onClose={onClose} />
       )}
 
-      {showChrome && (
+      {showChrome && (showTorch || !!pickImage) && (
         <ScanToolbar
           flash={torch}
           bottomInset={bottomInset}
-          onFlash={() => setTorch((t) => !t)}
-          onAlbum={onAlbum}
+          onFlash={showTorch ? () => setTorch((t) => !t) : undefined}
+          onAlbum={pickImage ? onAlbum : undefined}
         />
       )}
 

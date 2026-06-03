@@ -202,32 +202,60 @@ using namespace facebook::react;
   [self emitTorchStatusAvailable:available on:torchOn];
 }
 
+// 优先取「带手电的后置广角相机」(这通常就是华为扫码用的那颗);取不到再退回
+// 默认 video 设备。比已弃用的 defaultDeviceWithMediaType 更可能命中正确设备。
+- (AVCaptureDevice *)torchCaptureDevice {
+  AVCaptureDeviceDiscoverySession *session =
+      [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:@[ AVCaptureDeviceTypeBuiltInWideAngleCamera ]
+                                                             mediaType:AVMediaTypeVideo
+                                                              position:AVCaptureDevicePositionBack];
+  for (AVCaptureDevice *d in session.devices) {
+    if (d.hasTorch) {
+      return d;
+    }
+  }
+  return [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+}
+
 // Mutates the capture device's torch. Returns the resulting on-state and writes
 // hardware availability into `available`. Does NOT emit any event (so it can be
 // reused on teardown/recycle without firing onTorchStatus on a stale emitter).
+//
+// best-effort:华为独占相机会话且无手电 API,这里直接操作设备硬件。可能因华为
+// 持有配置锁(lockForConfiguration 失败)或用了别的设备而不生效。DEBUG 日志会
+// 打印到底卡在哪一步,真机调试时看 Xcode console。
 - (BOOL)setTorchHardwareOn:(BOOL)on available:(BOOL *)available {
-  AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
-  BOOL isAvailable = (device != nil && device.hasTorch && device.isTorchAvailable);
+  AVCaptureDevice *device = [self torchCaptureDevice];
+  BOOL hasTorch = (device != nil && device.hasTorch);
   if (available != NULL) {
-    *available = isAvailable;
+    *available = hasTorch;
   }
-  if (!isAvailable) {
+  if (!hasTorch) {
+#if DEBUG
+    NSLog(@"[HmsScanView] torch: 无带手电的相机设备 (device=%@)", device);
+#endif
     return NO;
   }
 
   BOOL torchOn = NO;
   NSError *error = nil;
   if ([device lockForConfiguration:&error]) {
-    if (on && [device isTorchModeSupported:AVCaptureTorchModeOn]) {
+    if (on && device.isTorchAvailable && [device isTorchModeSupported:AVCaptureTorchModeOn]) {
       device.torchMode = AVCaptureTorchModeOn;
-      torchOn = YES;
     } else {
       device.torchMode = AVCaptureTorchModeOff;
-      torchOn = NO;
     }
+    torchOn = device.isTorchActive; // 反映硬件真实状态,而非乐观假设
     [device unlockForConfiguration];
+#if DEBUG
+    NSLog(@"[HmsScanView] torch 请求 on=%d -> isTorchActive=%d isTorchAvailable=%d", on, device.isTorchActive,
+          device.isTorchAvailable);
+#endif
+  } else {
+#if DEBUG
+    NSLog(@"[HmsScanView] torch lockForConfiguration 失败(华为可能占用了设备配置锁): %@", error);
+#endif
   }
-  // On lock failure we silently ignore (best-effort) and report torchOn = NO.
   return torchOn;
 }
 
@@ -303,3 +331,9 @@ using namespace facebook::react;
 }
 
 @end
+
+// Fabric 组件注册钩子。RN codegen 生成的 RCTThirdPartyFabricComponentsProvider 用
+// {"HmsScanView", HmsScanViewCls} 建表并调用本函数拿到视图类(见
+// @react-native/codegen 的 GenerateThirdPartyFabricComponentsProviderObjCpp)。
+// 缺这个函数 → 组件注册不上 → JS 端报 "Unimplemented component: <HmsScanView>"。
+Class<RCTComponentViewProtocol> HmsScanViewCls(void) { return HmsScanView.class; }
