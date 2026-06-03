@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/unif-design/react-native-hms-scan/compare/v0.2.1...v0.2.2) (2026-06-03)
+
+
+### Bug Fixes
+
+* **ios:** 修 HmsScanView 未注册(Unimplemented component) + 工具栏显隐/手电改进 ([#24](https://github.com/unif-design/react-native-hms-scan/issues/24)) ([689da8b](https://github.com/unif-design/react-native-hms-scan/commit/689da8b779501298ca6aee882e7aedd76dffdc28))
+
 ## [0.2.1](https://github.com/unif-design/react-native-hms-scan/compare/v0.2.0...v0.2.1) (2026-06-03)
 
 
