@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/unif-design/react-native-hms-scan/compare/v0.2.0...v0.2.1) (2026-06-03)
+
+
+### Bug Fixes
+
+* **ios:** package.json files 补 scripts 修 pod install 缺脚本(发 0.2.1) ([#22](https://github.com/unif-design/react-native-hms-scan/issues/22)) ([d29ca57](https://github.com/unif-design/react-native-hms-scan/commit/d29ca57b67ac2e6b431fcc3540caa191efb36efb))
+
 # 0.2.0 (2026-06-02)
 
 
