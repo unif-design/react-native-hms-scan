@@ -31,10 +31,11 @@ function Scanner(props: ScannerProps): JSX.Element
 | `hintText` | `string` | `'将条码 / 二维码放入框内，自动扫描'` | 取景态提示文案 |
 | `topInset` | `number` | `54` | 顶部安全区高度（px）。使用 `react-native-safe-area-context` 时传 `insets.top` |
 | `bottomInset` | `number` | `34` | 底部安全区高度（px）。使用 `react-native-safe-area-context` 时传 `insets.bottom` |
+| `showTorch` | `boolean` | `true` | 是否显示手电筒按钮。手电由库内自管：Android 可编程控制；**iOS 为 best-effort**（HMS 无公开手电 API），可在 iOS 传 `false` 隐藏 |
 | `onClose` | `() => void` | — | 左上角关闭按钮回调 |
 | `resolveProduct` | `(result: ScanResult) => ScanProduct \| null \| undefined \| Promise<...>` | — | 扫到条码后由宿主解析商品信息（用于浮层确认卡）。返回 `null`/`undefined` 或抛错 = 未识别 → fail 状态。不传则以 `result.value` 作为商品名 |
 | `onConfirm` | `(product: ScanProduct, result: ScanResult) => void` | — | 用户点"确认"时回调 |
-| `pickImage` | `() => Promise<string \| null>` | — | 点"相册"：宿主返回本地 uri，取消返回 `null`。不传则相册按钮不可用 |
+| `pickImage` | `() => Promise<string \| null>` | — | 点"相册"：宿主返回本地 uri，取消返回 `null`。**库不内置图片选择器，不传则不显示相册按钮** |
 
 ---
 

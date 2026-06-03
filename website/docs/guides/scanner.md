@@ -73,7 +73,7 @@ init → scan（取景）→ detecting（识别中）
 
 ## 相册扫码 `pickImage`
 
-传入 `pickImage` 后底部工具栏的"相册"按钮变为可用。宿主用自己的图片选择器选图，返回本地 `uri`（取消返回 `null`）：
+传入 `pickImage` 后，底部工具栏才显示"相册"按钮（库不内置图片选择器，遵循 RN 惯例）。宿主用自己的图片选择器选图，返回本地 `uri`（取消返回 `null`）：
 
 ```tsx
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -86,7 +86,26 @@ import { launchImageLibrary } from 'react-native-image-picker';
 />
 ```
 
-不传 `pickImage` 则相册按钮不可用。
+不传 `pickImage` 则不显示相册按钮。
+
+---
+
+## 手电筒 `showTorch`
+
+底部工具栏默认显示手电筒按钮（`showTorch` 默认 `true`），手电状态由库内自管：
+
+- **Android**：可编程控制，稳定可用。
+- **iOS**：HMS 未提供公开手电 API，本库通过 `AVCaptureDevice` **尽力而为**，不保证点亮。
+
+不想在 iOS 上呈现一个可能无效的按钮，可关掉：
+
+```tsx
+import { Platform } from 'react-native';
+
+<Scanner showTorch={Platform.OS === 'android'} />
+```
+
+详见 [平台差异 → 手电筒](/docs/platform-differences#手电筒)。
 
 ---
 

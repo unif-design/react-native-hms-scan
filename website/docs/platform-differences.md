@@ -41,7 +41,7 @@ iOS 端 HMS 框架未提供公开的手电控制接口。本库通过 `AVCapture
 
 - `torch={true}` **不保证**手电一定点亮（设备差异 / 系统限制）
 - `onTorchStatus.available` **不会上报**（始终不触发）
-- 建议 iOS 上手电按钮以"提示"而非"保证"的方式向用户呈现
+- 建议 iOS 上手电按钮以"提示"而非"保证"的方式呈现；或在成品 [`<Scanner>`](/docs/api/scanner) 上用 `showTorch={false}` 直接隐藏该按钮
 
 ---
 
