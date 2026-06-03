@@ -129,7 +129,7 @@ const [torch, setTorch] = useState(false);
 - **Android** —— `torch` 可编程控制;`onTorchStatus.available` 会在暗光时上报 `true`,可据此决定是否显示手电按钮。
 - **iOS** —— HMS 无公开手电 API,本库走 `AVCaptureDevice` **尽力而为**,不保证点亮;`onTorchStatus.available` **永不上报**(始终不触发)。
 
-所以**别把 `onTorchStatus.available` 当作跨平台的暗光信号** —— iOS 上它不会来。详见[平台差异 → 手电筒](/docs/platform-differences#手电筒)。
+所以**别把 `onTorchStatus.available` 当作跨平台的暗光信号** —— iOS 上它不会来。详见[平台差异 → 手电筒](/docs/platform-differences#torch)。
 :::
 
 ---

@@ -100,7 +100,7 @@ buildscript {
 - `torch={true}` **不保证**点亮(设备 / 系统差异)。
 - `onTorchStatus.available`(暗光提示)**仅 Android 上报,iOS 永不上报** —— 别把它当跨平台的暗光信号。
 
-建议 iOS 上把手电按钮以「提示」而非「保证」呈现,或在 `<Scanner>` 上用 `showTorch={false}` 直接隐藏。详见[平台差异 → 手电筒](/docs/platform-differences#手电筒)。
+建议 iOS 上把手电按钮以「提示」而非「保证」呈现,或在 `<Scanner>` 上用 `showTorch={false}` 直接隐藏。详见[平台差异 → 手电筒](/docs/platform-differences#torch)。
 
 ---
 

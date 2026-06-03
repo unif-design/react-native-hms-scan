@@ -119,7 +119,7 @@ import { Platform } from 'react-native';
 <Scanner showTorch={Platform.OS === 'android'} />
 ```
 
-详见[平台差异 → 手电筒](/docs/platform-differences#手电筒)。
+详见[平台差异 → 手电筒](/docs/platform-differences#torch)。
 
 ---
 
