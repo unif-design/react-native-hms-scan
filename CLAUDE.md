@@ -70,7 +70,7 @@ decodeImage        从本地图片识别 → ScanResult[]
 ## 关键坑
 
 - **iOS 扫码仅真机**:`ScanKitFrameWork` 是华为老式 fat framework(只有 arm64 真机 + x86_64 Intel 模拟器切片)。podspec 的 `prepare_command`(`scripts/prepare-scankit-xcframework.sh`)用 vtool 补出 arm64-sim 打成 xcframework;模拟器能编译但相机要真机。见到 `ld: building for iOS-simulator but linking in object built for iOS` **是预期**,切真机即可。`pod install` 的 `ScanKitFrameWork LICENSE` warning 无害。
-- **`decodeImage` 不下载远程 URL** —— 只接受本地 `file://` / `content://`(Android)/ `ph://`(iOS)/ 绝对路径;识别网络图请宿主先下到本地再传。
+- **`decodeImage` 不下载远程 URL** —— 接受的本地 URI 因平台而异:**iOS** 仅 `file:///绝对路径` / `data:`(**不支持 `ph://` / `assets-library://`**);`content://` 仅 **Android**。识别网络图请宿主先下到本地再传;传远程 / iOS 不支持的 URI 会**抛 `E_IMAGE_LOAD_FAILED`**(不是返回 `[]`)。
 - **`decodeImage` 返回空数组 `[]` 是正常结果**(图里没码),不是错误、不会 throw。别把 `!results.length` 当失败抛异常。(真正的失败 —— 图片加载失败 / 读权限缺失 —— 才抛 `HmsScanError`,带 `code`。)
 - **iOS 手电是 best-effort**;`onTorchStatus.available`(暗光提示)**仅 Android 上报**,iOS 永不上报。
 - **Android minSdkVersion ≥ 24**(Android 7.0)。华为 maven 源 + `scanplus` 依赖**已写在库自己的 `android/build.gradle` 里,宿主不用加**;也**无需 agconnect / agconnect-services.json / API Key**。
