@@ -205,10 +205,10 @@ using namespace facebook::react;
 // 优先取「带手电的后置广角相机」(这通常就是华为扫码用的那颗);取不到再退回
 // 默认 video 设备。比已弃用的 defaultDeviceWithMediaType 更可能命中正确设备。
 - (AVCaptureDevice *)torchCaptureDevice {
-  AVCaptureDeviceDiscoverySession *session = [AVCaptureDeviceDiscoverySession
-      discoverySessionWithDeviceTypes:@[ AVCaptureDeviceTypeBuiltInWideAngleCamera ]
-                            mediaType:AVMediaTypeVideo
-                             position:AVCaptureDevicePositionBack];
+  AVCaptureDeviceDiscoverySession *session =
+      [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:@[ AVCaptureDeviceTypeBuiltInWideAngleCamera ]
+                                                             mediaType:AVMediaTypeVideo
+                                                              position:AVCaptureDevicePositionBack];
   for (AVCaptureDevice *d in session.devices) {
     if (d.hasTorch) {
       return d;
@@ -248,8 +248,8 @@ using namespace facebook::react;
     torchOn = device.isTorchActive; // 反映硬件真实状态,而非乐观假设
     [device unlockForConfiguration];
 #if DEBUG
-    NSLog(@"[HmsScanView] torch 请求 on=%d -> isTorchActive=%d isTorchAvailable=%d",
-          on, device.isTorchActive, device.isTorchAvailable);
+    NSLog(@"[HmsScanView] torch 请求 on=%d -> isTorchActive=%d isTorchAvailable=%d", on, device.isTorchActive,
+          device.isTorchAvailable);
 #endif
   } else {
 #if DEBUG
@@ -336,7 +336,4 @@ using namespace facebook::react;
 // {"HmsScanView", HmsScanViewCls} 建表并调用本函数拿到视图类(见
 // @react-native/codegen 的 GenerateThirdPartyFabricComponentsProviderObjCpp)。
 // 缺这个函数 → 组件注册不上 → JS 端报 "Unimplemented component: <HmsScanView>"。
-Class<RCTComponentViewProtocol> HmsScanViewCls(void)
-{
-  return HmsScanView.class;
-}
+Class<RCTComponentViewProtocol> HmsScanViewCls(void) { return HmsScanView.class; }
