@@ -127,6 +127,11 @@
     "name": "ReactNativeHmsScanSpec",
     "type": "all",
     "jsSrcsDir": "src",
+    "ios": {
+      "componentProvider": {
+        "HmsScanView": "HmsScanView"
+      }
+    },
     "android": {
       "javaPackageName": "com.unif.reactnativehmsscan"
     }
