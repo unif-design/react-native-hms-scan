@@ -24,7 +24,7 @@ export function ScanToolbar({
   const c = useColors();
   return (
     <View style={[styles.bar, { bottom: bottomInset + r(50) }]} pointerEvents="box-none">
-      {onClose && <ToolbarItem icon="arrow-left" label="返回" onPress={onClose} />}
+      {onClose && <ToolbarItem icon="undo" label="返回" onPress={onClose} />}
       {onFlash && (
         <ToolbarItem
           icon={flash ? 'flash-on' : 'flash-off'}
