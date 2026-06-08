@@ -9,13 +9,22 @@ interface ScanToolbarProps {
   onFlash?: () => void;
   /** 不传则不显示相册按钮(库不内置图片选择器,需宿主提供 pickImage)。 */
   onAlbum?: () => void;
+  /** 返回按钮（退出扫码页，与手电筒并排）；不传则不显示。 */
+  onClose?: () => void;
 }
 
-// 底部工具栏：手电筒 · 相册（按定稿，去掉了搜索 / 输入码）。点亮态用主题主色。
-export function ScanToolbar({ flash, bottomInset, onFlash, onAlbum }: ScanToolbarProps) {
+// 底部工具栏：返回 · 手电筒 · 相册。点亮态用主题主色。
+export function ScanToolbar({
+  flash,
+  bottomInset,
+  onFlash,
+  onAlbum,
+  onClose,
+}: ScanToolbarProps) {
   const c = useColors();
   return (
     <View style={[styles.bar, { bottom: bottomInset + r(50) }]} pointerEvents="box-none">
+      {onClose && <ToolbarItem icon="arrow-left" label="返回" onPress={onClose} />}
       {onFlash && (
         <ToolbarItem
           icon={flash ? 'flash-on' : 'flash-off'}

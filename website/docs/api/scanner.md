@@ -32,13 +32,13 @@ function Scanner(props: ScannerProps): JSX.Element
 | `topInset` | `number` | `54` | 顶部安全区高度（px）。用 `react-native-safe-area-context` 时传 `insets.top` |
 | `bottomInset` | `number` | `34` | 底部安全区高度（px）。用 `react-native-safe-area-context` 时传 `insets.bottom` |
 | `showTorch` | `boolean` | `true` | 是否显示手电筒按钮。手电由库内自管：Android 可编程控制，**iOS 为 best-effort**（见[平台差异](/docs/platform-differences#torch)），可在 iOS 传 `false` 隐藏 |
-| `onClose` | `() => void` | — | 左上角关闭按钮回调 |
-| `resolveProduct` | `(result: ScanResult) => ScanProduct \| null \| undefined \| Promise<ScanProduct \| null \| undefined>` | — | 扫到条码后由宿主解析商品信息（用于浮层确认卡）。返回 `null` / `undefined` **或抛错** = 未识别 → 进入 fail 重试层。不传则以 `result.value` 作为商品名 |
-| `onConfirm` | `(product: ScanProduct, result: ScanResult) => void` | — | 用户点"确认"时回调（宿主通常在此导航返回） |
+| `onClose` | `() => void` | — | 返回按钮回调（退出扫码页；按钮在底部工具栏，与手电筒并排） |
+| `resolveProduct` | `(result: ScanResult) => ScanProduct \| null \| undefined \| Promise<ScanProduct \| null \| undefined>` | — | 扫到条码后由宿主解析商品信息（用于浮层确认卡）。返回 `null` / `undefined` **或抛错** = 未识别 → 进入 fail 重扫层。不传则以 `result.value` 作为商品名 |
+| `onConfirm` | `(product: ScanProduct, result: ScanResult) => void` | — | 用户点"确定"时回调（宿主通常在此导航返回） |
 | `pickImage` | `() => Promise<string \| null>` | — | 点"相册"：宿主用自己的图片选择器选图并返回本地 uri（取消返回 `null`）。**库不内置图片选择器：传了才显示相册按钮，不传则隐藏** |
 
-:::note 相册按钮 / 手电按钮的显隐
-工具栏在取景态显示，且仅当 `showTorch` 为真**或**传了 `pickImage` 时才出现：手电按钮受 `showTorch` 控制，相册按钮仅在传了 `pickImage` 时显示。`pickImage` 返回的本地 uri 会交给 `decodeImage` 识别（受同样的 [URI 规则](/docs/api/functions#accepted-uri) 约束）。
+:::note 返回 / 手电 / 相册按钮的显隐
+工具栏在取景态显示，只要 `showTorch` 为真、传了 `pickImage`、**或**传了 `onClose` 任一即出现：返回按钮在传了 `onClose` 时显示，手电按钮受 `showTorch` 控制，相册按钮仅在传了 `pickImage` 时显示。`pickImage` 返回的本地 uri 会交给 `decodeImage` 识别（受同样的 [URI 规则](/docs/api/functions#accepted-uri) 约束）。
 :::
 
 ---
@@ -109,8 +109,8 @@ function ScanScreen({ navigation }) {
 ## 注意事项
 
 - 挂载时**自动请求相机权限**：已授权直接进入取景；永久拒绝（`blocked`）展示引导去系统设置的遮罩。无需自行写权限流。
-- 内部状态机：`init → scan → detecting → success / fail / denied`，**一次扫一个**（扫到 `results[0]` 进 detecting，确认后回 scan）。
-- `resolveProduct` **抛错与返回 `null` / `undefined` 效果相同**，均进入 fail 重试层。
+- 内部状态机：`init → scan → detecting → success / fail / denied`，**一次扫一个**（扫到 `results[0]` 进 detecting，确定或重扫后回 scan）。
+- `resolveProduct` **抛错与返回 `null` / `undefined` 效果相同**，均进入 fail 重扫层。
 - 自带 `ThemeProvider`；放进宿主已有的 `ThemeProvider` 里也兼容（嵌套不报错）。
 - `@unif/react-native-design` 是 peer 依赖，`<Scanner>` 的 UI 依赖它（及其链上的 `@gorhom/bottom-sheet` / `react-native-reanimated` / `react-native-gesture-handler`）。
 

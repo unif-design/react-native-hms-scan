@@ -37,7 +37,7 @@ describe('<Scanner>', () => {
     expect(screen.getByText(HINT)).toBeTruthy();
   });
 
-  it('扫到码 → 解析商品 → 浮层确认卡 → 点确认带回结果', async () => {
+  it('扫到码 → 解析商品 → 浮层确认卡 → 点确定带回结果', async () => {
     const onConfirm = jest.fn();
     const resolveProduct = jest.fn(async () => ({
       name: '阿萨姆原味奶茶 500ml',
@@ -53,14 +53,14 @@ describe('<Scanner>', () => {
     });
 
     expect(await screen.findByText(/阿萨姆原味奶茶/)).toBeTruthy();
-    expect(screen.getByText('确认')).toBeTruthy();
-    expect(screen.getByText('继续扫描')).toBeTruthy();
+    expect(screen.getByText('确定')).toBeTruthy();
+    expect(screen.getByText('重扫')).toBeTruthy();
     expect(resolveProduct).toHaveBeenCalledWith({
       value: '6925303773908',
       format: 'EAN_13',
     });
 
-    fireEvent.press(screen.getByText('确认'));
+    fireEvent.press(screen.getByText('确定'));
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(onConfirm.mock.calls[0][0]).toMatchObject({ name: '阿萨姆原味奶茶 500ml' });
     expect(onConfirm.mock.calls[0][1]).toEqual({
@@ -69,14 +69,14 @@ describe('<Scanner>', () => {
     });
   });
 
-  it('点继续扫描 → 回到取景', async () => {
+  it('点重扫 → 回到取景', async () => {
     render(<Scanner resolveProduct={async () => ({ name: 'X 商品' })} />);
     await screen.findByText('扫一扫');
     await act(async () => {
       emitScan([{ value: '1', format: 'QR_CODE' }]);
     });
     await screen.findByText('X 商品');
-    fireEvent.press(screen.getByText('继续扫描'));
+    fireEvent.press(screen.getByText('重扫'));
     expect(await screen.findByText(HINT)).toBeTruthy();
   });
 
@@ -87,7 +87,7 @@ describe('<Scanner>', () => {
       emitScan([{ value: '1', format: 'QR_CODE' }]);
     });
     expect(await screen.findByText('未识别到条码')).toBeTruthy();
-    expect(screen.getByText('重新扫描')).toBeTruthy();
+    expect(screen.getByText('重扫')).toBeTruthy();
   });
 
   it('权限被拒 → 显示无权限遮罩', async () => {

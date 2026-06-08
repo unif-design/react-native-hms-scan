@@ -11,12 +11,13 @@ import {
 
 interface ResultFailProps {
   bottomInset: number;
-  onRetry: () => void;
+  /** 重扫：回到取景重新扫描。（退出扫码页是外层工具栏「返回」的事。） */
+  onRescan: () => void;
 }
 
-// 未识别失败的底部弹层：design 的 Empty（error-alert）+ Button（重新扫描）。
+// 未识别失败的底部弹层：design 的 Empty（error-alert）+ Button（重扫）。
 // 聚焦款不加背景遮罩，与浮层确认卡保持一致。
-export function ResultFail({ bottomInset, onRetry }: ResultFailProps) {
+export function ResultFail({ bottomInset, onRescan }: ResultFailProps) {
   const s = useThemedStyles(makeStyles);
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -37,7 +38,7 @@ export function ResultFail({ bottomInset, onRetry }: ResultFailProps) {
           title="未识别到条码"
           desc="请将条码完整置于框内、保持平整并对准光线后重试。"
         />
-        <Button label="重新扫描" leftIcon="retry" variant="primary" block onPress={onRetry} />
+        <Button label="重扫" variant="primary" block onPress={onRescan} />
       </View>
     </Animated.View>
   );

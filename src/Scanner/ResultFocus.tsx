@@ -19,7 +19,9 @@ interface ResultFocusProps {
   /** 识别耗时（ms），用于 "已识别 · 0.6s"。<=0 则只显示 "已识别"。 */
   detectMs: number;
   bottomInset: number;
-  onContinue: () => void;
+  /** 重扫：放弃本次结果，回到取景重新扫描。（退出扫码页是外层工具栏「返回」的事。） */
+  onRescan: () => void;
+  /** 确定：确认本次结果并带回上一级。 */
   onConfirm: () => void;
 }
 
@@ -28,7 +30,7 @@ export function ResultFocus({
   product,
   detectMs,
   bottomInset,
-  onContinue,
+  onRescan,
   onConfirm,
 }: ResultFocusProps) {
   const c = useColors();
@@ -86,10 +88,10 @@ export function ResultFocus({
           )}
         </View>
 
-        {/* 操作 */}
+        {/* 操作：重扫（回取景）· 确定（确认带回） */}
         <View style={styles.actions}>
-          <Button label="继续扫描" variant="secondary" onPress={onContinue} style={styles.btn} />
-          <Button label="确认" variant="primary" onPress={onConfirm} style={styles.btn} />
+          <Button label="重扫" variant="secondary" onPress={onRescan} style={styles.btn} />
+          <Button label="确定" variant="primary" onPress={onConfirm} style={styles.btn} />
         </View>
       </Card>
     </Animated.View>

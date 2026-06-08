@@ -28,7 +28,7 @@ description: "@unif/react-native-hms-scan 是华为 HMS Scan Kit 的 React Nativ
 ```tsx
 import { Scanner } from '@unif/react-native-hms-scan';
 
-// 一个组件就是完整的「扫一扫」页:取景 → 识别 → 确认带回
+// 一个组件就是完整的「扫一扫」页:取景 → 识别 → 确定带回
 <Scanner
   title="扫一扫"
   onClose={() => navigation.goBack()}
@@ -46,7 +46,7 @@ import { Scanner } from '@unif/react-native-hms-scan';
 
 ## 能力
 
-- **成品「扫一扫」页** —— `<Scanner>` 自带状态机 + 权限流 + 主题,一次扫一个,扫到后弹浮层确认卡,确认带回上一级。
+- **成品「扫一扫」页** —— `<Scanner>` 自带状态机 + 权限流 + 主题,一次扫一个,扫到后弹浮层确认卡,确定带回上一级。
 - **headless 自定义扫码** —— `<HmsScanView>` 只出预览 + 抛事件,UI 完全自绘;支持 `formats` / `paused` / `continuous` / `torch`。
 - **图片识别** —— `decodeImage(localUri)` 从本地图片解码,可限定码制。
 - **相机权限工具** —— `getCameraPermissionStatus` / `requestCameraPermission`,返回归一化的四态状态。
