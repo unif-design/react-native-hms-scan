@@ -1,5 +1,17 @@
 # Changelog
 
+# [0.3.0](https://github.com/unif-design/react-native-hms-scan/compare/v0.2.2...v0.3.0) (2026-06-08)
+
+
+### Bug Fixes
+
+* **codegen:** 补 ios.componentProvider 注册 + deploy-docs/jest 工程优化 ([#30](https://github.com/unif-design/react-native-hms-scan/issues/30)) ([8798c5d](https://github.com/unif-design/react-native-hms-scan/commit/8798c5d0cd105fed4ce8f8d077ed07f388818849))
+
+
+### Features
+
+* **llms:** sync generator (index desc/TOC/LiveDemo/order) ([#26](https://github.com/unif-design/react-native-hms-scan/issues/26)) ([0bac684](https://github.com/unif-design/react-native-hms-scan/commit/0bac684af58e18027b7362bf31d79fa6425932e3))
+
 ## [0.2.2](https://github.com/unif-design/react-native-hms-scan/compare/v0.2.1...v0.2.2) (2026-06-03)
 
 
