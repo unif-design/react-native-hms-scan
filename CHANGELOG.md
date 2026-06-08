@@ -1,5 +1,12 @@
 # Changelog
 
+# [0.4.0](https://github.com/unif-design/react-native-hms-scan/compare/v0.3.1...v0.4.0) (2026-06-08)
+
+
+### Features
+
+* **scanner:** Scanner UI 调整 + 底栏返回改 undo ([#32](https://github.com/unif-design/react-native-hms-scan/issues/32)) ([df7108f](https://github.com/unif-design/react-native-hms-scan/commit/df7108f4a9c616df6732f86d07ace994462cacd8))
+
 ## [0.3.1](https://github.com/unif-design/react-native-hms-scan/compare/v0.3.0...v0.3.1) (2026-06-08)
 
 # [0.3.0](https://github.com/unif-design/react-native-hms-scan/compare/v0.2.2...v0.3.0) (2026-06-08)
