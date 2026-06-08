@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
-import { ThemeProvider, ToastHost, toast } from '@unif/react-native-design';
+import { ThemeProvider, ToastHost } from '@unif/react-native-design';
 import { HmsScanView } from '../HmsScanView';
 import { decodeImage } from '../decodeImage';
 import {
@@ -34,7 +34,7 @@ export interface ScannerProps {
   bottomInset?: number;
   /** 是否显示手电筒按钮，默认 true。手电由库内自管（Android 可用；iOS 为 best-effort，可在 iOS 上关掉）。 */
   showTorch?: boolean;
-  /** 左上角关闭。 */
+  /** 返回回调（退出扫码页，回到上一级）；按钮在底部工具栏，与手电筒并排。 */
   onClose?: () => void;
   /**
    * 扫到条码后由宿主解析商品信息（用于浮层确认卡）。
@@ -181,7 +181,8 @@ function ScannerInner({
     const r = lastResultRef.current;
     const p = product;
     if (p && r) onConfirm?.(p, r);
-    toast.success('已确认 · 扫描结果已填入上一级');
+    // 不在此 toast:确认页已展示结果,且 toast 是宿主职责(onConfirm 回调里宿主自己提示)——
+    // 避免重复 toast,也避免宿主导航离开后依赖 Scanner 自带 ToastHost 存活的隐患。
     reset();
   }, [product, onConfirm, reset]);
 
@@ -205,15 +206,16 @@ function ScannerInner({
       )}
 
       {phase !== 'denied' && phase !== 'init' && (
-        <ScanTopBar title={title} topInset={topInset} onClose={onClose} />
+        <ScanTopBar title={title} topInset={topInset} />
       )}
 
-      {showChrome && (showTorch || !!pickImage) && (
+      {showChrome && (showTorch || !!pickImage || !!onClose) && (
         <ScanToolbar
           flash={torch}
           bottomInset={bottomInset}
           onFlash={showTorch ? () => setTorch((t) => !t) : undefined}
           onAlbum={pickImage ? onAlbum : undefined}
+          onClose={onClose}
         />
       )}
 
@@ -222,12 +224,12 @@ function ScannerInner({
           product={product}
           detectMs={detectMs}
           bottomInset={bottomInset}
-          onContinue={reset}
+          onRescan={reset}
           onConfirm={onConfirmPress}
         />
       )}
 
-      {phase === 'fail' && <ResultFail bottomInset={bottomInset} onRetry={reset} />}
+      {phase === 'fail' && <ResultFail bottomInset={bottomInset} onRescan={reset} />}
 
       {phase === 'denied' && (
         <DeniedOverlay onClose={onClose} onSettings={() => Linking.openSettings()} />

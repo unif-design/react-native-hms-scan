@@ -23,12 +23,12 @@ init → scan（取景）→ detecting（识别中）
                        ↓
                 success（浮层确认卡）→ onConfirm → 带回上一级
                        ↓
-                  fail（未识别弹层）→ 重试 → scan
+                  fail（未识别弹层）→ 重扫 → scan
                        ↓
                 denied（无权限遮罩）→ 去系统设置
 ```
 
-`<Scanner>` 挂载时**自动请求相机权限**:已授权直接进入取景;永久拒绝则展示引导去系统设置的遮罩(`denied`)。**一次扫一个** —— 扫到 `results[0]` 即进入 `detecting`,确认或重试后才复位回 `scan`(内部 `handlingRef` 防重入)。
+`<Scanner>` 挂载时**自动请求相机权限**:已授权直接进入取景;永久拒绝则展示引导去系统设置的遮罩(`denied`)。**一次扫一个** —— 扫到 `results[0]` 即进入 `detecting`,确定或重扫后才复位回 `scan`(内部 `handlingRef` 防重入)。
 
 ---
 
@@ -40,7 +40,7 @@ init → scan（取景）→ detecting（识别中）
 <Scanner
   resolveProduct={async (result) => {
     const product = await api.lookupByBarcode(result.value);
-    if (!product) return null; // null = 未识别 → 进入 fail 重试弹层
+    if (!product) return null; // null = 未识别 → 进入 fail 重扫弹层
     return {
       name: product.name,        // 仅 name 必填
       brand: product.brand,
@@ -52,7 +52,7 @@ init → scan（取景）→ detecting（识别中）
 />
 ```
 
-- 返回 `null` / `undefined` **或抛错**,均视为「未识别」,进入 `fail` 重试弹层。
+- 返回 `null` / `undefined` **或抛错**,均视为「未识别」,进入 `fail` 重扫弹层。
 - **不传 `resolveProduct`** 时,默认以扫到的原文(`result.value`)作为商品名。
 - 返回的 `ScanProduct` 中只有 `name` 必填,其余(`brand` / `price` / `spec` / `stockShort` / `brandChar` / `priceCaption` 等)可缺省;`barcode` 缺省时自动取扫到的 `value`。完整字段见 [API → ScanProduct](/docs/api/types)。
 
@@ -60,7 +60,7 @@ init → scan（取景）→ detecting（识别中）
 
 ## 确认回调 `onConfirm` {#on-confirm}
 
-用户在浮层确认卡点「确认」时触发,签名 `(product, result)`:
+用户在浮层确认卡点「确定」时触发,签名 `(product, result)`:
 
 ```tsx
 <Scanner
@@ -73,7 +73,7 @@ init → scan（取景）→ detecting（识别中）
 />
 ```
 
-> 点确认后 `<Scanner>` 会 toast「已确认」并自动复位回取景态,宿主通常在 `onConfirm` 里导航离开本页。
+> 点确定后 `<Scanner>` 会 toast「已确定」并自动复位回取景态,宿主通常在 `onConfirm` 里导航离开本页。
 
 ---
 
