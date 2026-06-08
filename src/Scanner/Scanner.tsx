@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
-import { ThemeProvider, ToastHost, toast } from '@unif/react-native-design';
+import { ThemeProvider, ToastHost } from '@unif/react-native-design';
 import { HmsScanView } from '../HmsScanView';
 import { decodeImage } from '../decodeImage';
 import {
@@ -181,7 +181,8 @@ function ScannerInner({
     const r = lastResultRef.current;
     const p = product;
     if (p && r) onConfirm?.(p, r);
-    toast.success('已确定 · 扫描结果已填入上一级');
+    // 不在此 toast:确认页已展示结果,且 toast 是宿主职责(onConfirm 回调里宿主自己提示)——
+    // 避免重复 toast,也避免宿主导航离开后依赖 Scanner 自带 ToastHost 存活的隐患。
     reset();
   }, [product, onConfirm, reset]);
 
