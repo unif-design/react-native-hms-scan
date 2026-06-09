@@ -30,7 +30,7 @@ description: "安装 @unif/react-native-hms-scan 及全部必装 peerDependencie
 ```sh
 yarn add @unif/react-native-hms-scan \
   @unif/react-native-design react-native-svg \
-  @gorhom/bottom-sheet @sbaiahmed1/react-native-blur \
+  @sbaiahmed1/react-native-blur \
   react-native-gesture-handler react-native-reanimated \
   react-native-reanimated-carousel react-native-safe-area-context \
   react-native-worklets
@@ -40,9 +40,8 @@ yarn add @unif/react-native-hms-scan \
 
 | 包 | 版本约束 | 作用 |
 | --- | --- | --- |
-| `@unif/react-native-design` | `>=0.4.0` | `<Scanner>` 的主题、取景框、工具栏、结果卡、`toast` 全用它绘制 |
+| `@unif/react-native-design` | `>=0.8.0` | `<Scanner>` 的主题、取景框、工具栏、结果卡、`toast` 全用它绘制 |
 | `react-native-svg` | `>=15` | `<Scanner>` 图标 |
-| `@gorhom/bottom-sheet` | `>=5` | design 组件依赖 |
 | `@sbaiahmed1/react-native-blur` | `>=4` | design 界面毛玻璃 |
 | `react-native-gesture-handler` | `>=2.21.0` | design / 手势 |
 | `react-native-reanimated` | `>=4.0.0` | design 动画 |
@@ -51,7 +50,7 @@ yarn add @unif/react-native-hms-scan \
 | `react-native-worklets` | `*` | reanimated 4 的 worklet 运行时 |
 
 :::note 为什么扫码库要装这么多 UI 包
-这些 peerDeps 几乎都是**成品 `<Scanner>`** 间接需要的:`<Scanner>` 的取景框 / 工具栏 / 结果卡 / `toast` 全部复用 [`@unif/react-native-design`](https://www.npmjs.com/package/@unif/react-native-design),而 design 自身依赖 `@gorhom/bottom-sheet` / `react-native-reanimated` / `react-native-gesture-handler` 等。即便你只用 headless `<HmsScanView>` 或 `decodeImage`,这些仍是声明的 peer —— 装齐即可,通常项目里已有大半。
+这些 peerDeps 几乎都是**成品 `<Scanner>`** 间接需要的:`<Scanner>` 的取景框 / 工具栏 / 结果卡 / `toast` 全部复用 [`@unif/react-native-design`](https://www.npmjs.com/package/@unif/react-native-design),而 design 自身依赖 `react-native-reanimated` / `react-native-gesture-handler` 等。即便你只用 headless `<HmsScanView>` 或 `decodeImage`,这些仍是声明的 peer —— 装齐即可,通常项目里已有大半。
 :::
 
 ---

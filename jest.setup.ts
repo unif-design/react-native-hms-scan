@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 // Jest 环境没有原生侧，这里把会触碰原生的依赖替换成纯 JS 桩：
 //   - react-native-svg：渲染成普通 View。
-//   - @unif/react-native-design：渲染成轻量桩（避免 jest 加载 reanimated/gorhom/手势等原生
+//   - @unif/react-native-design：渲染成轻量桩（避免 jest 加载 reanimated/手势等原生
 //     依赖）。注意：tsc 仍用 design 的真实类型校验源码，本 mock 只影响 jest 运行时。
 //   - 库自身的 Scanner 单测会再各自 mock HmsScanView / NativeHmsScan。
 
