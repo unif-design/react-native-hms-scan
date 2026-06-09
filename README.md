@@ -52,7 +52,7 @@ headless `<HmsScanView>`(完全自定义 UI)、图片识别 `decodeImage`、权�
 
 - **完整文档**(安装 · 平台配置 · API · 平台差异 · 故障排查):https://unif-design.github.io/react-native-hms-scan/
 - **AI / Agent**(按需 fetch,别凭记忆猜 API):[llms.txt](https://unif-design.github.io/react-native-hms-scan/llms.txt) · [llms-full.txt](https://unif-design.github.io/react-native-hms-scan/llms-full.txt)
-- **Agent Skill** `using-unif-hms-scan`(`unif-react-native` plugin):`/plugin marketplace add unif-design/react-native-skills` → `/plugin install unif-react-native@unif-react-native-skills`
+- **Agent Skill** `unif-hms-scan`(`unif` plugin):`/plugin marketplace add unif-design/skills` → `/plugin install unif@unif-skills`
 
 ## 兼容性
 
