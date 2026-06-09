@@ -95,7 +95,7 @@ decodeImage        从本地图片识别 → ScanResult[]
 - 全量 API / props 不在本仓正文镜像,路由到远程 llms.txt(按需 fetch):
   - 索引 https://unif-design.github.io/react-native-hms-scan/llms.txt
   - 全文 https://unif-design.github.io/react-native-hms-scan/llms-full.txt
-- 消费侧(怎么用这个库)经过验证的 API / 坑 / 原生配置,见 skill `using-unif-hms-scan`(`react-native-skills` 仓 `skills/using-unif-hms-scan/SKILL.md`)。
+- 消费侧(怎么用这个库)经过验证的 API / 坑 / 原生配置,见 skill `unif-hms-scan`(`unif-design/skills` 仓 `skills/unif-hms-scan/SKILL.md`)。**改组件 / API / 类型时,这个 skill 也要同步**(与上面 website docs 同理,否则消费侧 AI 读到的用法漂移):**手写部分**(快速开始示例 / 关键坑 / `assets/` 模板)手动改;**全量 props** 它已路由 llms.txt,随 docs 自动跟随。
 - CI / 发版 / 依赖管理 / branch protection 的配置与排查 SOP,集中在 org 共享文档 → https://github.com/unif-design/.github/blob/main/AUTOMATION.md
 
 ## 仓库内注释风格
