@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/unif-design/react-native-hms-scan/compare/v0.4.0...v0.4.1) (2026-06-09)
+
+
+### Bug Fixes
+
+* **scanner:** 结果卡/权限态并排按钮改 block,修复 label 不显示 ([#33](https://github.com/unif-design/react-native-hms-scan/issues/33)) ([2e90261](https://github.com/unif-design/react-native-hms-scan/commit/2e90261fa8b94f874a8e807a1ffebf033ff6248e))
+
 # [0.4.0](https://github.com/unif-design/react-native-hms-scan/compare/v0.3.1...v0.4.0) (2026-06-08)
 
 
