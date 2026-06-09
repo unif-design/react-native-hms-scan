@@ -1,5 +1,12 @@
 # Changelog
 
+# [0.5.0](https://github.com/unif-design/react-native-hms-scan/compare/v0.4.1...v0.5.0) (2026-06-09)
+
+
+### Features
+
+* **scanner:** autoConfirm —— 扫到跳过结果卡直接回调 ([#35](https://github.com/unif-design/react-native-hms-scan/issues/35)) ([b329723](https://github.com/unif-design/react-native-hms-scan/commit/b3297232a71cb959fef552245ebbfd7ad1320308))
+
 ## [0.4.1](https://github.com/unif-design/react-native-hms-scan/compare/v0.4.0...v0.4.1) (2026-06-09)
 
 
