@@ -16,7 +16,8 @@ import { ResultFocus } from './ResultFocus';
 import { ResultFail } from './ResultFail';
 import { DeniedOverlay } from './DeniedOverlay';
 
-type Phase = 'init' | 'scan' | 'detecting' | 'success' | 'fail' | 'denied';
+// 'done':autoConfirm 自动回调后的终态——相机暂停、不出卡片、不自动重扫(宿主通常已导航离开)。
+type Phase = 'init' | 'scan' | 'detecting' | 'success' | 'fail' | 'denied' | 'done';
 
 const VF_SIZE = 256;
 const DEFAULT_HINT = '将条码 / 二维码放入框内，自动扫描';
@@ -45,6 +46,14 @@ export interface ScannerProps {
   ) => ScanProduct | null | undefined | Promise<ScanProduct | null | undefined>;
   /** 用户点"确认"：把结果带回上一级（宿主通常在此导航返回）。 */
   onConfirm?: (product: ScanProduct, result: ScanResult) => void;
+  /**
+   * 自动确认：扫到并解析成功后**不显示结果卡**，直接触发 `onConfirm(product, result)`。
+   * 默认 `false`（显示结果卡，由用户点"确定"）。
+   * 适合"扫到即用、不需要二次确认"的场景。回调后相机暂停、不自动重扫——宿主通常在
+   * `onConfirm` 里导航离开；若需再扫由宿主控制（如重新挂载 `<Scanner>`）。
+   * 注：未识别（`resolveProduct` 返回 `null`/抛错）仍走失败态可重扫，不会误触发。
+   */
+  autoConfirm?: boolean;
   /**
    * 点"相册"：宿主用自己的图片选择器选图并返回本地 uri（取消则返回 null）。
    * 库不内置图片选择器（遵循 RN 惯例）：**传了才显示相册按钮**，不传则隐藏。
@@ -76,6 +85,7 @@ function ScannerInner({
   onClose,
   resolveProduct,
   onConfirm,
+  autoConfirm = false,
   pickImage,
 }: ScannerProps) {
   const [phase, setPhase] = useState<Phase>('init');
@@ -126,14 +136,21 @@ function ScannerInner({
           setPhase('fail');
           return;
         }
-        setProduct({ barcode: result.value, ...resolved });
+        const p: ScanProduct = { barcode: result.value, ...resolved };
+        if (autoConfirm) {
+          // 跳过结果卡:直接回调,进 'done' 终态(相机暂停、不自动重扫)。
+          onConfirm?.(p, result);
+          setPhase('done');
+          return;
+        }
+        setProduct(p);
         setDetectMs(Date.now() - detectStartRef.current);
         setPhase('success');
       } catch {
         if (mountedRef.current) setPhase('fail');
       }
     },
-    [resolveProduct]
+    [resolveProduct, autoConfirm, onConfirm]
   );
 
   const onCameraResult = useCallback(

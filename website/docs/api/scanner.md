@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: Scanner
-description: "<Scanner> 成品扫一扫页完整 props 参考：title / formats / hintText / topInset / bottomInset / showTorch / onClose / resolveProduct / onConfirm / pickImage，以及回调用到的 ScanResult / ScanProduct 类型。自带状态机 + 权限流 + 主题。"
+description: "<Scanner> 成品扫一扫页完整 props 参考：title / formats / hintText / topInset / bottomInset / showTorch / onClose / resolveProduct / onConfirm / autoConfirm / pickImage，以及回调用到的 ScanResult / ScanProduct 类型。自带状态机 + 权限流 + 主题。"
 ---
 
 # Scanner
@@ -34,7 +34,8 @@ function Scanner(props: ScannerProps): JSX.Element
 | `showTorch` | `boolean` | `true` | 是否显示手电筒按钮。手电由库内自管：Android 可编程控制，**iOS 为 best-effort**（见[平台差异](/docs/platform-differences#torch)），可在 iOS 传 `false` 隐藏 |
 | `onClose` | `() => void` | — | 返回按钮回调（退出扫码页；按钮在底部工具栏，与手电筒并排） |
 | `resolveProduct` | `(result: ScanResult) => ScanProduct \| null \| undefined \| Promise<ScanProduct \| null \| undefined>` | — | 扫到条码后由宿主解析商品信息（用于浮层确认卡）。返回 `null` / `undefined` **或抛错** = 未识别 → 进入 fail 重扫层。不传则以 `result.value` 作为商品名 |
-| `onConfirm` | `(product: ScanProduct, result: ScanResult) => void` | — | 用户点"确定"时回调（宿主通常在此导航返回） |
+| `onConfirm` | `(product: ScanProduct, result: ScanResult) => void` | — | 用户点"确定"时回调（宿主通常在此导航返回）。`autoConfirm` 为真时由库自动触发 |
+| `autoConfirm` | `boolean` | `false` | 扫到并解析成功后**不显示结果卡**，直接触发 `onConfirm(product, result)`。适合"扫到即用、无需二次确认"。回调后相机暂停、不自动重扫（宿主通常在 `onConfirm` 里导航离开；再扫由宿主控制）。未识别（`resolveProduct` 返回 `null` / 抛错）仍走 fail 重扫，不会误触发 |
 | `pickImage` | `() => Promise<string \| null>` | — | 点"相册"：宿主用自己的图片选择器选图并返回本地 uri（取消返回 `null`）。**库不内置图片选择器：传了才显示相册按钮，不传则隐藏** |
 
 :::note 返回 / 手电 / 相册按钮的显隐

@@ -1,6 +1,6 @@
 /// <reference types="jest" />
 
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { Scanner } from '../Scanner/Scanner';
 
 // 把底层原生组件换成纯桩，并捕获其 onScanResult / onScanError 供测试触发。
@@ -88,6 +88,47 @@ describe('<Scanner>', () => {
     });
     expect(await screen.findByText('未识别到条码')).toBeTruthy();
     expect(screen.getByText('重扫')).toBeTruthy();
+  });
+
+  it('autoConfirm → 跳过结果卡，扫到直接回调 onConfirm', async () => {
+    const onConfirm = jest.fn();
+    render(
+      <Scanner
+        autoConfirm
+        onConfirm={onConfirm}
+        resolveProduct={async () => ({ name: 'X 商品' })}
+      />
+    );
+    await screen.findByText('扫一扫');
+
+    await act(async () => {
+      emitScan([{ value: '6925303773908', format: 'EAN_13' }]);
+    });
+
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+    expect(onConfirm.mock.calls[0][0]).toMatchObject({ name: 'X 商品' });
+    expect(onConfirm.mock.calls[0][1]).toEqual({
+      value: '6925303773908',
+      format: 'EAN_13',
+    });
+    // 不出结果卡:无"确定"/"重扫"
+    expect(screen.queryByText('确定')).toBeNull();
+    expect(screen.queryByText('重扫')).toBeNull();
+  });
+
+  it('autoConfirm + 未识别 → 仍走失败态，不触发 onConfirm', async () => {
+    const onConfirm = jest.fn();
+    render(
+      <Scanner autoConfirm onConfirm={onConfirm} resolveProduct={async () => null} />
+    );
+    await screen.findByText('扫一扫');
+
+    await act(async () => {
+      emitScan([{ value: '1', format: 'QR_CODE' }]);
+    });
+
+    expect(await screen.findByText('未识别到条码')).toBeTruthy();
+    expect(onConfirm).not.toHaveBeenCalled();
   });
 
   it('权限被拒 → 显示无权限遮罩', async () => {
