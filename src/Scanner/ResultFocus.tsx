@@ -88,10 +88,13 @@ export function ResultFocus({
           )}
         </View>
 
-        {/* 操作：重扫（回取景）· 确定（确认带回） */}
+        {/* 操作：重扫（回取景）· 确定（确认带回）。
+            block(flexGrow:1)而非 style={{flex:1}}：ButtonBase 非 block 时硬编码 flexGrow:0,
+            Yoga 里显式 flexGrow:0 压过 flex:1 → flex:1 撑不开按钮、且把 flexBasis 收成 0,
+            按钮塌成 padding 宽把 label 裁没。两个 block 按钮在 row 里均分(同 design ConfirmHost)。 */}
         <View style={styles.actions}>
-          <Button label="重扫" variant="secondary" onPress={onRescan} style={styles.btn} />
-          <Button label="确定" variant="primary" onPress={onConfirm} style={styles.btn} />
+          <Button label="重扫" variant="secondary" block onPress={onRescan} />
+          <Button label="确定" variant="primary" block onPress={onConfirm} />
         </View>
       </Card>
     </Animated.View>
@@ -106,7 +109,6 @@ const styles = StyleSheet.create({
   info: { flex: 1, minWidth: 0 },
   priceCol: { alignItems: 'flex-end' },
   actions: { flexDirection: 'row', columnGap: r(10) },
-  btn: { flex: 1 },
 });
 
 const makeStyles = (c: ReturnType<typeof useColors>) =>

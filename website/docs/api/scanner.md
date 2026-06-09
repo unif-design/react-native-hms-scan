@@ -112,7 +112,7 @@ function ScanScreen({ navigation }) {
 - 内部状态机：`init → scan → detecting → success / fail / denied`，**一次扫一个**（扫到 `results[0]` 进 detecting，确定或重扫后回 scan）。
 - `resolveProduct` **抛错与返回 `null` / `undefined` 效果相同**，均进入 fail 重扫层。
 - 自带 `ThemeProvider`；放进宿主已有的 `ThemeProvider` 里也兼容（嵌套不报错）。
-- `@unif/react-native-design` 是 peer 依赖，`<Scanner>` 的 UI 依赖它（及其链上的 `@gorhom/bottom-sheet` / `react-native-reanimated` / `react-native-gesture-handler`）。
+- `@unif/react-native-design` 是 peer 依赖，`<Scanner>` 的 UI 依赖它（及其链上的 `react-native-reanimated` / `react-native-gesture-handler`）。
 
 ---
 

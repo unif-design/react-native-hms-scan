@@ -119,4 +119,4 @@ Linking.openSettings();
 
 ## 症状:打包 / 运行报 `Unable to resolve module ...`
 
-✅ 缺同伴包。`peerDependencies` **缺一即崩**,逐项核对[安装 → 安装依赖](/docs/getting-started/installation#安装依赖)是否装齐 —— 尤其 `@unif/react-native-design` 及其链上的 `@gorhom/bottom-sheet` / `react-native-reanimated` / `react-native-gesture-handler` 等(`<Scanner>` 的 UI 依赖它们)。补齐后 iOS 重新 `cd ios && bundle exec pod install`。
+✅ 缺同伴包。`peerDependencies` **缺一即崩**,逐项核对[安装 → 安装依赖](/docs/getting-started/installation#安装依赖)是否装齐 —— 尤其 `@unif/react-native-design` 及其链上的 `react-native-reanimated` / `react-native-gesture-handler` 等(`<Scanner>` 的 UI 依赖它们)。补齐后 iOS 重新 `cd ios && bundle exec pod install`。
