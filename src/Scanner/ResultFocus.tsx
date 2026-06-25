@@ -114,9 +114,9 @@ const styles = StyleSheet.create({
 const makeStyles = (c: ReturnType<typeof useColors>) =>
   StyleSheet.create({
     badge: { fontSize: rf(13), fontWeight: fw.semi, color: c.foreground },
-    barcode: { fontSize: rf(12), color: c.foregroundSubtle, fontFamily: fontMono },
+    barcode: { fontSize: rf(12), color: c.foregroundMuted, fontFamily: fontMono },
     name: { fontSize: rf(16), fontWeight: fw.semi, color: c.foreground, lineHeight: rf(21) },
     sub: { fontSize: rf(12.5), color: c.foregroundMuted, marginTop: r(4) },
     price: { fontSize: rf(24), fontWeight: fw.heavy, color: c.primary, lineHeight: rf(24) },
-    caption: { fontSize: rf(11), color: c.foregroundSubtle, marginTop: r(3) },
+    caption: { fontSize: rf(11), color: c.foregroundMuted, marginTop: r(3) },
   });
