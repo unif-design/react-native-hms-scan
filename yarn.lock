@@ -6143,7 +6143,7 @@ __metadata:
     "@sbaiahmed1/react-native-blur": "npm:^4.6.2"
     "@types/react": "npm:^19.2.0"
     "@unif/react-native-design": "npm:0.8.1"
-    react: "npm:19.2.3"
+    react: "npm:19.2.7"
     react-native: "npm:0.85.3"
     react-native-builder-bob: "npm:^0.41.0"
     react-native-gesture-handler: "npm:^2.21.0"
@@ -6207,7 +6207,7 @@ __metadata:
     eslint-plugin-prettier: "npm:^5.5.5"
     jest: "npm:^29.7.0"
     prettier: "npm:^3.8.1"
-    react: "npm:19.2.3"
+    react: "npm:19.2.7"
     react-native: "npm:0.85.3"
     react-native-builder-bob: "npm:^0.41.0"
     react-native-gesture-handler: "npm:^2.21.0"
@@ -17376,14 +17376,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@npm:19.2.3":
-  version: 19.2.3
-  resolution: "react@npm:19.2.3"
-  checksum: 10c0/094220b3ba3a76c1b668f972ace1dd15509b157aead1b40391d1c8e657e720c201d9719537375eff08f5e0514748c0319063392a6f000e31303aafc4471f1436
-  languageName: node
-  linkType: hard
-
-"react@npm:^19.2.0":
+"react@npm:19.2.7, react@npm:^19.2.0":
   version: 19.2.7
   resolution: "react@npm:19.2.7"
   checksum: 10c0/0bd0e2f1bbd4ba97561c6597bf8a5fec05e6476fe61e165c1065598d16668efc6715205599c94d3ddd49d36cb0f21cbf1b9bcc18ee840b805ce222c3e8d558ac
