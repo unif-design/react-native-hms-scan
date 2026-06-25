@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/unif-design/react-native-hms-scan/compare/v0.5.0...v0.5.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* **scanner:** 结果卡条码号/副标题改 foregroundMuted 暗色可读(过 AA) ([#41](https://github.com/unif-design/react-native-hms-scan/issues/41)) ([064a4cc](https://github.com/unif-design/react-native-hms-scan/commit/064a4ccfc4153a275c4e4e68cb2d19229769d90b)), closes [#1C1C1E](https://github.com/unif-design/react-native-hms-scan/issues/1C1C1E)
+
 # [0.5.0](https://github.com/unif-design/react-native-hms-scan/compare/v0.4.1...v0.5.0) (2026-06-09)
 
 

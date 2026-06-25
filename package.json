@@ -1,6 +1,6 @@
 {
   "name": "@unif/react-native-hms-scan",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "华为 HMS 统一扫码服务 React Native bridge：定制视图扫码 + 图片识别 (Scan SDK-Plus / ScanKitFrameWork，@unif 私有)",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
