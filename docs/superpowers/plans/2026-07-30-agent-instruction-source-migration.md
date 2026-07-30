@@ -96,7 +96,6 @@ API 时检查。纯内部重构也必须完成核对,无需修改时在交付结
 - **本库 Skill** → `hms-scan`;相对本仓 `../skills/skills/hms-scan/`;当前本机绝对路径
   `/Users/liulijun/tongyi/design/skills/skills/hms-scan/`。
 - **入口** → `../skills/skills/hms-scan/SKILL.md`。
-- **不要使用旧路径** → `skills/unif-hms-scan/` 已不存在。
 - **安装** → `/plugin marketplace add unif-design/skills` 后运行
   `/plugin install unif@skills`。
 
