@@ -1,13 +1,13 @@
 ---
 title: AI Skill
-description: "unif-hms-scan 是一个 Agent Skill,教 AI 编码助手正确调用 @unif/react-native-hms-scan 的 API、避免常见幻觉。"
+description: "hms-scan 是一个 Agent Skill,教 AI 编码助手正确调用 @unif/react-native-hms-scan 的 API、避免常见幻觉。"
 ---
 
-# AI Skill：unif-hms-scan
+# AI Skill：hms-scan
 
 ## 这是什么
 
-`unif-hms-scan` 是一个 **Agent Skill**,教 AI 编码助手(Claude Code / Cursor / Codex)正确调用 `@unif/react-native-hms-scan` 的 API、避免常见幻觉。
+`hms-scan` 是一个 **Agent Skill**,教 AI 编码助手(Claude Code / Cursor / Codex)正确调用 `@unif/react-native-hms-scan` 的 API、避免常见幻觉。
 
 它把这个华为 HMS 扫码库的关键约定、易错点和参考索引打包给 AI,让助手在你的项目里写代码时按真实 API 来,而不是凭记忆瞎猜。
 
@@ -30,7 +30,7 @@ description: "unif-hms-scan 是一个 Agent Skill,教 AI 编码助手正确调�
 
 ```bash
 /plugin marketplace add unif-design/skills
-/plugin install unif@unif-skills
+/plugin install unif@skills
 ```
 
 **或用 skills CLI:**
@@ -43,7 +43,7 @@ npx skills add unif-design/skills
 
 skills 全部开源,发布在插件市场仓库 `unif-design/skills`。本 skill 的源码与参考文档:
 
-👉 **[github.com/unif-design/skills · unif-hms-scan](https://github.com/unif-design/skills/tree/main/skills/unif-hms-scan)**
+👉 **[github.com/unif-design/skills · hms-scan](https://github.com/unif-design/skills/tree/main/skills/hms-scan)**
 
 ---
 
