@@ -1,4 +1,42 @@
 # AGENTS.md
+<!-- BEGIN UNIF REACT NATIVE STANDARD -->
+
+## 组织共享开发流程
+
+你维护的仓库是 `react-native-hms-scan`。本区块定义共享门禁;仓库正文只保存本仓特有规则,且只能补充或收紧共享规则。真实冲突必须如实报告,不得静默选择任一规则。
+
+## 任务开始: Skill 发现 + Git 状态 + 分支
+
+- 先查找适用的 Skill 并阅读其说明,再执行任务。
+- 开始前运行 `git status --short --branch`,确认工作区和分支状态。
+- 若当前位于 `main`,必须在任何修改前创建并切换到语义明确的任务分支;若已位于与任务匹配的非 `main` 分支,继续在该分支工作并保留既有改动。
+- 不得混入、覆盖、暂存或提交无关改动。
+- `main` 是合并门禁分支: 禁止直接推送 `main`,所有改动必须经 PR 和 CI 进入 `main`。
+
+## 实现与交付: 验证 + PR CI + 合并后自动发布
+
+- 实现后运行仓库特有验证,并使用 conventional commit 提交。
+- 推送任务分支并创建 PR;PR CI 通过后再合入 `main`。
+- 命中 release workflow 路径的改动会在合入后自动发布。除任务明确要求人工应急发布外,不得手工改版本、创建 tag 或执行 `npm publish`。
+
+## website / llms.txt / hms-scan Skill 联动
+
+- 每次仓库改动(包括仅修改 `AGENTS.md`、CI 或仓库文档)都必须核对 `website`、`llms.txt` 和 `../skills/skills/hms-scan/` 中对应的 `hms-scan` Skill。
+- 明确核对公共 API、类型、运行时行为、错误语义、依赖 / 安装、原生配置、mock、消费者示例、排障结论和文档入口。
+- 受影响项与本次交付同步更新;不受影响时说明核对范围与理由;不可访问或不可写时如实报告。
+
+## RNGH 3 / Carousel 5 条件化窄例外
+
+- 仅当仓库实际采用 `@unif/react-native-design@0.20.0`、`react-native-gesture-handler >=3 <4` 和 `react-native-reanimated-carousel@5.0.0` 时适用;该规则不要求未采用此组合的仓库升级依赖。
+- Carousel 发布 metadata 的 RNGH 范围为 `>=2.9 <3`,与 Design 的 RNGH 范围无交集,但当前组合已适配并验证。
+- 不得仅凭上述已验证的 Carousel / RNGH peer warning 再次询问、阻塞或建议降级;保留 scoped override、窄 allowlist 和严格漂移检查,禁止全局 override、`--force`、`--legacy-peer-deps`。
+- 仅在可复现相关回归,或 Carousel 版本 / peer range / RNGH major 变化时重评。
+
+## 共享与本仓规则边界
+
+本区块外的内容属于本仓规则,同步时必须保留。模板已有的通用规则不得在仓库正文重复。
+
+<!-- END UNIF REACT NATIVE STANDARD -->
 
 ## 仓库定位
 
@@ -28,7 +66,11 @@ yarn example ios      # 构建并跑 iOS
 yarn example android  # 构建并跑 Android
 ```
 
-**只用 yarn** —— 项目依赖 yarn workspaces(`packageManager: yarn@4.11.0`)。pre-commit hook(lefthook)对 staged 文件跑 `eslint` + `tsc`,native 文件(`*.mm` / `*.kt`)跑 `clang-format` / `ktlint`(没装则跳过,CI 的 native-lint 才是硬 gate)。提交信息必须符合 conventional commits(commit-msg hook 用 commitlint 强校验)。
+**只用 yarn** —— 项目依赖 yarn workspaces(`packageManager: yarn@4.11.0`)。pre-commit hook(lefthook)对 staged 文件跑 `eslint` + `tsc`,native 文件(`*.mm` / `*.kt`)跑 `clang-format` / `ktlint`(没装则跳过,CI 的 native-lint 才是硬 gate)。
+
+## 当前依赖基线
+
+开发与 example 仍使用 `@unif/react-native-design@0.8.1`、RNGH 2(`^2.21.0`)和 Carousel 5 beta(`^5.0.0-beta.5`)。共享区块中的 Design 0.20 / RNGH 3 / Carousel 5 条件例外当前不触发,也不要求本仓升级。
 
 ## 架构与约定
 
@@ -86,9 +128,9 @@ decodeImage        从本地图片识别 → ScanResult[]
 
 接入 / 改动时最容易踩的;前两个(iOS 真机、`decodeImage` 的 URI 与空数组语义)是最高频问题。
 
-- **iOS 扫码仅真机** — 模拟器能编译,但相机要真机。
-  - **为什么** — `ScanKitFrameWork` 是华为老式 fat framework,只有 arm64 真机 + x86_64 Intel 模拟器切片(无 arm64-sim);podspec 的 `prepare_command`(`scripts/prepare-scankit-xcframework.sh`)用 vtool 补出 arm64-sim 打成 xcframework。
-  - **预期噪声** — 见到 `ld: building for iOS-simulator but linking in object built for iOS` 是预期,切真机即可;`pod install` 的 `ScanKitFrameWork LICENSE` warning 无害。
+- **iOS 相机扫码需真机** — simulator 可编译、链接并运行非相机测试;`scripts/prepare-scankit-xcframework.sh` 会用 vtool 补出 arm64-simulator 切片并生成 xcframework。
+  - **链接排障** — `ld: building for iOS-simulator but linking in object built for iOS` 不再是预期结果;出现时先重新运行 `pod install`,再检查生成的 xcframework 是否同时包含 device 与 simulator 切片。
+  - **可忽略 warning** — `pod install` 的 `ScanKitFrameWork LICENSE` warning 无害。
 - **`decodeImage` 只吃本地 URI,不下载远程 URL**,且接受的本地 URI 因平台而异:
 
   | URI 形式 | iOS | Android |
@@ -119,10 +161,7 @@ decodeImage        从本地图片识别 → ScanResult[]
 
   mock 下 `decodeImage` resolve `[]`、权限 resolve `'granted'`、`<Scanner>` / `<HmsScanView>` 渲染 `null`;纯函数(`coerceFormat` 等)与类型 / `HmsScanError` 保留真实实现。
 
-## 文档与 Skill 联动检查
-
-每次改完库都要判断 website docs、llms.txt 和消费侧 Skill 是否需要同步;不要只在新增
-API 时检查。纯内部重构也必须完成核对,无需修改时在交付结果中写明理由。
+## 仓库专属文档与 Skill 映射
 
 ### 文档数据源
 
@@ -134,15 +173,11 @@ API 时检查。纯内部重构也必须完成核对,无需修改时在交付结
 
 ### 本库对应 Skill 的精确位置
 
-- **Skills 仓** → 相对本仓 `../skills/`;当前本机绝对路径
-  `/Users/liulijun/tongyi/design/skills/`。
-- **本库 Skill** → `hms-scan`;相对本仓 `../skills/skills/hms-scan/`;当前本机绝对路径
-  `/Users/liulijun/tongyi/design/skills/skills/hms-scan/`。
+- **Skills 仓** → 相对本仓 `../skills/`。
+- **本库 Skill** → `hms-scan`;相对本仓 `../skills/skills/hms-scan/`。
 - **入口** → `../skills/skills/hms-scan/SKILL.md`。
-- **安装** → `/plugin marketplace add unif-design/skills` 后运行
-  `/plugin install unif@skills`。
 
-检查 `../skills/skills/hms-scan/` 下与本库对应的全部文件:
+`../skills/skills/hms-scan/` 下与本库对应的文件:
 
 | 文件 | 何时同步 |
 | --- | --- |
@@ -152,20 +187,6 @@ API 时检查。纯内部重构也必须完成核对,无需修改时在交付结
 | `references/troubleshooting.md` | 平台差异、事件、URI、错误码或排障结论变化 |
 | `scripts/doctor.sh` | 可自动检测的宿主依赖或原生配置变化 |
 | `scripts/doctor.test.sh` | `doctor.sh` 检查项或三态输出变化 |
-
-### 改动后的执行顺序
-
-1. 判断改动是否影响公开 API、示例、平台配置、错误语义、依赖、测试 mock 或文档 URL。
-2. 同步 `website/docs/` 并按需重生成 llms。
-3. 逐项核对 `../skills/skills/hms-scan/` 的六个文件;只修改被当前改动影响的文件。
-4. 若修改 `doctor.sh`,必须同步 `doctor.test.sh`。
-5. 验证 sibling Skill;不得因为 Skills 仓已有其他未提交改动而覆盖或提交无关文件。
-6. 交付时说明 website / llms / Skill 的核对结果;无需修改也要写明理由。
-
-作为消费者接入时优先使用 `hms-scan` Skill 中经核实的 API、原生配置与排障结论。
-CI / 发版 / 依赖管理 / branch protection 的配置与排查 SOP 见
-https://github.com/unif-design/.github/blob/main/AUTOMATION.md,本仓约定亦见 `README.md`
-与 `.github/`.
 
 ## 仓库内注释风格
 
