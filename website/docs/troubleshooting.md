@@ -1,27 +1,32 @@
 ---
 sidebar_position: 8
 title: 常见问题
-description: "@unif/react-native-hms-scan 排障决策树：iOS simulator slice 链接错误、Huawei Maven / minSdk / CAMERA、decodeImage URI grant 与空数组、iOS 手电 best-effort。"
+description: "@unif/react-native-hms-scan 排障决策树：iOS 真机 / Simulator 支持边界、官方 ScanKitFrameWork CocoaPod、Huawei Maven / minSdk / CAMERA、decodeImage URI grant 与空数组、iOS 手电 best-effort。"
 ---
 
 # 常见问题
 
-按**症状 → 原因 → 解法**排查。多数问题集中在「iOS 在模拟器上跑」「Android minSdk / 权限」「把 `decodeImage` 空数组当错误」三类。
+按**症状 → 原因 → 解法**排查。多数问题集中在「iOS 目标选成 Simulator」「Android minSdk / 权限」「把 `decodeImage` 空数组当错误」三类。
 
 ---
 
-## 症状:iOS 模拟器编译 / 链接报错
+## 症状:iOS Simulator 编译 / 链接报错
 
 ```
 ld: building for 'iOS-simulator', but linking in object file built for 'iOS'
 ```
 
-❌ **这不是预期结果。** simulator 应能编译、链接并运行非相机测试。
+✅ **这是当前预期边界:iOS Simulator 不支持。** 按以下顺序处理:
 
-重新执行 `pod install`,再检查生成的 xcframework 是否同时包含 device 与 simulator slice。podspec 的 `prepare_command` 会用 `vtool` 准备 simulator slice;若仍只链接到 device framework,清理旧 Pods / 构建缓存后重装。**只有相机扫码必须用真机**,链接失败不能靠“改用真机”掩盖。
+1. 在 Xcode 或 React Native CLI 中选择物理 iPhone,不要继续以 Simulator 为构建目标。
+2. 从宿主 `ios/` 执行 `bundle exec pod install`;CocoaPods 应安装官方 `ScanKitFrameWork 1.1.2.305`,不会在 `node_modules` 中生成 XCFramework。
+3. 不要为支持 Simulator 清理 cache、生成本地 framework 或修改宿主 Podfile。
+4. 若只需验证 JS 逻辑,使用随包 Jest mock。
 
-:::tip 在 CI / 模拟器里测逻辑
-不要在模拟器里测真实扫码。单元测试用[测试(Mock)](/docs/testing)页的 `jest.mock` 方案,在无硬件环境跑通扫码 / 识图流程逻辑。
+真正的**真机构建**若报 `'ScanKitFrameWork/ScanKitFrameWork.h' file not found`,才属于集成故障。确认依赖已升级到包含本方案的版本,重新执行 `pod install`,并检查 `Podfile.lock` 精确包含 `ScanKitFrameWork (1.1.2.305)`。
+
+:::tip 在无硬件环境测逻辑
+单元测试用[测试(Mock)](/docs/testing)页的 `jest.mock` 方案验证扫码 / 识图流程的 JS 逻辑。mock 不会加载 iOS 原生模块,也不代表 Simulator 获得原生支持。
 :::
 
 ---

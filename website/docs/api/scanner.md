@@ -122,7 +122,8 @@ function ScanScreen({ navigation }) {
 
 | 平台 | 支持 | 备注 |
 | --- | --- | --- |
-| iOS（真机） | ✅ | 手电 best-effort；模拟器无法扫码（见[平台差异](/docs/platform-differences)） |
+| iOS（真机） | ✅ | 官方 `ScanKitFrameWork 1.1.2.305` CocoaPod；手电 best-effort |
+| iOS Simulator | ❌ | 原生目标不支持；无硬件 JS 逻辑使用随包 Jest mock（见[平台差异](/docs/platform-differences)） |
 | Android | ✅ | 全功能支持 |
 | Web | ❌ | — |
 

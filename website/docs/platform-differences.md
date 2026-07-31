@@ -1,7 +1,7 @@
 ---
 sidebar_position: 5
 title: 平台差异
-description: "Android（Scan SDK-Plus / 宿主添加 Huawei Maven / 无 agconnect）与 iOS（ScanKitFrameWork / 相机仅真机 / simulator 可跑非相机测试 / 手电 best-effort）的逐项差异：码制、权限、手电、图片识别 URI。"
+description: "Android（Scan SDK-Plus / 宿主添加 Huawei Maven / 无 agconnect）与 iOS（官方 ScanKitFrameWork 1.1.2.305 CocoaPod / 仅支持真机 / 手电 best-effort）的逐项差异：码制、权限、手电、图片识别 URI。"
 ---
 
 # 平台差异
@@ -12,8 +12,8 @@ description: "Android（Scan SDK-Plus / 宿主添加 Huawei Maven / 无 agconnec
 | --- | --- | --- |
 | 原生实现（相机） | 华为 `RemoteView`（Scan SDK-Plus） | `HmsCustomScanViewController`（ScanKitFrameWork） |
 | 原生实现（图片识别） | `ScanUtil.decodeWithBitmap` | `HmsBitMap` |
-| 接入配置 | 宿主必须把 Huawei Maven 加到实际依赖解析的 `repositories`;**无需 agconnect / API Key** | `pod install` 自动处理;**无需 AppGallery Connect** |
-| 运行环境 | 相机扫码用真机验证 | simulator 可编译、链接并跑非相机测试;**相机扫码仅真机** |
+| 接入配置 | 宿主必须把 Huawei Maven 加到实际依赖解析的 `repositories`;**无需 agconnect / API Key** | `pod install` 自动安装官方 `ScanKitFrameWork 1.1.2.305`;**无需 AppGallery Connect** |
+| 运行环境 | 相机扫码用真机验证 | 原生构建与运行**仅支持真机**;iOS Simulator 不支持 |
 | 最低版本 | minSdkVersion ≥ 24（Android 7.0） | 见 podspec `min_ios_version_supported` |
 | 码制 `MULTI_FUNCTIONAL` 作为过滤项 | ✅ 支持 | ❌ 无对应码制（见[码制差异](#formats)） |
 | 手电筒 `torch` | ✅ 可编程控制 | ⚠️ best-effort，不保证（见[手电筒](#torch)） |
@@ -21,8 +21,8 @@ description: "Android（Scan SDK-Plus / 宿主添加 Huawei Maven / 无 agconnec
 | 权限状态取值范围 | 查询只给 `granted` / `denied`，请求后才可能 `blocked` | 只有 `granted` / `undetermined` / `blocked`，**永不返回 `denied`**（见[相机权限](#permission)） |
 | `decodeImage` 接受的 URI | `file://` / 绝对路径 / `content://` / `android.resource://` | `file://` / 绝对路径 / `data:`（**不接受 `ph://` / `content://`**，见[图片识别 URI](#decode-image-uri)） |
 
-:::warning iOS 相机扫码仅真机,但 simulator 链接应成功
-podspec 的 `prepare_command` 会生成同时包含 device 与 simulator slice 的 xcframework,因此 simulator 应能编译、链接并运行非相机测试。相机扫码能力仍只能在真机上跑。Apple 芯片 simulator 若出现 `ld: building for 'iOS-simulator', but linking in object file built for 'iOS'`,这是需要重新 `pod install` 并检查 xcframework slices 的集成问题,**不是预期结果**。
+:::warning iOS Simulator 不支持
+iOS 相机扫码与 `decodeImage` 原生路径都只支持真机。Simulator 架构 / 链接失败属于当前预期边界,正确处理是切换物理设备;不要生成本地 framework、修改宿主 Podfile 或清理 cache 来追求 Simulator 成功。无硬件逻辑测试使用随包 Jest mock。
 :::
 
 ---

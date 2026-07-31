@@ -8,8 +8,8 @@ description: "用 <Scanner> 5 分钟跑通第一个扫码页：丢一个 <Scanne
 
 5 分钟跑通第一个扫码页:把成品 `<Scanner>` 丢进一个路由,传 `onClose` / `resolveProduct` / `onConfirm`,它自带取景 → 识别 → 确认的完整流程。
 
-:::warning 相机扫码请用真机
-iOS simulator 应能编译、链接并运行非相机测试,但 ScanKit 相机扫码只能用真机;Android 真实扫码同样请用真机验证。先完成[安装](/docs/getting-started/installation)(peerDeps + Android Huawei Maven + iOS `pod install` / `NSCameraUsageDescription`)再运行本例。
+:::warning iOS 仅支持真机
+iOS Simulator 不支持。ScanKit 相机扫码与 `decodeImage` 原生路径都必须在真机上构建和验证;无硬件环境中的 JS 逻辑使用随包 Jest mock。Android 真实扫码同样请用真机验证。先完成[安装](/docs/getting-started/installation)(peerDeps + Android Huawei Maven + iOS `pod install` / `NSCameraUsageDescription`)再运行本例。
 :::
 
 ---

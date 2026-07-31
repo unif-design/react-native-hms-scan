@@ -30,7 +30,7 @@ npx skills add unif-design/skills --skill rn-library --skill hms-scan --global -
 
 `@unif/react-native-hms-scan` —— 华为 **HMS 统一扫码(Scan Kit)** 的 React Native 封装。提供三种用法:成品「扫一扫」页 `<Scanner>`、headless 相机组件 `<HmsScanView>`、从本地图片识别 `decodeImage`。目标运行时:**RN 0.85 新架构**(Fabric + TurboModule)、React 19、TypeScript 6。**仅支持新架构**。
 
-Android 用 **Scan SDK-Plus**(`com.huawei.hms:scanplus`,**内置引擎,非华为机也能用,不依赖设备装 HMS Core APK**);iOS 用 **ScanKitFrameWork**。两端**都不需要 AppGallery Connect / agconnect / API Key**。
+Android 用 **Scan SDK-Plus**(`com.huawei.hms:scanplus`,**内置引擎,非华为机也能用,不依赖设备装 HMS Core APK**);iOS 通过 CocoaPods 安装官方 **ScanKitFrameWork 1.1.2.305**,仅支持真机。两端**都不需要 AppGallery Connect / agconnect / API Key**。
 
 yarn workspaces 单仓库:库本体在根目录,`example/` 是宿主 RN app,`website/` 是 Docusaurus 文档站。
 
@@ -122,8 +122,8 @@ decodeImage        从本地图片识别 → ScanResult[]
 
 接入 / 改动时最容易踩的;前两个(iOS 真机、`decodeImage` 的 URI 与空数组语义)是最高频问题。
 
-- **iOS 相机扫码需真机** — simulator 可编译、链接并运行非相机测试;`scripts/prepare-scankit-xcframework.sh` 会用 vtool 补出 arm64-simulator 切片并生成 xcframework。
-  - **链接排障** — `ld: building for iOS-simulator but linking in object built for iOS` 不再是预期结果;出现时先重新运行 `pod install`,再检查生成的 xcframework 是否同时包含 device 与 simulator 切片。
+- **iOS 原生目标仅支持真机** — `pod install` 通过 CocoaPods 安装官方 `ScanKitFrameWork 1.1.2.305`,不会在 `node_modules` 中生成 XCFramework。相机扫码与 `decodeImage` 原生路径都用真机验证;无硬件逻辑测试使用随包 Jest mock。
+  - **Simulator 是明确的不支持目标** — 架构 / 链接失败属于当前预期边界,应切换物理设备;不得通过修改宿主 Podfile、改写二进制平台标记或伪造 Simulator 切片规避。真正的真机构建若找不到 `ScanKitFrameWork.h`,才按 CocoaPods 集成故障排查并核对 lockfile 是否为 `1.1.2.305`。
   - **可忽略 warning** — `pod install` 的 `ScanKitFrameWork LICENSE` warning 无害。
 - **权限边界** — Android 库 Manifest 已声明 `CAMERA`、`READ_MEDIA_IMAGES` 和 `READ_EXTERNAL_STORAGE(maxSdkVersion=32)`并合入宿主,但运行时授权不会自动完成:`<Scanner>` 只自动管理相机权限,`<HmsScanView>` 与 `decodeImage` 所需权限 / URI grant 由宿主管理。iOS 宿主必须声明 `NSCameraUsageDescription`,相册权限由宿主图片选择器负责。Android 的 `getCameraPermissionStatus` 对未授权只返回 `denied`,区分 `denied` / `blocked` 以 `requestCameraPermission` 的请求后结果为准;无当前 `PermissionAwareActivity` 时请求会 reject `E_NO_ACTIVITY`,不是返回某个 status。iOS 只可能返回 `granted` / `undetermined` / `blocked` —— 原生把 `denied` 与 `restricted` 都映射为 `blocked`,永远不返回 `denied`。
 - **`decodeImage` 只吃本地 URI,不下载远程 URL**,且接受形式因平台而异:
@@ -161,4 +161,4 @@ decodeImage        从本地图片识别 → ScanResult[]
 
 ## 仓库内注释风格
 
-现有代码用中文记录非显而易见决策的 **why** —— 比如 podspec 为什么改 xcframework、为什么 `decodeImage` 空数组不当错误、为什么 `coerceFormat` 要防御性收敛原生回传。保持这个标准:能不写注释就不写,但当读者会想"为什么要这样写"时,就写一句把 why 讲清楚。
+现有代码用中文记录非显而易见决策的 **why** —— 比如 podspec 为什么固定官方 CocoaPod、为什么 `decodeImage` 空数组不当错误、为什么 `coerceFormat` 要防御性收敛原生回传。保持这个标准:能不写注释就不写,但当读者会想"为什么要这样写"时,就写一句把 why 讲清楚。
