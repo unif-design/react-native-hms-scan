@@ -4,9 +4,9 @@ import NativeHmsScanView from './HmsScanViewNativeComponent';
 import { formatsToCsv, parseResultsJson } from './format';
 import type { BarcodeFormat, ScanResult } from './types';
 
-/** 暗光提示 / 手电状态。 */
+/** 平台相关的暗光提示 / 手电状态。 */
 export interface TorchStatus {
-  /** 环境暗到建议显示手电按钮（仅 Android 上报）。 */
+  /** Android:环境暗光提示；iOS:设备是否有手电硬件。 */
   available: boolean;
   /** 手电当前是否点亮。 */
   on: boolean;
@@ -25,7 +25,7 @@ export interface HmsScanViewProps extends ViewProps {
   onScanResult?: (results: ScanResult[]) => void;
   /** 相机/解码出错时回调。 */
   onScanError?: (error: { code: string; message: string }) => void;
-  /** 暗光提示 / 手电状态变化时回调。 */
+  /** Android 暗光提示或 iOS 手电硬件 / 点亮状态变化时回调。 */
   onTorchStatus?: (status: TorchStatus) => void;
 }
 

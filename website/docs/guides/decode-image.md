@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: 图片识别
-description: "decodeImage(localUri) 从本地图片解码条码/二维码：接受 file:// / 绝对路径（两端通用），content:// 仅 Android；不下载远程 URL；空数组 [] = 图里没码（正常，不抛错）；图片加载失败/读权限缺失才抛 HmsScanError。"
+description: "decodeImage(localUri) 从本地图片解码条码/二维码：file:// / 绝对路径两端通用，content:// / android.resource:// 仅 Android，data: 仅 iOS；空数组是正常结果。"
 ---
 
 # 图片识别
@@ -43,8 +43,9 @@ const results = await decodeImage('file:///path/photo.jpg', {
 | `file:///...`(文件 URI) | ✅ | ✅ |
 | 绝对路径(无 scheme,如 `/data/.../a.jpg`) | ✅ | ✅ |
 | `content://...`(Android Content URI) | ✅ | ❌ |
-| `data:...`(base64 等) | —— | ✅ |
-| `ph://...`(iOS Photos)/ `assets-library://` | —— | ❌ |
+| `android.resource://...` | ✅ | ❌ |
+| `data:...`(base64 等) | ❌ | ✅ |
+| `ph://...`(iOS Photos)/ `assets-library://` | ❌ | ❌ |
 | `http(s)://...`(远程 URL) | ❌ | ❌ |
 
 :::tip 跨平台安全输入:`file://` 或绝对路径
@@ -88,7 +89,7 @@ if (results.length === 0) {
 
 ## 错误处理:真正的失败才抛 `HmsScanError` {#error-handling}
 
-只有**图片加载失败 / 读权限缺失 / 解码异常**等真正的失败才抛 `HmsScanError`(带 `code`):
+只有**图片加载失败 / 解码异常**等真正的失败才抛 `HmsScanError`(带 `code`);其他原生异常统一收敛为 `E_UNKNOWN`:
 
 ```tsx
 import { decodeImage, HmsScanError } from '@unif/react-native-hms-scan';
@@ -100,7 +101,6 @@ try {
   if (e instanceof HmsScanError) {
     switch (e.code) {
       case 'E_IMAGE_LOAD_FAILED':   /* 路径无效 / 非本地 uri / 格式不支持 */ break;
-      case 'E_NO_READ_PERMISSION':  /* 缺相册读取权限（Android）*/ break;
       case 'E_DECODE_FAILED':       /* 解码过程异常 */ break;
       default: /* E_UNKNOWN 等 */ break;
     }
@@ -112,8 +112,12 @@ try {
 | --- | --- |
 | 图里没码 | resolve `[]`(**不抛错**) |
 | 传了远程 URL / 非本地 uri / 路径无效 | 抛 `E_IMAGE_LOAD_FAILED` |
-| 缺相册读取权限(Android) | 抛 `E_NO_READ_PERMISSION` |
 | 解码过程异常 | 抛 `E_DECODE_FAILED` |
+| 其他原生异常 | 抛 `E_UNKNOWN` |
+
+:::note 相册权限由宿主 picker / URI grant 负责
+当前 Android / iOS native 都不会产生 `E_NO_READ_PERMISSION`。Android `content://` 是否可读取决于宿主 picker 提供的临时 / 持久 URI grant;iOS 图片选择器需导出本库支持的 `file://` / 绝对路径 / `data:`。加载不到统一抛 `E_IMAGE_LOAD_FAILED`。
+:::
 
 完整错误码见 [API → HmsScanErrorCode](/docs/api/types)。
 
@@ -123,4 +127,4 @@ try {
 
 - [API 参考 → 函数](/docs/api/functions) —— `decodeImage` 完整签名与错误码表
 - [API 参考 → 类型](/docs/api/types) —— `ScanResult` / `HmsScanError` 类型定义
-- [指南 → 权限处理](/docs/guides/permissions) —— 相册读取权限处理
+- [指南 → 权限处理](/docs/guides/permissions) —— 相机权限与图片 URI 访问边界

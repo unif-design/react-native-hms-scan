@@ -8,8 +8,8 @@ description: "用 <Scanner> 5 分钟跑通第一个扫码页：丢一个 <Scanne
 
 5 分钟跑通第一个扫码页:把成品 `<Scanner>` 丢进一个路由,传 `onClose` / `resolveProduct` / `onConfirm`,它自带取景 → 识别 → 确认的完整流程。
 
-:::warning iOS 扫码仅真机
-扫码依赖原生相机,**iOS 模拟器 / Android 模拟器 / Web 都跑不起来**(属预期行为)。请在真机上验证。先完成[安装](/docs/getting-started/installation)(peerDeps + iOS `pod install` + `NSCameraUsageDescription`)再运行本例。
+:::warning 相机扫码请用真机
+iOS simulator 应能编译、链接并运行非相机测试,但 ScanKit 相机扫码只能用真机;Android 真实扫码同样请用真机验证。先完成[安装](/docs/getting-started/installation)(peerDeps + Android Huawei Maven + iOS `pod install` / `NSCameraUsageDescription`)再运行本例。
 :::
 
 ---
@@ -90,6 +90,8 @@ function ScanScreen({ navigation }) {
 ```
 
 **一次扫一个**:扫到 `results[0]` 即暂停继续扫,确定或重扫后才复位。相机权限在挂载时自动请求,永久拒绝则展示引导去系统设置的遮罩。
+
+若传 `autoConfirm`,解析成功后会跳过结果卡、调用 `onConfirm` 并进入暂停的 `done` 终态,不会自动重扫。**只有 `onConfirm` 正常返回才会进 `done`** —— 它和 `resolveProduct` 在同一个 `try` 里,同步抛错会被收成未识别的 fail 重扫层。
 
 ---
 

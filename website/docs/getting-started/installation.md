@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: 安装
-description: "安装 @unif/react-native-hms-scan 及全部必装 peerDependencies（含 @unif/react-native-design 与其 UI 依赖），Android 零配置（华为 Maven 内置、无 agconnect、minSdk≥24），iOS pod install + NSCameraUsageDescription。仅支持新架构。"
+description: "安装 @unif/react-native-hms-scan 及全部必装 peerDependencies（含 @unif/react-native-design 与其 UI 依赖），Android 宿主添加 Huawei Maven（无需 agconnect、minSdk≥24），iOS pod install + NSCameraUsageDescription。仅支持新架构。"
 ---
 
 # 安装
@@ -57,10 +57,24 @@ yarn add @unif/react-native-hms-scan \
 
 ## 2. Android 配置
 
-### 零配置:华为 Maven 与依赖已内置 {#android-zero-config}
+### 添加 Huawei Maven {#android-huawei-maven}
 
-:::tip 无需改宿主 gradle、无需 agconnect
-华为 Maven 仓库(`https://developer.huawei.com/repo/`)与 `com.huawei.hms:scanplus` 依赖**已写在本库自己的 `android/build.gradle` 里**,宿主**不用改任何 gradle**。也**不需要** `agconnect-services.json` / AppGallery Connect 插件 / API Key —— Scan SDK-Plus 是内置引擎,非华为机型也能用。
+`com.huawei.hms:scanplus` 依赖已由本库声明,但 Gradle 的 library `repositories` **不会传播给 consumer**。宿主必须在实际参与 App 依赖解析的仓库列表中加入:
+
+```gradle title="android/build.gradle"
+allprojects {
+  repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://developer.huawei.com/repo/' }
+  }
+}
+```
+
+若工程在 `settings.gradle` 统一管理仓库,就把同一个 Maven 地址加到 `dependencyResolutionManagement.repositories`;关键是它必须进入**实际解析 `:app` 依赖**的列表。
+
+:::tip 仍然无需 agconnect / API Key
+Scan SDK-Plus 是内置引擎,非华为机型也能用;不需要 `agconnect-services.json`、AppGallery Connect 插件或 API Key。
 :::
 
 唯一硬要求是 **minSdkVersion ≥ 24**。若宿主低于 24,在 `android/build.gradle` 提升:
@@ -75,25 +89,20 @@ buildscript {
 
 ### 权限声明 {#android-permissions}
 
-本库的 `AndroidManifest.xml` **已声明** `CAMERA`、`READ_MEDIA_IMAGES`、`READ_EXTERNAL_STORAGE`(`maxSdkVersion="32"`)以及 `android.hardware.camera`(`required="false"`),它们会通过 manifest 合并自动并入宿主 App。**通常无需在宿主重复声明。**
+本库的 `AndroidManifest.xml` 已声明 `CAMERA` 以及 camera feature,会通过 manifest 合并进入宿主 App。**通常无需在宿主重复声明。**当前清单还保留 `READ_MEDIA_IMAGES` / `READ_EXTERNAL_STORAGE(maxSdkVersion="32")` 兼容声明,但 `decodeImage` 自身不会请求或检查相册权限,当前 native 也不会产生 `E_NO_READ_PERMISSION`。
 
 若宿主的清单合并策略覆盖了它们,或你想显式声明,可在 `android/app/src/main/AndroidManifest.xml` 的 `<manifest>` 节点下补:
 
 | 权限 | 说明 |
 | --- | --- |
 | `android.permission.CAMERA` | 相机扫码所需权限 |
-| `android.permission.READ_MEDIA_IMAGES` | API 33+ 读相册图(**仅 `decodeImage` 解相册图时**需要) |
-| `android.permission.READ_EXTERNAL_STORAGE` | `maxSdkVersion="32"`,API ≤ 32 读相册图(**仅 `decodeImage` 时**) |
+| 相册 / 文件读取 | 由宿主图片选择器和 URI 来源决定;优先使用 picker 返回的临时 `content://` grant 或复制到 App 自有目录 |
 
 ```xml title="android/app/src/main/AndroidManifest.xml"
 <uses-permission android:name="android.permission.CAMERA" />
-<!-- 以下仅当用 decodeImage 解相册图时需要 -->
-<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-    android:maxSdkVersion="32" />
 ```
 
-> `CAMERA` / 相册读取属**运行时权限**,声明之外还要在运行时请求。`<Scanner>` 已自动处理相机权限;用 `<HmsScanView>` / `decodeImage` 时自行请求,见[权限处理](/docs/guides/permissions)。
+> `CAMERA` 是运行时权限,声明之外还要请求。`<Scanner>` 已自动处理;用 `<HmsScanView>` 时自行请求。`decodeImage` 的文件访问由宿主 picker / URI grant 负责,见[权限处理](/docs/guides/permissions)。
 
 ---
 
@@ -107,8 +116,8 @@ cd ios && bundle exec pod install
 
 `pod install` 会自动集成华为 `ScanKitFrameWork`(podspec 的 `prepare_command` 用 Apple 官方 `vtool` 把真机 arm64 切片改写补出 arm64 模拟器切片,打成 xcframework),**无需额外配置**,同样**不需要 AppGallery Connect / API Key**。
 
-:::warning iOS 扫码仅真机
-`ScanKitFrameWork` 是华为老式 framework。podspec 已补出 arm64 模拟器切片让模拟器**能编译**,但相机扫码**只能在真机上跑**。在 Apple 芯片模拟器上若见 `ld: building for 'iOS-simulator', but linking in object file built for 'iOS'`,**是预期**,切真机即可。`pod install` 输出的 `ScanKitFrameWork` LICENSE 警告**无害**。详见[常见问题](/docs/troubleshooting)。
+:::warning iOS 相机扫码仅真机
+podspec 已补出 arm64 simulator slice,所以 simulator 应能编译、链接并运行非相机测试;相机扫码仍只能在真机上跑。在 Apple 芯片 simulator 上若见 `ld: building for 'iOS-simulator', but linking in object file built for 'iOS'`,这**不是预期结果**:重新执行 `pod install`,并检查生成的 xcframework 是否同时包含 device 与 simulator slice。`pod install` 输出的 `ScanKitFrameWork` LICENSE warning 无害。详见[常见问题](/docs/troubleshooting)。
 :::
 
 ### Info.plist 权限 {#ios-permissions}

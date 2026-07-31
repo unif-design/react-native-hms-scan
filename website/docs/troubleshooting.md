@@ -1,7 +1,7 @@
 ---
 sidebar_position: 8
 title: 常见问题
-description: "@unif/react-native-hms-scan 排障决策树（症状→因→解）：iOS 模拟器链接错误（预期，须真机）、ScanKitFrameWork LICENSE 警告无害、Android minSdk<24 / 缺 CAMERA、decodeImage 空数组非错误 / 不下载远程、iOS 手电 best-effort（onTorchStatus.available iOS 永不上报）。"
+description: "@unif/react-native-hms-scan 排障决策树：iOS simulator slice 链接错误、Huawei Maven / minSdk / CAMERA、decodeImage URI grant 与空数组、iOS 手电 best-effort。"
 ---
 
 # 常见问题
@@ -16,9 +16,9 @@ description: "@unif/react-native-hms-scan 排障决策树（症状→因→解�
 ld: building for 'iOS-simulator', but linking in object file built for 'iOS'
 ```
 
-✅ **这是预期行为,不是 bug —— 请用真机调试。**
+❌ **这不是预期结果。** simulator 应能编译、链接并运行非相机测试。
 
-`ScanKitFrameWork` 是华为老式 framework。podspec 的 `prepare_command` 已用 Apple 官方 `vtool` 补出 arm64 模拟器切片让模拟器**能编译**,但相机扫码能力**只能在真机上跑**。在 Apple 芯片模拟器上见到上面这行,切真机即可。
+重新执行 `pod install`,再检查生成的 xcframework 是否同时包含 device 与 simulator slice。podspec 的 `prepare_command` 会用 `vtool` 准备 simulator slice;若仍只链接到 device framework,清理旧 Pods / 构建缓存后重装。**只有相机扫码必须用真机**,链接失败不能靠“改用真机”掩盖。
 
 :::tip 在 CI / 模拟器里测逻辑
 不要在模拟器里测真实扫码。单元测试用[测试(Mock)](/docs/testing)页的 `jest.mock` 方案,在无硬件环境跑通扫码 / 识图流程逻辑。
@@ -54,6 +54,18 @@ buildscript {
 
 ---
 
+## 症状:Android 报 `Could not find com.huawei.hms:scanplus`
+
+✅ 宿主没有把 Huawei Maven 加到实际参与 App 依赖解析的仓库列表。库虽然声明了 `scanplus`,但 library 自己的 `repositories` 不会传播给 consumer。在宿主 `allprojects.repositories` 或 `dependencyResolutionManagement.repositories` 中加入:
+
+```gradle
+maven { url 'https://developer.huawei.com/repo/' }
+```
+
+仍然**不需要** `agconnect-services.json`、AppGallery Connect 插件或 API Key。
+
+---
+
 ## 症状:Android 扫码无响应 / 画面黑屏
 
 逐一排查:
@@ -66,8 +78,10 @@ buildscript {
 
 ✅ `CAMERA` 是运行时权限,声明之外还要在运行时请求。用 `<Scanner>` 会自动处理;用 `<HmsScanView>` 时自己先调 `requestCameraPermission`。见[权限处理](/docs/guides/permissions)。
 
+若 `requestCameraPermission()` 直接 reject `E_NO_ACTIVITY`,当前前台 Activity 不存在或不是 `PermissionAwareActivity`;先确认在可见 RN Activity 中调用。不要把该 reject 当作某个权限 status。另请注意 `<Scanner>` 当前对权限 helper reject 会 fail-open,严格权限门禁应采用 headless 流程自行兜底。
+
 :::note 无需 agconnect / API Key
-华为 Maven 源与 `scanplus` 依赖已内置在本库 gradle 里,Android **零配置**;**不需要** `agconnect-services.json` / AppGallery Connect 插件 / API Key。若你在为「漏配 agconnect」排查 —— 不必,本库不依赖它。
+宿主必须添加 Huawei Maven,但**不需要** `agconnect-services.json`、AppGallery Connect 插件或 API Key。若你在为「漏配 agconnect」排查 —— 不必,本库不依赖它。
 :::
 
 ---
@@ -85,11 +99,15 @@ buildscript {
 
 ---
 
-## 症状:`decodeImage` 抛 `E_NO_READ_PERMISSION`
+## 症状:从相册选图后 `decodeImage` 抛 `E_IMAGE_LOAD_FAILED`
 
-✅ 读相册图片需要权限(Android):`READ_MEDIA_IMAGES`(API 33+)/ `READ_EXTERNAL_STORAGE`(API ≤ 32)。本库清单已声明,但仍需**在运行时请求**后再调 `decodeImage`。
+✅ 先确认 picker 返回的 URI 形式受当前平台支持,并确认 URI grant 仍有效:
 
-> iOS 端 `decodeImage` 不直接读相册(只收 `file://` / 绝对路径 / `data:`),相册读取由宿主图片选择器负责。见[权限处理 → decodeImage 的相册读取权限](/docs/guides/permissions#decode-image-permission)。
+- Android 支持 `content://` 临时授权;若要延迟读取,由宿主持久化 grant 或复制到 App 自有目录。
+- iOS 不支持 `ph://`;让 picker 导出 `file://` / 绝对路径,或由宿主读取后转成 `data:`。
+- 当前 native **不会产生 `E_NO_READ_PERMISSION`**;加载不到图片统一是 `E_IMAGE_LOAD_FAILED`,相册授权与 URI 可读性由宿主 picker / URI grant 负责。
+
+见[权限处理 → decodeImage 的文件访问边界](/docs/guides/permissions#decode-image-permission)。
 
 ---
 
@@ -98,7 +116,7 @@ buildscript {
 ✅ **这是已知限制,不是 bug。** iOS 端 HMS 无公开手电 API,本库走 `AVCaptureDevice` **尽力而为**:
 
 - `torch={true}` **不保证**点亮(设备 / 系统差异)。
-- `onTorchStatus.available`(暗光提示)**仅 Android 上报,iOS 永不上报** —— 别把它当跨平台的暗光信号。
+- iOS 会在 `torch` 初次应用和后续 prop 变更时上报 `onTorchStatus`;`available` 表示硬件是否有手电,`on` 表示真实点亮状态,**不是暗光提示**。只有 Android 的 `available` 来自暗光回调。
 
 建议 iOS 上把手电按钮以「提示」而非「保证」呈现,或在 `<Scanner>` 上用 `showTorch={false}` 直接隐藏。详见[平台差异 → 手电筒](/docs/platform-differences#torch)。
 
