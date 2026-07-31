@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "ios": "react-native run-ios --device",
     "start": "react-native start",
     "build:android": "react-native build-android --extra-params \"--no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a\"",
-    "build:ios": "react-native build-ios --mode Debug"
+    "build:ios": "node ../scripts/verify-ios-integration.mjs --require-lock && react-native build-ios --mode Debug --device --extra-params \"CODE_SIGNING_ALLOWED=NO\""
   },
   "dependencies": {
     "@sbaiahmed1/react-native-blur": "^4.6.2",

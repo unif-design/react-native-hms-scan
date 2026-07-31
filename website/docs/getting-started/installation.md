@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: 安装
-description: "安装 @unif/react-native-hms-scan 及全部必装 peerDependencies（含 @unif/react-native-design 与其 UI 依赖），Android 宿主添加 Huawei Maven（无需 agconnect、minSdk≥24），iOS pod install + NSCameraUsageDescription。仅支持新架构。"
+description: "安装 @unif/react-native-hms-scan 及全部必装 peerDependencies（含 @unif/react-native-design 与其 UI 依赖），Android 宿主添加 Huawei Maven（无需 agconnect、minSdk≥24），iOS 通过 CocoaPods 安装官方 ScanKitFrameWork 1.1.2.305 并配置 NSCameraUsageDescription。仅支持新架构。"
 ---
 
 # 安装
@@ -15,7 +15,7 @@ description: "安装 @unif/react-native-hms-scan 及全部必装 peerDependencie
 | React Native | **新架构(Fabric + TurboModules)必须开启** |
 | React | 19+ |
 | Android | **minSdkVersion ≥ 24**(Android 7.0) |
-| iOS | 随宿主 RN 工程最低版本(扫码相机**仅真机**) |
+| iOS | 随宿主 RN 工程最低版本;原生构建和运行**仅支持真机** |
 
 :::danger 仅支持新架构
 本库是 Fabric 组件 + TurboModule 桥,**仅支持新架构**。旧架构(Bridge)不受支持。安装前确认宿主已启用新架构(`android/gradle.properties` 的 `newArchEnabled=true` 等)。
@@ -114,10 +114,10 @@ buildscript {
 cd ios && bundle exec pod install
 ```
 
-`pod install` 会自动集成华为 `ScanKitFrameWork`(podspec 的 `prepare_command` 用 Apple 官方 `vtool` 把真机 arm64 切片改写补出 arm64 模拟器切片,打成 xcframework),**无需额外配置**,同样**不需要 AppGallery Connect / API Key**。
+`pod install` 会通过 CocoaPods 自动安装华为官方 `ScanKitFrameWork 1.1.2.305`,**无需额外配置**,同样**不需要 AppGallery Connect / API Key**。安装过程不会在 `node_modules` 中生成 XCFramework。
 
-:::warning iOS 相机扫码仅真机
-podspec 已补出 arm64 simulator slice,所以 simulator 应能编译、链接并运行非相机测试;相机扫码仍只能在真机上跑。在 Apple 芯片 simulator 上若见 `ld: building for 'iOS-simulator', but linking in object file built for 'iOS'`,这**不是预期结果**:重新执行 `pod install`,并检查生成的 xcframework 是否同时包含 device 与 simulator slice。`pod install` 输出的 `ScanKitFrameWork` LICENSE warning 无害。详见[常见问题](/docs/troubleshooting)。
+:::warning iOS Simulator 不支持
+iOS 相机扫码与 `decodeImage` 原生路径都只支持真机。Simulator 的架构 / 链接失败属于当前明确的 unsupported target;请切换物理设备,不要通过清理 cache、生成本地 framework 或修改宿主 Podfile 追求 Simulator 成功。无硬件逻辑测试使用随包 Jest mock。`pod install` 输出的 `ScanKitFrameWork` LICENSE warning 无害。详见[常见问题](/docs/troubleshooting)。
 :::
 
 ### Info.plist 权限 {#ios-permissions}

@@ -81,9 +81,6 @@ lib/
 ios/generated
 android/generated
 
-# ScanKitFrameWork.xcframework（scripts/prepare-scankit-xcframework.sh 按需生成，不入 git）
-ios/vendor/
-
 # Playwright MCP scratch files
 .playwright-mcp/
 

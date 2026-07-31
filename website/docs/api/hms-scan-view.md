@@ -126,7 +126,8 @@ function CustomScan() {
 
 | 平台 | 支持 | 备注 |
 | --- | --- | --- |
-| iOS（真机） | ✅ | `torch` best-effort；`onTorchStatus.available` 非暗光信号；模拟器无法扫码 |
+| iOS（真机） | ✅ | 官方 `ScanKitFrameWork 1.1.2.305` CocoaPod；`torch` best-effort；`onTorchStatus.available` 非暗光信号 |
+| iOS Simulator | ❌ | 原生目标不支持；无硬件 JS 逻辑使用随包 Jest mock |
 | Android | ✅ | 全功能支持 |
 | Web | ❌ | — |
 

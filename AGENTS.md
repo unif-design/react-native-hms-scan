@@ -1,42 +1,28 @@
 # AGENTS.md
 <!-- BEGIN UNIF REACT NATIVE STANDARD -->
 
-## 组织共享开发流程
+## 共享标准启动
 
-你维护的仓库是 `react-native-hms-scan`。本区块定义共享门禁;仓库正文只保存本仓特有规则,且只能补充或收紧共享规则。真实冲突必须如实报告,不得静默选择任一规则。
+你维护的仓库是 `react-native-hms-scan`。本区块只负责启动与失效保护;完整共享流程由
+`rn-library` Skill 管理,marker 外只保存本仓特有规则。
 
-## 任务开始: Skill 发现 + Git 状态 + 分支
+开始任何任务前:
 
-- 先查找适用的 Skill 并阅读其说明,再执行任务。
-- 开始前运行 `git status --short --branch`,确认工作区和分支状态。
-- 若当前位于 `main`,必须在任何修改前创建并切换到语义明确的任务分支;若已位于与任务匹配的非 `main` 分支,继续在该分支工作并保留既有改动。
-- 不得混入、覆盖、暂存或提交无关改动。
-- `main` 是合并门禁分支: 禁止直接推送 `main`,所有改动必须经 PR 和 CI 进入 `main`。
+1. 运行 `git status --short --branch`;位于 `main` 时,在首次写入前创建语义明确的任务分支。
+2. 保留已有改动,不得覆盖、暂存或提交与当前任务无关的文件。
+3. 查找并读取 `rn-library` 与 `hms-scan` Skill,两者叠加使用。
+4. Skill 缺失时,按当前 Agent 选择一条全局安装命令:
 
-## 实现与交付: 验证 + PR CI + 合并后自动发布
+```sh
+# Codex
+npx skills add unif-design/skills --skill rn-library --skill hms-scan --global --agent codex --yes
 
-- 实现后运行仓库特有验证,并使用 conventional commit 提交。
-- 推送任务分支并创建 PR;PR CI 通过后再合入 `main`。
-- 命中 release workflow 路径的改动会在合入后自动发布。除任务明确要求人工应急发布外,不得手工改版本、创建 tag 或执行 `npm publish`。
+# Claude Code
+npx skills add unif-design/skills --skill rn-library --skill hms-scan --global --agent claude-code --yes
+```
 
-## website / llms.txt / hms-scan Skill 联动
-
-- 每次仓库改动(包括仅修改 `AGENTS.md`、CI 或仓库文档)都必须核对 `website`、`llms.txt` 和 `../skills/skills/hms-scan/` 中对应的 `hms-scan` Skill。
-- 明确核对公共 API、类型、运行时行为、错误语义、依赖 / 安装、原生配置、mock、消费者示例、排障结论和文档入口。
-- 受影响项与本次交付同步更新;不受影响时说明核对范围与理由;不可访问或不可写时如实报告。
-
-## RNGH 3 / Carousel 5 条件化窄例外
-
-- 仅当仓库实际采用 `@unif/react-native-design@0.20.0`、`react-native-gesture-handler >=3 <4` 和 `react-native-reanimated-carousel@5.0.0` 时适用;该规则不要求未采用此组合的仓库升级依赖。
-- Carousel 发布 metadata 的 RNGH 范围为 `>=2.9 <3`,与 Design 的 RNGH 范围无交集,但当前组合已适配并验证。
-- 不得仅凭上述已验证的 Carousel / RNGH peer warning 再次询问、阻塞或建议降级;保留 scoped override、窄 allowlist 和严格漂移检查,禁止全局 override、`--force`、`--legacy-peer-deps`。
-- 仅在可复现相关回归,或 Carousel 版本 / peer range / RNGH major 变化时重评。
-
-## 共享与本仓规则边界
-
-- 本区块外的内容属于本仓规则,同步时必须保留;模板已有的通用规则不得在仓库正文重复。
-- 同步脚本只保留正文结构,不证明正文语义仍然正确。同步或迁移 `AGENTS.md` 后,必须逐条对照当前代码、类型、测试、`package.json`、有效文档与已批准规格,删除或改写失效、重复和互相矛盾的说明。
-- 已落地行为写成当前事实;已批准但尚未实现的契约写成开发约束,不得伪装为已经实现。无法确认时先查证,不能沿用旧正文猜测。
+安装完成后重新读取两个 Skill。安装失败、需要认证或仍无法读取时停止修改并报告,不得跳过
+共享门禁。仓库正文只能补充或收紧共享规则;发现真实冲突时如实报告。
 
 <!-- END UNIF REACT NATIVE STANDARD -->
 
@@ -44,7 +30,7 @@
 
 `@unif/react-native-hms-scan` —— 华为 **HMS 统一扫码(Scan Kit)** 的 React Native 封装。提供三种用法:成品「扫一扫」页 `<Scanner>`、headless 相机组件 `<HmsScanView>`、从本地图片识别 `decodeImage`。目标运行时:**RN 0.85 新架构**(Fabric + TurboModule)、React 19、TypeScript 6。**仅支持新架构**。
 
-Android 用 **Scan SDK-Plus**(`com.huawei.hms:scanplus`,**内置引擎,非华为机也能用,不依赖设备装 HMS Core APK**);iOS 用 **ScanKitFrameWork**。两端**都不需要 AppGallery Connect / agconnect / API Key**。
+Android 用 **Scan SDK-Plus**(`com.huawei.hms:scanplus`,**内置引擎,非华为机也能用,不依赖设备装 HMS Core APK**);iOS 通过 CocoaPods 安装官方 **ScanKitFrameWork 1.1.2.305**,仅支持真机。两端**都不需要 AppGallery Connect / agconnect / API Key**。
 
 yarn workspaces 单仓库:库本体在根目录,`example/` 是宿主 RN app,`website/` 是 Docusaurus 文档站。
 
@@ -136,8 +122,8 @@ decodeImage        从本地图片识别 → ScanResult[]
 
 接入 / 改动时最容易踩的;前两个(iOS 真机、`decodeImage` 的 URI 与空数组语义)是最高频问题。
 
-- **iOS 相机扫码需真机** — simulator 可编译、链接并运行非相机测试;`scripts/prepare-scankit-xcframework.sh` 会用 vtool 补出 arm64-simulator 切片并生成 xcframework。
-  - **链接排障** — `ld: building for iOS-simulator but linking in object built for iOS` 不再是预期结果;出现时先重新运行 `pod install`,再检查生成的 xcframework 是否同时包含 device 与 simulator 切片。
+- **iOS 原生目标仅支持真机** — `pod install` 通过 CocoaPods 安装官方 `ScanKitFrameWork 1.1.2.305`,不会在 `node_modules` 中生成 XCFramework。相机扫码与 `decodeImage` 原生路径都用真机验证;无硬件逻辑测试使用随包 Jest mock。
+  - **Simulator 是明确的不支持目标** — 架构 / 链接失败属于当前预期边界,应切换物理设备;不得通过修改宿主 Podfile、改写二进制平台标记或伪造 Simulator 切片规避。真正的真机构建若找不到 `ScanKitFrameWork.h`,才按 CocoaPods 集成故障排查并核对 lockfile 是否为 `1.1.2.305`。
   - **可忽略 warning** — `pod install` 的 `ScanKitFrameWork LICENSE` warning 无害。
 - **权限边界** — Android 库 Manifest 已声明 `CAMERA`、`READ_MEDIA_IMAGES` 和 `READ_EXTERNAL_STORAGE(maxSdkVersion=32)`并合入宿主,但运行时授权不会自动完成:`<Scanner>` 只自动管理相机权限,`<HmsScanView>` 与 `decodeImage` 所需权限 / URI grant 由宿主管理。iOS 宿主必须声明 `NSCameraUsageDescription`,相册权限由宿主图片选择器负责。Android 的 `getCameraPermissionStatus` 对未授权只返回 `denied`,区分 `denied` / `blocked` 以 `requestCameraPermission` 的请求后结果为准;无当前 `PermissionAwareActivity` 时请求会 reject `E_NO_ACTIVITY`,不是返回某个 status。iOS 只可能返回 `granted` / `undetermined` / `blocked` —— 原生把 `denied` 与 `restricted` 都映射为 `blocked`,永远不返回 `denied`。
 - **`decodeImage` 只吃本地 URI,不下载远程 URL**,且接受形式因平台而异:
@@ -175,4 +161,4 @@ decodeImage        从本地图片识别 → ScanResult[]
 
 ## 仓库内注释风格
 
-现有代码用中文记录非显而易见决策的 **why** —— 比如 podspec 为什么改 xcframework、为什么 `decodeImage` 空数组不当错误、为什么 `coerceFormat` 要防御性收敛原生回传。保持这个标准:能不写注释就不写,但当读者会想"为什么要这样写"时,就写一句把 why 讲清楚。
+现有代码用中文记录非显而易见决策的 **why** —— 比如 podspec 为什么固定官方 CocoaPod、为什么 `decodeImage` 空数组不当错误、为什么 `coerceFormat` 要防御性收敛原生回传。保持这个标准:能不写注释就不写,但当读者会想"为什么要这样写"时,就写一句把 why 讲清楚。

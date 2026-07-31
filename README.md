@@ -11,6 +11,7 @@
 
 - **三种用法** — 成品 `<Scanner>` 扫一扫页(自带权限流 / 状态机 / 主题)、headless `<HmsScanView>` 相机组件(自定义 UI)、`decodeImage(uri)` 从本地图片识别。
 - **Android 内置引擎** — 用 Scan SDK-Plus,**非华为机型可用**,不依赖设备装 HMS Core APK;`scanplus` 由本库声明,宿主需把 Huawei Maven 加到实际参与依赖解析的 `repositories`。
+- **iOS 官方 CocoaPod** — CocoaPods 安装官方 `ScanKitFrameWork 1.1.2.305`,当前只支持真机构建和运行。
 - **零云端配置** — 两端**都不需要 AppGallery Connect / agconnect / API Key**。
 - **14 种码制** — `QR_CODE` / `EAN_13` / `CODE_128` / `PDF417` / `DATA_MATRIX` 等,默认识别全部。
 - 仅支持 **RN 新架构**;`@unif/react-native-design` 风格统一。
@@ -21,6 +22,8 @@
 yarn add @unif/react-native-hms-scan react-native-svg
 cd ios && pod install
 ```
+
+CocoaPods 会直接安装官方 `ScanKitFrameWork 1.1.2.305`;`pod install` 不会在 `node_modules` 中生成 XCFramework。iOS Simulator 不属于支持目标。
 
 Android 宿主还必须在实际参与依赖解析的仓库列表中加入 Huawei Maven;库模块自己的 `repositories` 不会传播给 consumer:
 
@@ -66,9 +69,12 @@ headless `<HmsScanView>`(完全自定义 UI)、图片识别 `decodeImage`、权�
 
 ## 兼容性
 
-- **React Native** 新架构(Fabric + TurboModule)**必须开启**;在 RN 0.85 上开发与验证。
-- **Android** minSdkVersion ≥ 24(Android 7.0)。
-- **iOS** `ScanKitFrameWork` 相机扫码**仅真机**;simulator 可编译、链接并运行非相机测试。
+| 平台 | 支持 |
+| --- | --- |
+| React Native | 新架构(Fabric + TurboModule)**必须开启**;在 RN 0.85 上开发与验证 |
+| Android | ✅ minSdkVersion ≥ 24(Android 7.0) |
+| iOS | ✅ 官方 CocoaPod `ScanKitFrameWork 1.1.2.305` + 真机 |
+| iOS Simulator | ❌ 不支持;无硬件逻辑测试使用随包 Jest mock |
 
 ## 许可
 

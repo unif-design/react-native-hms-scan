@@ -1,7 +1,7 @@
 ---
 sidebar_position: 7
 title: 测试(Mock)
-description: "用官方 mock 在 Jest 中替换 @unif/react-native-hms-scan，避免加载 TurboModule / Fabric 组件：require('@unif/react-native-hms-scan/mock') 后 decodeImage→[]、权限→granted、<HmsScanView>/<Scanner>→null；纯函数 coerceFormat/coerceContentType/formatsToCsv 与类型 / HmsScanError 保留真实实现。可按需覆盖单次返回。"
+description: "iOS 原生目标仅支持真机；无硬件环境用官方 mock 在 Jest 中替换 @unif/react-native-hms-scan，避免加载 TurboModule / Fabric 组件：require('@unif/react-native-hms-scan/mock') 后 decodeImage→[]、权限→granted、<HmsScanView>/<Scanner>→null。mock 不代表 Simulator 原生支持。"
 ---
 
 # 测试(Mock)
@@ -90,8 +90,8 @@ describe('扫码流程', () => {
 });
 ```
 
-:::tip 不要在模拟器里测真实扫码
-iOS 扫码仅真机、相机能力依赖硬件。逻辑层（识图 / 权限分支 / 结果处理）用本页的 `jest.mock` 方案在无硬件环境跑通，相机本身留到真机手测。详见[常见问题](/docs/troubleshooting)。
+:::tip iOS 原生目标只支持真机
+iOS 相机扫码与 `decodeImage` 原生路径都必须在真机验证。逻辑层（识图 / 权限分支 / 结果处理）可用本页的 `jest.mock` 方案在无硬件环境跑通;mock 不加载 iOS 原生实现,不能表述成 Simulator 原生支持。详见[常见问题](/docs/troubleshooting)。
 :::
 
 ---

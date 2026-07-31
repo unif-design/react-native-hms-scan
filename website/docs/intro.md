@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: 介绍
-description: "@unif/react-native-hms-scan 是华为 HMS Scan Kit 的 React Native 新架构封装：Android 用内置引擎 Scan SDK-Plus（非华为机也能用、无需 agconnect）、iOS 用 ScanKitFrameWork。三种用法：成品 <Scanner> 页 / headless <HmsScanView> / decodeImage 图片识别。"
+description: "@unif/react-native-hms-scan 是华为 HMS Scan Kit 的 React Native 新架构封装：Android 用内置引擎 Scan SDK-Plus（非华为机也能用、无需 agconnect），iOS 用官方 ScanKitFrameWork 1.1.2.305 CocoaPod 且仅支持真机。三种用法：成品 <Scanner> 页 / headless <HmsScanView> / decodeImage 图片识别。"
 ---
 
 # @unif/react-native-hms-scan
@@ -40,7 +40,7 @@ import { Scanner } from '@unif/react-native-hms-scan';
 
 - **三种用法分层** —— `<Scanner>`(整屏直接用)内部用 `<HmsScanView>`(headless,自定义 UI 用它),两者底层都过同一套原生 TurboModule / Fabric 组件;`decodeImage` 是**独立的图片识别路径,不走相机**。需求由轻到重对应:成品页 → 自绘 UI → 仅识图。
 - **Android 用内置引擎,非华为机也能用** —— Android 端走 **Scan SDK-Plus**(`com.huawei.hms:scanplus`),识别引擎**内置在库里**,**不依赖设备安装 HMS Core APK**,普通非华为机型也能扫。`scanplus` 依赖由本库声明;由于库模块的仓库声明不会传播给 consumer,宿主必须把 Huawei Maven 加到实际参与解析的 `repositories`。**不需要 AppGallery Connect / `agconnect-services.json` / API Key**。
-- **iOS 用 ScanKitFrameWork,仅真机** —— iOS 端集成华为 `ScanKitFrameWork`(自包含,同样无需 AppGallery Connect / API Key)。该 framework 的相机能力**只能在真机上跑**(详见下方平台支持)。
+- **iOS 用官方 CocoaPod,仅真机** —— CocoaPods 安装华为官方 `ScanKitFrameWork 1.1.2.305`(自包含,同样无需 AppGallery Connect / API Key)。`pod install` 不会在 `node_modules` 中生成 XCFramework;iOS 原生构建和运行都只支持真机。
 - **码制两端归一** —— 原生侧(Android `HmsScan.*` / iOS `HMSScanFormatTypeCode`)已统一映射成 14 种字符串码制枚举再回 JS;`formats` **省略 = 识别全部码制**。
 - **`decodeImage` 空数组是正常结果** —— 图里没有码时返回**空数组 `[]`,不是错误、不会 throw**;图片加载失败 / 解码异常才抛 `HmsScanError`,其他原生异常统一收敛为 `E_UNKNOWN`。
 
@@ -66,14 +66,14 @@ import { Scanner } from '@unif/react-native-hms-scan';
 
 | 平台 | 支持 |
 | --- | --- |
-| iOS | ✅ 真机 |
+| iOS | ✅ 官方 CocoaPod + 真机 |
+| iOS Simulator | ❌ 不支持 |
 | Android（API 24+) | ✅ |
-| iOS simulator | ⚠️ 可编译、链接并运行非相机测试;相机扫码不可用 |
 | Android emulator | ⚠️ 可运行非相机逻辑;真实扫码请用真机 |
 | Web | ❌ |
 
-:::warning iOS 扫码必须真机运行
-iOS 的 `ScanKitFrameWork` 相机扫码**只能在真机上跑**,但 podspec 会生成包含 simulator slice 的 xcframework,所以 simulator 应能编译、链接并运行非相机测试。若出现 simulator slice 链接错误,这是需要排查的集成问题,不是预期结果;相机行为仍一律用真机验证。
+:::warning iOS 原生目标仅支持真机
+iOS 相机扫码与 `decodeImage` 原生路径都必须在真机上构建和验证。iOS Simulator 不支持;无硬件环境中的 JS 逻辑使用随包 Jest mock,不能把 mock 结果视为 Simulator 原生支持。
 :::
 
 :::info 仅支持新架构
