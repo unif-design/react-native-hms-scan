@@ -21,14 +21,15 @@ description: "用 <Scanner> 快速接入完整扫码页：title / onClose / reso
 ```
 init → scan（取景）→ detecting（识别中）
                        ↓
-                success（浮层确认卡）→ onConfirm → 带回上一级
+                success（浮层确认卡）→ 手动确认 → onConfirm → scan
+                       ↘ autoConfirm → onConfirm → done（暂停终态）
                        ↓
                   fail（未识别弹层）→ 重扫 → scan
                        ↓
                 denied（无权限遮罩）→ 去系统设置
 ```
 
-`<Scanner>` 挂载时**自动请求相机权限**:已授权直接进入取景;永久拒绝则展示引导去系统设置的遮罩(`denied`)。**一次扫一个** —— 扫到 `results[0]` 即进入 `detecting`,确定或重扫后才复位回 `scan`(内部 `handlingRef` 防重入)。
+`<Scanner>` 挂载时**自动请求相机权限**:已授权直接进入取景;永久拒绝则展示引导去系统设置的遮罩(`denied`)。**一次扫一个** —— 扫到 `results[0]` 即进入 `detecting`;手动确认或重扫后复位到 `scan`。`autoConfirm` 成功时调用 `onConfirm` 后进入 `done`,相机保持暂停且不会自动重扫;`onConfirm` 同步抛错会被 `resolveProduct` 那一层的 `catch` 收成 `fail`,**不会**进入 `done`。
 
 ---
 
@@ -73,7 +74,7 @@ init → scan（取景）→ detecting（识别中）
 />
 ```
 
-> 点确定后 `<Scanner>` 会 toast「已确定」并自动复位回取景态,宿主通常在 `onConfirm` 里导航离开本页。
+> 手动点「确定」会调用 `onConfirm` 并复位回取景态;提示与导航由宿主在 `onConfirm` 中处理。
 
 ---
 

@@ -58,6 +58,7 @@ type BarcodeFormat =
 - `UNKNOWN` 是兜底值，由 `coerceFormat` 在原生回传无法识别时产生，**不应**主动传给 `formats`。
 - `ALL_BARCODE_FORMATS` 常量包含上述 **14 种**（不含 `UNKNOWN`）；不传 `formats` 等价于"识别全部码制"，无需手动传它。
 - **iOS 平台差异**：`MULTI_FUNCTIONAL` 在 HUAWEI iOS Scan Kit 无对应码制，作为 `formats` 过滤项在 iOS 上不生效（若 `formats` 只含 `MULTI_FUNCTIONAL` / `UNKNOWN`，iOS 会回退为识别全部码制）。详见[平台差异](/docs/platform-differences#formats)。
+- `ITF14` 在 iOS 底层映射到 Scan Kit 的 `ITF`,对外仍返回 `ITF14`。
 
 ```ts
 import { ALL_BARCODE_FORMATS } from '@unif/react-native-hms-scan';
@@ -143,7 +144,7 @@ iOS 的 `sceneType` 没有公开枚举，本库只映射少数已知场景，其
 | `'undetermined'` | 尚未请求过权限 |
 
 :::note Android 查询时只给 granted / denied
-Android 在**查询时**无法可靠区分 `blocked` 与 `undetermined`，故 `getCameraPermissionStatus` 对任何未授权状态返回 `denied`；`blocked` / `undetermined` 的精确区分由 `requestCameraPermission`（请求后）给出。iOS 查询即可返回完整四态。详见[平台差异](/docs/platform-differences#permission) 与[权限处理](/docs/guides/permissions#get-status)。
+Android `getCameraPermissionStatus` 对任何未授权状态返回 `denied`,当前不会返回 `undetermined`;只有 `requestCameraPermission` 执行请求后才可能返回 `blocked`。iOS 只可能返回 `granted` / `undetermined` / `blocked` —— 原生把 `denied` 与 `restricted` 都映射为 `blocked`,永远不返回 `denied`。详见[平台差异](/docs/platform-differences#permission) 与[权限处理](/docs/guides/permissions#get-status)。
 :::
 
 ---
@@ -156,14 +157,14 @@ Android 在**查询时**无法可靠区分 `blocked` 与 `undetermined`，故 `g
 | --- | --- | --- |
 | `'E_IMAGE_LOAD_FAILED'` | 图片加载失败（路径无效 / 非本地 uri / 格式不支持） | `decodeImage`（两端） |
 | `'E_DECODE_FAILED'` | 解码过程异常 | `decodeImage`（两端） |
-| `'E_NO_READ_PERMISSION'` | 缺少相册读取权限 | `decodeImage`（Android） |
+| `'E_NO_READ_PERMISSION'` | 公共 union 的兼容保留值;当前 native 不产生 | 当前无 native 来源 |
 | `'E_CAMERA_INIT'` | 相机 / 预览初始化失败 | `<HmsScanView>` `onScanError`（Android） |
 | `'E_NO_RESULT'` | 解码结果为空或无法解析 | `<HmsScanView>` `onScanError`（iOS） |
-| `'E_NO_CAMERA_PERMISSION'` | 缺少相机权限 | `<Scanner>` 内部据此切到拒权遮罩 |
+| `'E_NO_CAMERA_PERMISSION'` | 公共 union 的兼容保留值;当前 native 不产生 | 当前无 native 来源(仅 `<Scanner>` 有监听它的分支) |
 | `'E_UNKNOWN'` | 其他未知错误 | `decodeImage` 兜底 |
 
 :::note 错误码分布
-`decodeImage` 抛 `HmsScanError`（`code` 取上表 `decodeImage` 行；非这些 code 的原生异常统一收敛为 `E_UNKNOWN`）。`<HmsScanView>` 的相机 / 解码错误经 `onScanError` 回调以 `{ code, message }` 形式上报，**不是** `HmsScanError` 实例。各 code 的具体平台来源见上表"来源"列与[平台差异](/docs/platform-differences)。
+`decodeImage` 当前 native 明确产生 `E_IMAGE_LOAD_FAILED` / `E_DECODE_FAILED`;其他原生异常在 JS 收敛为 `E_UNKNOWN`。图片选择器 / URI grant 负责文件访问,当前 native 不产生 `E_NO_READ_PERMISSION`。`<HmsScanView>` 的相机 / 解码错误经 `onScanError` 回调以 `{ code, message }` 形式上报,**不是** `HmsScanError` 实例。Android `requestCameraPermission` 在没有 `PermissionAwareActivity` 时还可能 reject native integration code `E_NO_ACTIVITY`;它当前不属于该公共 union,也不是 `decodeImage` 的 `HmsScanError`。
 :::
 
 ---

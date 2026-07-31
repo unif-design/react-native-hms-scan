@@ -39,7 +39,7 @@ const HmsScanView: ForwardRefExoticComponent<
 | `torch` | `boolean` | `false` | 手电筒开关（**iOS 为 best-effort**，见[平台差异](/docs/platform-differences#torch)） |
 | `onScanResult` | `(results: ScanResult[]) => void` | — | 命中一个或多个码时回调（原生 JSON 已解析为强类型） |
 | `onScanError` | `(error: { code: string; message: string }) => void` | — | 相机 / 解码出错时回调，见 [error.code](#error-codes) |
-| `onTorchStatus` | `(status: TorchStatus) => void` | — | 手电 / 暗光状态变化时回调，见 [TorchStatus](#torch-status) |
+| `onTorchStatus` | `(status: TorchStatus) => void` | — | 手电状态回调;Android 还承载暗光提示,见 [TorchStatus](#torch-status) |
 
 :::note formats 变更会重建相机
 两端都在初始化时按 `formats` 创建扫码器，运行中改变 `formats`（或 `continuous`）会**重建**底层相机视图。若需频繁切换码制，建议传一个稳定的全集而非频繁变更。
@@ -53,11 +53,11 @@ const HmsScanView: ForwardRefExoticComponent<
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `available` | `boolean` | **暗光提示**：环境暗到建议显示手电按钮（**仅 Android 据环境光上报**） |
+| `available` | `boolean` | Android:环境暗到建议显示手电按钮;iOS:设备是否有手电硬件 |
 | `on` | `boolean` | 手电当前是否点亮 |
 
 :::warning available 的暗光语义仅 Android
-`available` 作为「**环境暗、建议显示手电**」的提示**只有 Android 会据环境光上报**（来自华为 `OnLightVisibleCallBack`）。iOS 上 `onTorchStatus` **仅在你改变 `torch` prop 时**触发，其 `available` 反映的是「设备是否有手电硬件」、**不是**环境光信号——**不要**把它当跨平台的暗光提示。详见[平台差异](/docs/platform-differences#torch)。
+`available` 作为「**环境暗、建议显示手电**」的提示只有 Android 会据环境光上报（来自华为 `OnLightVisibleCallBack`）。iOS 会在 `torch` **初次应用和后续 prop 变更**时触发 `onTorchStatus`;`available` 表示设备是否有手电硬件,`on` 表示真实点亮状态,二者都不是环境光信号。详见[平台差异](/docs/platform-differences#torch)。
 :::
 
 ---
@@ -101,7 +101,7 @@ function CustomScan() {
           // e.code: 'E_CAMERA_INIT'（Android）/ 'E_NO_RESULT'（iOS）
         }}
         onTorchStatus={(status) => {
-          // Android: status.available 为暗光提示；iOS 仅 torch 变更时触发
+          // Android: available 是暗光提示；iOS: available 是硬件能力，on 是真实状态
         }}
       />
       {/* 自定义取景框 / 按钮叠加在这里 */}

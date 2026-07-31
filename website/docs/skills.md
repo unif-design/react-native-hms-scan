@@ -13,16 +13,16 @@ description: "hms-scan 是一个 Agent Skill,教 AI 编码助手正确调用 @un
 
 ## 覆盖什么
 
-**何时会触发:** 用 `@unif/react-native-hms-scan` 扫二维码 / 条码——现成扫码页 / headless 自定义扫码 UI / 从图片解码,或排查 iOS 模拟器链接错误 / Android 依赖 / `decodeImage` 返回空数组。
+**何时会触发:** 用 `@unif/react-native-hms-scan` 扫二维码 / 条码——现成扫码页 / headless 自定义扫码 UI / 从图片解码,或排查 iOS simulator slice / Android Huawei Maven / `decodeImage` 返回空数组。
 
 **覆盖的能力:**
 
 - 三种用法:现成 `<Scanner>` 屏、headless `<HmsScanView>`、从图片 `decodeImage`。
-- `decodeImage` 输入约定:不下载远程 URL、iOS 仅 `file:///` / `data:`、空数组 = 图里没码(不是错误)。
+- `decodeImage` 输入约定:两端支持 `file://` / 绝对路径;Android 另支持 `content://` / `android.resource://`,iOS 另支持 `data:`;空数组 = 图里没码(不是错误)。
 - 条码格式(14 种)、`formats` 省略 = 全部。
-- 易错点:用远程 URL 调 `decodeImage`、把空数组当错误、把 iOS 模拟器链接错误当 bug。
+- 易错点:漏配宿主 Huawei Maven、用远程 URL 调 `decodeImage`、把空数组当错误、把 iOS simulator slice 链接错误误当预期结果。
 
-> 内置引擎非华为机也能用、无需 agconnect;拍照 / 录像请走 camera skill。
+> 内置引擎非华为机也能用、无需 agconnect / API Key;但宿主必须添加 Huawei Maven。拍照 / 录像请走 camera skill。
 
 ## 如何安装
 

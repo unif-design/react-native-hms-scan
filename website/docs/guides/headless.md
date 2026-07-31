@@ -1,7 +1,7 @@
 ---
 sidebar_position: 2
 title: 底层 headless 组件
-description: "用 <HmsScanView> 完全自定义扫码 UI：只出相机预览 + 抛事件，取景框/手电按钮自绘。props：formats（省略=全部）、continuous（默认 true）、paused（默认 false）、torch（默认 false，iOS best-effort）、onScanResult(results)、onScanError、onTorchStatus（available 仅 Android）。"
+description: "用 <HmsScanView> 完全自定义扫码 UI：只出相机预览 + 抛事件。Android onTorchStatus.available 是暗光提示；iOS available 是手电硬件能力，on 是真实状态。"
 ---
 
 # 底层 headless 组件
@@ -119,17 +119,17 @@ const [torch, setTorch] = useState(false);
 <HmsScanView
   torch={torch}
   onTorchStatus={(status) => {
-    // status.available: 环境暗到建议显示手电按钮（仅 Android 上报）
-    // status.on:        手电当前是否点亮
+    // Android: available 是暗光提示
+    // iOS: available 是硬件能力；on 是真实点亮状态
   }}
 />
 ```
 
 :::warning 手电筒平台差异
 - **Android** —— `torch` 可编程控制;`onTorchStatus.available` 会在暗光时上报 `true`,可据此决定是否显示手电按钮。
-- **iOS** —— HMS 无公开手电 API,本库走 `AVCaptureDevice` **尽力而为**,不保证点亮;`onTorchStatus.available` **永不上报**(始终不触发)。
+- **iOS** —— HMS 无公开手电 API,本库走 `AVCaptureDevice` **尽力而为**,不保证点亮;`onTorchStatus` 会在 `torch` 初次应用和后续 prop 变更时上报,其中 `available` 表示硬件能力、`on` 表示真实状态。
 
-所以**别把 `onTorchStatus.available` 当作跨平台的暗光信号** —— iOS 上它不会来。详见[平台差异 → 手电筒](/docs/platform-differences#torch)。
+所以**别把 `onTorchStatus.available` 当作跨平台的暗光信号** —— iOS 的同名字段语义不同。详见[平台差异 → 手电筒](/docs/platform-differences#torch)。
 :::
 
 ---
@@ -141,15 +141,19 @@ const [torch, setTorch] = useState(false);
 ```tsx
 <HmsScanView
   onScanError={(e) => {
-    if (e.code === 'E_NO_CAMERA_PERMISSION') {
-      // 引导请求 / 去设置；权限 API 见下方链接
+    if (e.code === 'E_CAMERA_INIT') {
+      // Android：相机 / 预览初始化失败（未授权、被占用、设备异常都归到这里）
     }
-    // 其它：查 e.message
+    // 其它（含 iOS 的 E_NO_RESULT）：查 e.message
   }}
 />
 ```
 
-> headless 模式下相机权限**由你自己管**(不像 `<Scanner>` 自动处理):进入扫码页前先用 `requestCameraPermission` 确保已授权。见[权限处理](/docs/guides/permissions)。
+:::warning 别用 `E_NO_CAMERA_PERMISSION` 判权限
+`E_NO_CAMERA_PERMISSION` 是 union 里的**兼容保留值,当前 native 不产生**。`<HmsScanView>` 实际发出的是 Android `E_CAMERA_INIT` / iOS `E_NO_RESULT`,所以监听 `E_NO_CAMERA_PERMISSION` 的分支永远不会命中。
+:::
+
+> headless 模式下相机权限**由你自己管**(不像 `<Scanner>` 自动处理):进入扫码页前先用 `requestCameraPermission` 确保已授权,别指望从 `onScanError` 反推权限状态。见[权限处理](/docs/guides/permissions)。
 
 ---
 

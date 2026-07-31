@@ -10,7 +10,7 @@
 ## 特性
 
 - **三种用法** — 成品 `<Scanner>` 扫一扫页(自带权限流 / 状态机 / 主题)、headless `<HmsScanView>` 相机组件(自定义 UI)、`decodeImage(uri)` 从本地图片识别。
-- **Android 内置引擎** — 用 Scan SDK-Plus,**非华为机型可用**,不依赖设备装 HMS Core APK;华为 maven 与依赖已内置在库里,宿主无需改 gradle。
+- **Android 内置引擎** — 用 Scan SDK-Plus,**非华为机型可用**,不依赖设备装 HMS Core APK;`scanplus` 由本库声明,宿主需把 Huawei Maven 加到实际参与依赖解析的 `repositories`。
 - **零云端配置** — 两端**都不需要 AppGallery Connect / agconnect / API Key**。
 - **14 种码制** — `QR_CODE` / `EAN_13` / `CODE_128` / `PDF417` / `DATA_MATRIX` 等,默认识别全部。
 - 仅支持 **RN 新架构**;`@unif/react-native-design` 风格统一。
@@ -22,7 +22,17 @@ yarn add @unif/react-native-hms-scan react-native-svg
 cd ios && pod install
 ```
 
-`react-native-svg` 是 peer 依赖(`<Scanner>` 图标用它绘制);`<Scanner>` 还依赖 peer `@unif/react-native-design`。宿主需开启新架构。Android 权限、iOS `NSCameraUsageDescription` 等见[文档站 · 安装](https://unif-design.github.io/react-native-hms-scan/docs/getting-started/installation)。
+Android 宿主还必须在实际参与依赖解析的仓库列表中加入 Huawei Maven;库模块自己的 `repositories` 不会传播给 consumer:
+
+```gradle
+allprojects {
+  repositories {
+    maven { url 'https://developer.huawei.com/repo/' }
+  }
+}
+```
+
+`react-native-svg` 是 peer 依赖(`<Scanner>` 图标用它绘制);`<Scanner>` 还依赖 peer `@unif/react-native-design`。宿主需开启新架构。完整 peer dependencies、Android 权限、iOS `NSCameraUsageDescription` 等见[文档站 · 安装](https://unif-design.github.io/react-native-hms-scan/docs/getting-started/installation)。
 
 ## 快速开始
 
@@ -58,7 +68,7 @@ headless `<HmsScanView>`(完全自定义 UI)、图片识别 `decodeImage`、权�
 
 - **React Native** 新架构(Fabric + TurboModule)**必须开启**;在 RN 0.85 上开发与验证。
 - **Android** minSdkVersion ≥ 24(Android 7.0)。
-- **iOS** `ScanKitFrameWork` 扫码功能**仅真机**(模拟器可编译,相机要真机)。
+- **iOS** `ScanKitFrameWork` 相机扫码**仅真机**;simulator 可编译、链接并运行非相机测试。
 
 ## 许可
 

@@ -34,7 +34,9 @@
 
 ## 共享与本仓规则边界
 
-本区块外的内容属于本仓规则,同步时必须保留。模板已有的通用规则不得在仓库正文重复。
+- 本区块外的内容属于本仓规则,同步时必须保留;模板已有的通用规则不得在仓库正文重复。
+- 同步脚本只保留正文结构,不证明正文语义仍然正确。同步或迁移 `AGENTS.md` 后,必须逐条对照当前代码、类型、测试、`package.json`、有效文档与已批准规格,删除或改写失效、重复和互相矛盾的说明。
+- 已落地行为写成当前事实;已批准但尚未实现的契约写成开发约束,不得伪装为已经实现。无法确认时先查证,不能沿用旧正文猜测。
 
 <!-- END UNIF REACT NATIVE STANDARD -->
 
@@ -54,7 +56,7 @@ yarn workspaces 单仓库:库本体在根目录,`example/` 是宿主 RN app,`web
 yarn                  # 安装(yarn 4.11,node v24.13.0,见 .nvmrc)
 yarn typecheck        # tsc(strict)
 yarn lint             # eslint **/*.{js,ts,tsx}
-yarn test             # jest(跑 src/__tests__/ 下的纯逻辑测试)
+yarn test             # jest(跑 src/__tests__/ 下的逻辑 / 组件 / mock 测试)
 yarn test src/__tests__/format.test.ts    # 跑单文件
 yarn test -t "pattern"                    # 按测试名过滤
 yarn prepare          # react-native-builder-bob → lib/module(ESM)+ lib/typescript(.d.ts)
@@ -64,13 +66,16 @@ yarn clean            # 清 lib/ + example 原生构建产物
 yarn example start    # metro
 yarn example ios      # 构建并跑 iOS
 yarn example android  # 构建并跑 Android
+
+# 文档站
+yarn workspace @unif/react-native-hms-scan-website build:llms
 ```
 
 **只用 yarn** —— 项目依赖 yarn workspaces(`packageManager: yarn@4.11.0`)。pre-commit hook(lefthook)对 staged 文件跑 `eslint` + `tsc`,native 文件(`*.mm` / `*.kt`)跑 `clang-format` / `ktlint`(没装则跳过,CI 的 native-lint 才是硬 gate)。
 
 ## 当前依赖基线
 
-开发与 example 仍使用 `@unif/react-native-design@0.8.1`、RNGH 2(`^2.21.0`)和 Carousel 5 beta(`^5.0.0-beta.5`)。共享区块中的 Design 0.20 / RNGH 3 / Carousel 5 条件例外当前不触发,也不要求本仓升级。
+开发与 example 仍使用 `@unif/react-native-design@0.8.1`、RNGH 2(`^2.21.0`)和 Carousel 5 beta(`^5.0.0-beta.5`)。
 
 ## 架构与约定
 
@@ -94,7 +99,9 @@ decodeImage        从本地图片识别 → ScanResult[]
 ### `<Scanner>`(`src/Scanner/`)
 
 - **开箱即用** — 自带状态机 + 权限流 + `ThemeProvider`/`ToastHost`,整屏直接丢进去即可;也兼容放进宿主已有的 `ThemeProvider`。
-- **状态机** — `Phase`:`init → scan → detecting → success / fail / denied`。**一次扫一个**(扫到 `results[0]` 进 `detecting`,确认后 `reset` 回 `scan`),`handlingRef` 防重入。
+- **状态机** — `Phase`:`init → scan → detecting → success / fail / denied / done`。默认成功进入 `success`,点「确定」或「重扫」后 `reset` 回 `scan`;`autoConfirm` 成功时跳过结果卡、调用 `onConfirm` 后进入 `done`,相机保持暂停且不自动重扫。未识别仍进入 `fail`,`handlingRef` 防重入。
+- **`done` 的前提是 `onConfirm` 正常返回** — `resolveProduct` 与 `onConfirm` 在 `handleResult` 的同一个 `try` 内调用,`setPhase('done')` 排在 `onConfirm` 之后。宿主 `onConfirm` 同步 throw 会被同一个 `catch` 收成 `fail`(可重扫),**不会**进入 `done`。不得把 `autoConfirm` 描述成「调用 `onConfirm` 即必然进入终态」。
+- **权限异常的当前边界** — 初始化权限 helper reject 时 `<Scanner>` 当前会 catch 后进入 `scan`(fail-open);`onScanError` 也只对 `E_NO_CAMERA_PERMISSION` 切 `denied`,而当前原生 view 明确产生的是 Android `E_CAMERA_INIT` / iOS `E_NO_RESULT`。不得把它描述成所有权限 / 相机异常都会进入 denied;若整改为 fail-closed,必须先补 helper reject 与 native code 的状态机测试。
 - **样式** — 取景框 / 工具栏 / 结果卡全用 `@unif/react-native-design`(peer 依赖)的主题令牌与组件绘制,统一风格。
 - **图片选择器不内置**(遵循 RN 惯例) — `pickImage` 传了才显示「相册」按钮,内部对返回的本地 uri 调 `decodeImage`。
 - **商品解析交宿主** — `resolveProduct` 由宿主解析商品,返回 `null` / 抛错 = 未识别 → `fail`。
@@ -121,6 +128,7 @@ decodeImage        从本地图片识别 → ScanResult[]
 - **单一真相源** — 改清单只动 `src/types.ts` 的 `ALL_BARCODE_FORMATS`,`BarcodeFormat` union / README / website docs / SKILL 都跟它对齐。
 - **转 CSV** — `formatsToCsv(formats)` 把 `formats[]` 转逗号分隔 CSV 传给原生;**空 / 未传 → `''`(= 识别全部码制)**。
 - **防御性收敛** — `coerceFormat` / `coerceContentType` / `parseResultsJson` 对原生回传收敛:未知码制归 `UNKNOWN`,脏数据 / 解析失败返回空数组**而非抛错**。
+- **平台过滤差异** — Android 支持全部 14 种;`MULTI_FUNCTIONAL` 在 iOS 无对应过滤码制,`ITF14` 在 iOS 映射到底层 `ITF`;iOS 过滤项全部无效(如仅传 `MULTI_FUNCTIONAL` / `UNKNOWN`)时回退为识别全部码制。
 
 > 码制与内容类型在原生侧已统一映射成字符串枚举再回 JS(Android `HmsScan.*` / iOS `HMSScanFormatTypeCode` + `sceneType`)→ JS 侧再防御性收敛,双重保证回调拿到的永远是合法枚举。
 
@@ -131,19 +139,23 @@ decodeImage        从本地图片识别 → ScanResult[]
 - **iOS 相机扫码需真机** — simulator 可编译、链接并运行非相机测试;`scripts/prepare-scankit-xcframework.sh` 会用 vtool 补出 arm64-simulator 切片并生成 xcframework。
   - **链接排障** — `ld: building for iOS-simulator but linking in object built for iOS` 不再是预期结果;出现时先重新运行 `pod install`,再检查生成的 xcframework 是否同时包含 device 与 simulator 切片。
   - **可忽略 warning** — `pod install` 的 `ScanKitFrameWork LICENSE` warning 无害。
-- **`decodeImage` 只吃本地 URI,不下载远程 URL**,且接受的本地 URI 因平台而异:
+- **权限边界** — Android 库 Manifest 已声明 `CAMERA`、`READ_MEDIA_IMAGES` 和 `READ_EXTERNAL_STORAGE(maxSdkVersion=32)`并合入宿主,但运行时授权不会自动完成:`<Scanner>` 只自动管理相机权限,`<HmsScanView>` 与 `decodeImage` 所需权限 / URI grant 由宿主管理。iOS 宿主必须声明 `NSCameraUsageDescription`,相册权限由宿主图片选择器负责。Android 的 `getCameraPermissionStatus` 对未授权只返回 `denied`,区分 `denied` / `blocked` 以 `requestCameraPermission` 的请求后结果为准;无当前 `PermissionAwareActivity` 时请求会 reject `E_NO_ACTIVITY`,不是返回某个 status。iOS 只可能返回 `granted` / `undetermined` / `blocked` —— 原生把 `denied` 与 `restricted` 都映射为 `blocked`,永远不返回 `denied`。
+- **`decodeImage` 只吃本地 URI,不下载远程 URL**,且接受形式因平台而异:
 
   | URI 形式 | iOS | Android |
   | --- | --- | --- |
-  | `file:///绝对路径` | ✅ | ✅ |
-  | `data:` | ✅ | ✅ |
+  | `file:///...` / 绝对路径 | ✅ | ✅ |
+  | `data:` | ✅ | ❌ |
   | `content://` | ❌ | ✅ |
+  | `android.resource://` | ❌ | ✅ |
   | `ph://` / `assets-library://` | ❌ | ❌ |
+  | `http(s)://` | ❌ | ❌ |
 
-  识别网络图请宿主先下到本地再传;传远程 / 当前平台不支持的 URI 会**抛 `E_IMAGE_LOAD_FAILED`**(不是返回 `[]`)。
-- **`decodeImage` 空数组 `[]` 是正常结果**(图里没码),不是错误、不会 throw,别把 `!results.length` 当失败抛异常。**真正的失败**(图片加载失败 / 读权限缺失)才抛 `HmsScanError`(带 `code`)。
-- **手电 iOS best-effort** — `torch` 在 iOS 尽力而为;`onTorchStatus.available`(暗光提示)**仅 Android 上报,iOS 永不上报**。
-- **Android 配置宿主不用动** — minSdkVersion ≥ 24(Android 7.0);华为 maven 源 + `scanplus` 依赖**已写在库自己的 `android/build.gradle` 里**;**无需 agconnect / agconnect-services.json / API Key**。
+  远程 / 当前平台不支持的 URI 会抛 `E_IMAGE_LOAD_FAILED`,不是返回 `[]`;跨平台优先传 `file://` 或绝对路径。
+- **`decodeImage` 空数组 `[]` 是正常结果**(图里没码),不是错误、不会 throw。
+- **错误通道不要混用** — `decodeImage` 失败会 throw `HmsScanError`;当前原生明确产生 `E_IMAGE_LOAD_FAILED` / `E_DECODE_FAILED`,其他 native reject 在 JS 收敛为 `E_UNKNOWN`。`<HmsScanView>` 则通过 `onScanError({ code, message })` 上报普通对象,不是 `HmsScanError`;当前 view 原生 code 为 Android `E_CAMERA_INIT`、iOS `E_NO_RESULT`。
+- **手电 iOS best-effort** — iOS 的 `torch` 可能不生效;`onTorchStatus` 会随 `torch` 初次应用 / 变更回传,其中 `available` 表示是否有手电硬件、`on` 表示真实点亮状态,不是暗光信号。只有 Android 的 `available` 来自环境光回调。
+- **Android 宿主必须添加 Huawei Maven** — `scanplus` 依赖由库声明,但库项目的 repository 不传播给 consumer;宿主须在实际参与依赖解析的 `repositories` 中加入 `https://developer.huawei.com/repo/`。仍然无需 agconnect、`agconnect-services.json` 或 API Key,minSdkVersion 必须 ≥24。
 - **仅新架构** — 宿主必须开新架构(Fabric + TurboModule),`codegenConfig` 为 `ReactNativeHmsScanSpec`。
 
 ## 测试
@@ -151,7 +163,7 @@ decodeImage        从本地图片识别 → ScanResult[]
 加 / 改测试,或下游消费者要 mock 本库时看这里。
 
 - 测试 colocate 在 `src/__tests__/`(注意:与 design 仓不同 —— design 放仓库根 `__tests__/`,本仓在 `src/` 内)。
-- 覆盖**纯逻辑**(`format`:`coerceFormat` / `formatsToCsv` / `parseResultsJson` 等)+ `<Scanner>` 状态机(`Scanner.test.tsx` 把 `HmsScanView` / 权限 / `decodeImage` 各自 `jest.mock` 成桩,捕获 `onScanResult` 触发扫码)+ `mock.test.ts`(自检官方 mock)。
+- 覆盖纯逻辑(`format`)、`<Scanner>` 状态机(含权限、普通确认、`autoConfirm` 及未识别分支)、`ResultFocus` 可读性 token 和官方 mock 自检;组件测试只 mock 原生边界、权限与 `decodeImage`。
 - `jest` 用 `@react-native/jest-preset`,`setupFiles: ./jest.setup.ts`。
 - **消费者**测试本库:用随包官方 mock 整包替换(避免 jest 环境加载 TurboModule / Fabric 组件崩溃):
 
@@ -160,33 +172,6 @@ decodeImage        从本地图片识别 → ScanResult[]
   ```
 
   mock 下 `decodeImage` resolve `[]`、权限 resolve `'granted'`、`<Scanner>` / `<HmsScanView>` 渲染 `null`;纯函数(`coerceFormat` 等)与类型 / `HmsScanError` 保留真实实现。
-
-## 仓库专属文档与 Skill 映射
-
-### 文档数据源
-
-- **API / props / 类型全量** → 同步 `website/docs/`,再运行
-  `website/scripts/build-llms.js` 重生成 llms;website docs 是 llms.txt 的唯一来源。
-- **远程入口** → 文档站 https://unif-design.github.io/react-native-hms-scan/、
-  llms 索引 https://unif-design.github.io/react-native-hms-scan/llms.txt、
-  llms 全文 https://unif-design.github.io/react-native-hms-scan/llms-full.txt。
-
-### 本库对应 Skill 的精确位置
-
-- **Skills 仓** → 相对本仓 `../skills/`。
-- **本库 Skill** → `hms-scan`;相对本仓 `../skills/skills/hms-scan/`。
-- **入口** → `../skills/skills/hms-scan/SKILL.md`。
-
-`../skills/skills/hms-scan/` 下与本库对应的文件:
-
-| 文件 | 何时同步 |
-| --- | --- |
-| `SKILL.md` | `Scanner` / `HmsScanView` / `decodeImage` API、码制、mock、文档 URL 或关键语义变化 |
-| `assets/ScannerScreen.tsx` | `<Scanner>` 快速开始示例或确认流程变化 |
-| `references/native-setup.md` | peer dependencies、minSdk、新架构、Manifest、权限或 iOS 配置变化 |
-| `references/troubleshooting.md` | 平台差异、事件、URI、错误码或排障结论变化 |
-| `scripts/doctor.sh` | 可自动检测的宿主依赖或原生配置变化 |
-| `scripts/doctor.test.sh` | `doctor.sh` 检查项或三态输出变化 |
 
 ## 仓库内注释风格
 

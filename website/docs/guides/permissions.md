@@ -1,15 +1,15 @@
 ---
 sidebar_position: 4
 title: 权限处理
-description: "相机权限：<Scanner> 自动处理；headless <HmsScanView> 用 requestCameraPermission / getCameraPermissionStatus 自管（granted/denied/blocked/undetermined）。iOS 需 NSCameraUsageDescription，Android 需 CAMERA；decodeImage 解相册图另需 READ_MEDIA_IMAGES。"
+description: "相机权限：<Scanner> 自动处理；headless <HmsScanView> 用 requestCameraPermission / getCameraPermissionStatus 自管。decodeImage 不申请相册权限，文件访问由宿主 picker / URI grant 负责。"
 ---
 
 # 权限处理
 
-扫码用相机,需要相机权限;`decodeImage` 解相册图另需读相册权限。本库提供两个权限工具函数供手动管理。
+扫码用相机,需要相机权限;本库提供两个权限工具函数供手动管理。`decodeImage` 不申请相册权限,所选图片能否读取由宿主 picker / URI grant 决定。
 
-:::info `<Scanner>` 自动处理相机权限
-用 [`<Scanner>`](/docs/guides/scanner) 时,**相机权限已在内部自动处理**:挂载时请求,永久拒绝时展示引导去系统设置的遮罩。本页内容适用于用 [`<HmsScanView>`](/docs/guides/headless) 或 `decodeImage` 时**自行管理**权限的场景。
+:::warning `<Scanner>` 当前的权限异常边界
+正常返回 status 时,`<Scanner>` 会自动请求权限并在拒绝后展示设置遮罩。但权限 helper **reject** 时当前实现会 fail-open 进入扫码态;`onScanError` 也只对 `E_NO_CAMERA_PERMISSION` 切拒权页,而当前原生 view 的错误码是 Android `E_CAMERA_INIT` / iOS `E_NO_RESULT`。权限必须 fail-closed 的业务应使用 headless 流程自行处理,不要假定所有异常都会进入 denied。
 :::
 
 ---
@@ -22,9 +22,8 @@ description: "相机权限：<Scanner> 自动处理；headless <HmsScanView> 用
 | --- | --- | --- |
 | iOS | `NSCameraUsageDescription` | 相机扫码(必须) |
 | Android | `android.permission.CAMERA` | 相机扫码(库清单已声明,通常自动合并) |
-| Android | `READ_MEDIA_IMAGES`(API 33+)/ `READ_EXTERNAL_STORAGE`(≤32) | **仅 `decodeImage` 解相册图**(库清单已声明) |
 
-> Android 端这些权限**已在本库 `AndroidManifest.xml` 里声明**,通过清单合并并入宿主。运行时请求仍需你做(下文)。
+> Android 的 `CAMERA` 已在本库 `AndroidManifest.xml` 声明并通过清单合并进入宿主,运行时请求仍需处理。当前清单虽保留图片读取兼容声明,但 `decodeImage` 不请求 / 检查它们,也不会产生 `E_NO_READ_PERMISSION`。
 
 ---
 
@@ -42,8 +41,13 @@ const status = await getCameraPermissionStatus(); // 不弹窗,仅查询
 - **`blocked`** —— 用户永久拒绝(必须引导去系统设置开启)
 - **`undetermined`** —— 尚未请求过权限
 
-:::note Android 的状态区分发生在「请求后」
-Android 在**查询时**无法可靠区分「永久拒绝」与「从未请求」,因此 `getCameraPermissionStatus` 对任何未授权状态都返回 **`denied`**;`blocked` / `undetermined` 的精确区分由 **`requestCameraPermission`**(请求后)给出。iOS 则查询时即可返回完整四态。所以**判断流程请以 `requestCameraPermission` 的返回为准**,别只靠查询结果去区分 `blocked`。
+:::note 类型是四态,但没有哪个平台会产出全部四种
+`CameraPermissionStatus` 的四个值是两端的并集,单个平台只产出其中一部分:
+
+- **iOS** —— 只可能是 `granted`(`authorized`)、`undetermined`(`notDetermined`)、`blocked`。原生把 `denied` 与 `restricted` **都映射为 `blocked`**,所以 iOS **永远不会返回 `denied`**;别写「iOS 先 `denied` 再 `blocked`」的两级降级分支。
+- **Android** —— 查询时无法可靠区分「永久拒绝」与「从未请求」(两种情况 `shouldShowRequestPermissionRationale` 都是 `false`),因此 `getCameraPermissionStatus` 对任何未授权状态一律返回 `denied`,不返回 `undetermined`;只有 `requestCameraPermission` 请求之后才可能返回 `blocked`。
+
+判 `blocked` 时:Android 以请求后的返回为准,不要从查询结果推断;iOS 查询即可判定。
 :::
 
 ---
@@ -62,6 +66,8 @@ if (status === 'granted') {
   Linking.openSettings();
 }
 ```
+
+Android 没有当前 `PermissionAwareActivity` 时会 reject `E_NO_ACTIVITY`,不是返回 status。调用权限 API 时仍需 `try/catch`;不要把 reject 当作 `denied` 或 `blocked`。
 
 ---
 
@@ -92,26 +98,21 @@ async function ensureCameraPermission(): Promise<boolean> {
 }
 ```
 
-> 这正是 `<Scanner>` 内部的权限流;用 `<Scanner>` 时无需自己写。
+> 这是 headless 场景的推荐主流程;生产代码还应 catch helper reject。`<Scanner>` 正常 status 路径相同,但当前 helper reject 会 fail-open,见本页开头警告。
 
 ---
 
-## decodeImage 的相册读取权限 {#decode-image-permission}
+## decodeImage 的文件访问边界 {#decode-image-permission}
 
-`decodeImage` 解相册图时需要读相册权限:
+`decodeImage` **不负责申请相册权限**,当前 native 也不会产生 `E_NO_READ_PERMISSION`。宿主图片选择器负责取得用户授权,并交付当前进程可读取的 URI:
 
-- **Android** —— `READ_MEDIA_IMAGES`(API 33+)/ `READ_EXTERNAL_STORAGE`(≤32)。缺权限时 `decodeImage` 抛 `HmsScanError`,`code` 为 `E_NO_READ_PERMISSION`。
-- **iOS** —— 本库 `decodeImage` 只接受 `file://` / 绝对路径 / `data:`,**不直接读相册 URI(`ph://`)**;读相册由宿主的图片选择器负责,是**那个库**申请 `NSPhotoLibraryUsageDescription`。
+- **Android** —— 优先传 picker 返回且带临时 read grant 的 `content://`;若稍后再解码,由宿主持久化 grant 或复制到 App 自有目录。也支持 `file://`、绝对路径与 `android.resource://`,不支持 `data:`。
+- **iOS** —— 本库只接受 `file://` / 绝对路径 / `data:`,不接受 `ph://`;图片选择器是否需要 `NSPhotoLibraryUsageDescription` 由那个库的接入方式决定。
 
 ```ts
-import { decodeImage, HmsScanError } from '@unif/react-native-hms-scan';
-
-try {
+const localUri = await pickImage(); // picker 负责授权并返回可读 URI
+if (localUri) {
   const results = await decodeImage(localUri);
-} catch (e) {
-  if (e instanceof HmsScanError && e.code === 'E_NO_READ_PERMISSION') {
-    // 引导授予相册读取权限（Android）
-  }
 }
 ```
 
@@ -123,4 +124,4 @@ try {
 
 - [API 参考 → 函数](/docs/api/functions) —— `getCameraPermissionStatus` / `requestCameraPermission` 完整签名
 - [API 参考 → 类型](/docs/api/types) —— `CameraPermissionStatus` 类型定义
-- [指南 → 图片识别](/docs/guides/decode-image) —— `decodeImage` 与相册读取权限
+- [指南 → 图片识别](/docs/guides/decode-image) —— `decodeImage` URI 与错误语义

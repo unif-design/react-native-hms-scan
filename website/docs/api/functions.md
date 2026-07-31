@@ -59,10 +59,10 @@ function decodeImage(
 | --- | --- | --- |
 | `file:///...`（文件 URI） | ✅ | ✅ |
 | 绝对路径（无 scheme，如 `/data/.../a.jpg`） | ✅ | ✅ |
-| `data:...`（base64 等） | — | ✅ |
+| `data:...`（base64 等） | ❌ | ✅ |
 | `content://...`（Android Content URI） | ✅ | ❌ |
 | `android.resource://...` | ✅ | ❌ |
-| `ph://...`（iOS 相册）/ `assets-library://` | — | ❌ |
+| `ph://...`（iOS 相册）/ `assets-library://` | ❌ | ❌ |
 | `http(s)://...`（远程 URL） | ❌ | ❌ |
 
 :::tip 跨平台最稳的输入：`file://` 或绝对路径
@@ -81,8 +81,10 @@ function decodeImage(
 | --- | --- |
 | `E_IMAGE_LOAD_FAILED` | 路径无效 / 非本地 uri（如远程 URL、iOS 的 `ph://`）/ 格式不支持 |
 | `E_DECODE_FAILED` | 解码过程异常 |
-| `E_NO_READ_PERMISSION` | 缺少相册读取权限（Android） |
+| `E_NO_READ_PERMISSION` | 公共类型中的兼容保留值;当前两端 native 不产生 |
 | `E_UNKNOWN` | 其他未知错误（非上述 code 的原生异常统一收敛于此） |
+
+图片选择器和 URI grant 负责让所选文件可读;`decodeImage` 自身不申请相册权限。Android `content://` grant 失效或 URI 不可读时,当前表现为 `E_IMAGE_LOAD_FAILED`。
 
 | 场景 | 结果 |
 | --- | --- |
@@ -107,7 +109,7 @@ try {
   }
 } catch (e) {
   if (e instanceof HmsScanError) {
-    // e.code: E_IMAGE_LOAD_FAILED / E_DECODE_FAILED / E_NO_READ_PERMISSION / E_UNKNOWN
+    // 当前 decodeImage: E_IMAGE_LOAD_FAILED / E_DECODE_FAILED / E_UNKNOWN
   }
 }
 ```
@@ -138,7 +140,7 @@ function getCameraPermissionStatus(): Promise<CameraPermissionStatus>
 | `'undetermined'` | 尚未请求过权限 |
 
 :::note Android 查询时只给 granted / denied
-Android 在查询时无法可靠区分 `blocked` 与 `undetermined`，对任何未授权状态返回 `denied`；精确区分由 `requestCameraPermission`（请求后）给出。iOS 查询即返回完整四态。**判断流程请以 `requestCameraPermission` 的返回为准。**
+Android 查询对任何未授权状态都返回 `denied`,当前不会返回 `undetermined`;只有 `requestCameraPermission` 执行请求后才可能返回 `blocked`。iOS 只可能返回 `granted` / `undetermined` / `blocked` —— 原生把 `denied` 与 `restricted` 都映射为 `blocked`,永远不返回 `denied`。Android 判断 `blocked` 时以请求后的返回为准。
 :::
 
 ### 示例
@@ -165,6 +167,8 @@ function requestCameraPermission(): Promise<CameraPermissionStatus>
 ### 返回值
 
 `Promise<CameraPermissionStatus>` — 请求后的权限状态（取值同 [`getCameraPermissionStatus`](#get-status)）。若返回 `blocked`，系统不再弹框，需引导去系统设置。
+
+Android 必须有当前 `PermissionAwareActivity` 才能弹系统权限框;Activity 缺失或类型不符时 Promise 会 reject,原生 code 为 `E_NO_ACTIVITY`,**不会** resolve 某个权限 status。该 native integration code 当前不在 `HmsScanErrorCode` 联合里,调用方应对普通 reject 做兜底。
 
 ### 示例
 
