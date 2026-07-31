@@ -72,3 +72,36 @@ assert.equal(
   false,
   'npm tarball 不得包含 Huawei 二进制'
 );
+
+const examplePackageJson = JSON.parse(read('example/package.json'));
+assert.equal(
+  examplePackageJson.scripts.ios,
+  'react-native run-ios --device',
+  '示例 ios 命令必须选择物理设备'
+);
+assert.equal(
+  examplePackageJson.scripts['build:ios'],
+  'node ../scripts/verify-ios-integration.mjs --require-lock && react-native build-ios --mode Debug --device --extra-params "CODE_SIGNING_ALLOWED=NO"',
+  'CI 必须构建 generic iOS device 并关闭签名'
+);
+
+const turbo = JSON.parse(read('turbo.json'));
+assert.equal(
+  turbo.tasks['build:ios'].cache,
+  false,
+  'iOS native build 不得被 Turbo cache 代替'
+);
+
+if (process.argv.includes('--require-lock')) {
+  const lockPath = path.join(rootDir, 'example/ios/Podfile.lock');
+  assert.equal(
+    existsSync(lockPath),
+    true,
+    'native build 前必须生成 example/ios/Podfile.lock'
+  );
+  assert.match(
+    read('example/ios/Podfile.lock'),
+    /- ScanKitFrameWork \(1\.1\.2\.305\)/,
+    'Podfile.lock 必须解析到 ScanKitFrameWork 1.1.2.305'
+  );
+}
