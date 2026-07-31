@@ -65,12 +65,30 @@ assert.equal(
   false,
   'npm tarball 不得包含旧生成脚本'
 );
+assert.deepEqual(
+  [...packedPaths].filter((packedPath) => packedPath.startsWith('scripts/')),
+  [],
+  'npm tarball 不得包含 repo-only scripts/'
+);
 assert.equal(
   [...packedPaths].some((packedPath) =>
     packedPath.startsWith('ios/vendor/')
   ),
   false,
   'npm tarball 不得包含 Huawei 二进制'
+);
+assert.deepEqual(
+  [...packedPaths].filter((packedPath) =>
+    packedPath
+      .split('/')
+      .some((segment) =>
+        ['.framework', '.xcframework', '.bundle'].some((suffix) =>
+          segment.endsWith(suffix)
+        )
+      )
+  ),
+  [],
+  'npm tarball 不得包含 Apple 二进制资源'
 );
 
 const examplePackageJson = JSON.parse(read('example/package.json'));
