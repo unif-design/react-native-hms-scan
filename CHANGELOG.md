@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.4](https://github.com/unif-design/react-native-hms-scan/compare/v0.5.3...v0.5.4) (2026-07-31)
+
+
+### Bug Fixes
+
+* **ios:** 根治 ScanKit framework 丢失 ([#52](https://github.com/unif-design/react-native-hms-scan/issues/52)) ([adcfdd4](https://github.com/unif-design/react-native-hms-scan/commit/adcfdd4c186b0c74413b9e3d429c2842d12e5a08))
+
 ## [0.5.3](https://github.com/unif-design/react-native-hms-scan/compare/v0.5.2...v0.5.3) (2026-07-31)
 
 ## [0.5.2](https://github.com/unif-design/react-native-hms-scan/compare/v0.5.1...v0.5.2) (2026-07-16)
