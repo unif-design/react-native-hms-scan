@@ -31,6 +31,38 @@ afterEach(() => {
 });
 
 describe('<Scanner>', () => {
+  it('不挂载内部 ToastHost，宿主无需 SafeAreaProvider', async () => {
+    render(<Scanner />);
+    await screen.findByText('扫一扫');
+    expect(screen.queryByTestId('design-toast-host')).toBeNull();
+  });
+
+  it('autoConfirm 未传 onConfirm 时降级显示确认卡', async () => {
+    render(<Scanner autoConfirm resolveProduct={async () => ({ name: 'X 商品' })} />);
+    await screen.findByText('扫一扫');
+    await act(async () => {
+      emitScan([{ value: '1', format: 'QR_CODE' }]);
+    });
+    expect(await screen.findByText('X 商品')).toBeTruthy();
+    expect(screen.getByText('确定')).toBeTruthy();
+  });
+
+  it('resolveProduct 的 undefined barcode 回退到扫描值', async () => {
+    const onConfirm = jest.fn();
+    render(
+      <Scanner
+        onConfirm={onConfirm}
+        resolveProduct={async () => ({ name: 'X 商品', barcode: undefined })}
+      />
+    );
+    await screen.findByText('扫一扫');
+    await act(async () => {
+      emitScan([{ value: '690', format: 'EAN_13' }]);
+    });
+    fireEvent.press(await screen.findByText('确定'));
+    expect(onConfirm.mock.calls[0][0].barcode).toBe('690');
+  });
+
   it('已授权 → 进入取景，显示标题与提示', async () => {
     render(<Scanner />);
     expect(await screen.findByText('扫一扫')).toBeTruthy();

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
-import { ThemeProvider, ToastHost } from '@unif/react-native-design';
+import { ThemeProvider } from '@unif/react-native-design';
 import { HmsScanView } from '../HmsScanView';
 import { decodeImage } from '../decodeImage';
 import {
@@ -47,8 +47,9 @@ export interface ScannerProps {
   /** 用户点"确认"：把结果带回上一级（宿主通常在此导航返回）。 */
   onConfirm?: (product: ScanProduct, result: ScanResult) => void;
   /**
-   * 自动确认：扫到并解析成功后**不显示结果卡**，直接触发 `onConfirm(product, result)`。
-   * 默认 `false`（显示结果卡，由用户点"确定"）。
+   * 自动确认：传 `onConfirm` 时，扫到并解析成功后**不显示结果卡**，直接触发
+   * `onConfirm(product, result)`；未传回调时仍显示结果卡。默认 `false`（显示结果卡，
+   * 由用户点"确定"）。
    * 适合"扫到即用、不需要二次确认"的场景。回调后相机暂停、不自动重扫——宿主通常在
    * `onConfirm` 里导航离开；若需再扫由宿主控制（如重新挂载 `<Scanner>`）。
    * 注：未识别（`resolveProduct` 返回 `null`/抛错）仍走失败态可重扫，不会误触发。
@@ -63,14 +64,13 @@ export interface ScannerProps {
 
 /**
  * 成品「扫一扫」界面（聚焦款）。底层 <HmsScanView> 出相机画面，取景框 / 工具栏 / 结果卡
- * 全用 @unif/react-native-design 的主题令牌与组件绘制（统一风格）。自带 ThemeProvider +
- * ToastHost，可直接整屏接入；放进宿主已有的 ThemeProvider 里也兼容。
+ * 全用 @unif/react-native-design 的主题令牌与组件绘制（统一风格）。自带 ThemeProvider，
+ * 可直接整屏接入；放进宿主已有的 ThemeProvider 里也兼容。
  */
 export function Scanner(props: ScannerProps) {
   return (
     <ThemeProvider>
       <ScannerInner {...props} />
-      <ToastHost />
     </ThemeProvider>
   );
 }
@@ -136,10 +136,10 @@ function ScannerInner({
           setPhase('fail');
           return;
         }
-        const p: ScanProduct = { barcode: result.value, ...resolved };
-        if (autoConfirm) {
+        const p: ScanProduct = { ...resolved, barcode: resolved.barcode ?? result.value };
+        if (autoConfirm && onConfirm) {
           // 跳过结果卡:直接回调,进 'done' 终态(相机暂停、不自动重扫)。
-          onConfirm?.(p, result);
+          onConfirm(p, result);
           setPhase('done');
           return;
         }
