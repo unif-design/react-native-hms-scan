@@ -51,6 +51,9 @@ test('Android integration matches React Native lock entries instead of unrelated
       [
         'package.json',
         'example/package.json',
+        'example/android/app/src/main/AndroidManifest.xml',
+        'example/android/build.gradle',
+        'example/android/gradle.properties',
         'scripts/verify-android-integration.mjs',
         'android/src/main/java/com/unif/reactnativehmsscan/HmsScanView.kt',
       ].map((relativePath) =>
@@ -157,6 +160,7 @@ test('iOS integration rejects a tracked Pod lock that remains ignored', async ()
         'ReactNativeHmsScan.podspec',
         'turbo.json',
         'example/package.json',
+        'example/ios/ReactNativeHmsScanExample/Info.plist',
         'example/ios/Podfile.lock',
         'scripts/verify-ios-integration.mjs',
       ].map((relativePath) =>

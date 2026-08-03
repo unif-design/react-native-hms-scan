@@ -20,6 +20,13 @@ const rootPackage = readPackageJson('package.json');
 const examplePackage = readPackageJson('example/package.json');
 const websitePackage = readPackageJson('website/package.json');
 const lockfile = read('yarn.lock');
+const androidManifest = read(
+  'example/android/app/src/main/AndroidManifest.xml'
+);
+const androidBuild = read('example/android/build.gradle');
+const androidGradleProperties = read(
+  'example/android/gradle.properties'
+);
 
 const sharedRuntimeDependencies = {
   '@sbaiahmed1/react-native-blur': '^4.6.2',
@@ -109,6 +116,35 @@ assertExactDependencies(
   }
 );
 assertReactNativeLockfileResolution(lockfile);
+
+const examplePermissions = [
+  ...androidManifest.matchAll(
+    /<uses-permission\s+android:name="([^"]+)"/g
+  ),
+].map(([, permission]) => permission);
+assert.deepEqual(
+  examplePermissions,
+  ['android.permission.INTERNET'],
+  'example app manifest 不得新增 location 或其他权限；扫码权限由库 manifest 合并'
+);
+assert.equal(
+  androidManifest.includes('android.permission.ACCESS_FINE_LOCATION'),
+  false
+);
+assert.ok(
+  androidBuild.includes('https://developer.huawei.com/repo/'),
+  'example 必须保留 Huawei Maven'
+);
+assert.match(
+  androidBuild,
+  /minSdkVersion\s*=\s*24/,
+  'example minSdkVersion 必须为 24'
+);
+assert.match(
+  androidGradleProperties,
+  /^newArchEnabled=true$/m,
+  'example 必须启用 React Native 新架构'
+);
 
 assert.equal(rootPackage.peerDependencies['@unif/react-native-design'], '>=0.8.0');
 assert.equal(rootPackage.peerDependencies['react-native'], '>=0.80.0');

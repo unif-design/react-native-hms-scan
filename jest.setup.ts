@@ -197,17 +197,21 @@ jest.mock('@unif/react-native-design', () => {
     value,
     onChange,
     items,
+    disabled,
     ...props
   }: {
     value?: string;
     onChange?: (id: string) => void;
     items?: readonly { id: string; label: string; disabled?: boolean }[];
+    disabled?: boolean;
   }) =>
     React.createElement(
       View,
       props,
-      items?.map((item) =>
-        React.createElement(
+      items?.map((item) => {
+        const itemDisabled = disabled || item.disabled;
+
+        return React.createElement(
           Pressable,
           {
             key: item.id,
@@ -215,14 +219,14 @@ jest.mock('@unif/react-native-design', () => {
             accessibilityLabel: item.label,
             accessibilityState: {
               selected: value === item.id,
-              disabled: item.disabled,
+              disabled: itemDisabled,
             },
-            disabled: item.disabled,
+            disabled: itemDisabled,
             onPress: () => onChange?.(item.id),
           },
           React.createElement(Text, null, item.label)
-        )
-      )
+        );
+      })
     );
 
   const Switch = ({

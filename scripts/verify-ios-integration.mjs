@@ -8,6 +8,33 @@ const rootDir = fileURLToPath(new URL('..', import.meta.url));
 const read = (relativePath) =>
   readFileSync(path.join(rootDir, relativePath), 'utf8');
 const readPackageJson = (relativePath) => JSON.parse(read(relativePath));
+const infoPlist = read(
+  'example/ios/ReactNativeHmsScanExample/Info.plist'
+);
+
+function assertChineseUsageDescription(key, label) {
+  assert.match(
+    infoPlist,
+    new RegExp(
+      `<key>${key}</key>\\s*<string>[^<]*[\\u3400-\\u9fff][^<]*</string>`
+    ),
+    `example iOS 必须提供非空中文${label}用途说明`
+  );
+}
+
+assertChineseUsageDescription(
+  'NSCameraUsageDescription',
+  '相机'
+);
+assertChineseUsageDescription(
+  'NSPhotoLibraryUsageDescription',
+  '相册'
+);
+assert.equal(
+  /<key>NSLocation[^<]*UsageDescription<\/key>/.test(infoPlist),
+  false,
+  '扫码 showcase 不得申请定位权限'
+);
 
 const podspec = read('ReactNativeHmsScan.podspec');
 assert.match(

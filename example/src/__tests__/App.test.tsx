@@ -57,14 +57,15 @@ describe('App showcase shell', () => {
   });
 
   it.each([
-    [/Scanner 成品页/, 'Scanner 配置'],
-    [/HmsScanView 自定义页/, 'HmsScanView 自定义页'],
-    [/decodeImage 图片识别/, 'decodeImage 图片识别'],
-  ] as const)('进入入口 %s 后可通过可访问返回按钮回首页', (entry, title) => {
+    [/Scanner 成品页/, 'Scanner 配置', '进入全屏 Scanner'],
+    [/HmsScanView 自定义页/, 'HmsScanView 自定义页', '权限与预览控制'],
+    [/decodeImage 图片识别/, 'decodeImage 图片识别', '选择图片并识别'],
+  ] as const)('进入入口 %s 后渲染真实页面并可返回首页', (entry, title, marker) => {
     render(<App />);
 
     fireEvent.press(screen.getByRole('button', { name: entry }));
     expect(screen.getByText(title)).toBeOnTheScreen();
+    expect(screen.getByText(marker)).toBeOnTheScreen();
 
     fireEvent.press(screen.getByRole('button', { name: '返回' }));
     expect(screen.getByText('同一个 SDK 的三种使用层级')).toBeOnTheScreen();

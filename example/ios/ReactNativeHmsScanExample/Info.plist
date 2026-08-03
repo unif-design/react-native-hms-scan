@@ -33,8 +33,10 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<key>NSCameraUsageDescription</key>
+	<string>用于扫描二维码和条码。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>用于选择本地图片并识别其中的二维码和条码。</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
