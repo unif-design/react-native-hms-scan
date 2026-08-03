@@ -54,19 +54,34 @@ describe('headlessReducer permissions', () => {
     });
   });
 
-  it('query 不产生 blocked，只有 request 结果可以进入 blocked', () => {
+  it('iOS query 保留 blocked，直接进入设置恢复态', () => {
     const checked = headlessReducer(initialHeadlessState, {
       type: 'permissionChecked',
       status: 'blocked',
       os: 'ios',
     });
+
+    expect(checked.permission).toBe('blocked');
+    expect(checked.nativePermission).toBe('blocked');
+  });
+
+  it('Android query 即使收到 blocked 也保持可请求 denied', () => {
+    const checked = headlessReducer(initialHeadlessState, {
+      type: 'permissionChecked',
+      status: 'blocked',
+      os: 'android',
+    });
+
+    expect(checked.permission).toBe('denied');
+    expect(checked.nativePermission).toBe('blocked');
+  });
+
+  it('request blocked 进入设置恢复态', () => {
     const requested = headlessReducer(initialHeadlessState, {
       type: 'permissionRequested',
       status: 'blocked',
     });
 
-    expect(checked.permission).toBe('denied');
-    expect(checked.nativePermission).toBe('blocked');
     expect(requested.permission).toBe('blocked');
     expect(requested.nativePermission).toBe('blocked');
   });
@@ -134,10 +149,7 @@ describe('headlessReducer controls and results', () => {
 
     expect(
       scanned.results.map((item) => `${item.format}:${item.value}`)
-    ).toEqual([
-      'EAN_13:6925303773908',
-      'QR_CODE:https://unif.example/scan',
-    ]);
+    ).toEqual(['EAN_13:6925303773908', 'QR_CODE:https://unif.example/scan']);
     expect(scanned.results).toEqual([eanResult, qrResult]);
     expect(scanned.paused).toBe(true);
   });
@@ -227,12 +239,16 @@ describe('headlessReducer errors', () => {
       message: '未识别到条码',
     };
 
-    expect(
-      headlessReducer(grantedState, { type: 'scanError', error })
-    ).toEqual({
+    const failed = headlessReducer(grantedState, {
+      type: 'scanError',
+      error,
+    });
+
+    expect(failed).toEqual({
       ...grantedState,
       error,
     });
+    expect(failed.viewGeneration).toBe(0);
   });
 
   it('E_NO_CAMERA_PERMISSION 暂停并请求权限复查', () => {
@@ -241,14 +257,14 @@ describe('headlessReducer errors', () => {
       message: '相机权限已失效',
     };
 
-    expect(
-      headlessReducer(grantedState, { type: 'scanError', error })
-    ).toEqual({
-      ...grantedState,
-      paused: true,
-      error,
-      needsPermissionRecheck: true,
-    });
+    expect(headlessReducer(grantedState, { type: 'scanError', error })).toEqual(
+      {
+        ...grantedState,
+        paused: true,
+        error,
+        needsPermissionRecheck: true,
+      }
+    );
   });
 
   it('普通 view error 可通过 retry 清除并恢复扫描', () => {
@@ -267,6 +283,7 @@ describe('headlessReducer errors', () => {
       ...failed,
       paused: false,
       error: null,
+      viewGeneration: 1,
     });
   });
 });

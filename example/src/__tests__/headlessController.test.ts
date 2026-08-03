@@ -17,9 +17,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function createDeps(
-  overrides: Partial<HeadlessDeps> = {}
-): HeadlessDeps {
+function createDeps(overrides: Partial<HeadlessDeps> = {}): HeadlessDeps {
   return {
     getStatus: async () => 'granted',
     request: async () => 'granted',
@@ -49,6 +47,44 @@ describe('createHeadlessController permission flow', () => {
       nativePermission: 'granted',
       shouldMountView: true,
       canRequest: false,
+    });
+  });
+
+  it('iOS 初次 query blocked 直接进入设置态且不 request', async () => {
+    const getStatus = jest.fn(
+      async (): Promise<CameraPermissionStatus> => 'blocked'
+    );
+    const request = jest.fn(
+      async (): Promise<CameraPermissionStatus> => 'granted'
+    );
+    const controller = createHeadlessController(
+      createDeps({ getStatus, request })
+    );
+
+    await controller.check('ios');
+
+    expect(getStatus).toHaveBeenCalledTimes(1);
+    expect(request).not.toHaveBeenCalled();
+    expect(controller.getSnapshot()).toMatchObject({
+      permission: 'blocked',
+      nativePermission: 'blocked',
+      shouldMountView: false,
+      canRequest: false,
+    });
+  });
+
+  it('Android query blocked 仍进入可请求态', async () => {
+    const controller = createHeadlessController(
+      createDeps({ getStatus: async () => 'blocked' })
+    );
+
+    await controller.check('android');
+
+    expect(controller.getSnapshot()).toMatchObject({
+      permission: 'denied',
+      nativePermission: 'blocked',
+      shouldMountView: false,
+      canRequest: true,
     });
   });
 
@@ -156,9 +192,7 @@ describe('createHeadlessController permission flow', () => {
     const getStatus = jest.fn(
       async (): Promise<CameraPermissionStatus> => 'granted'
     );
-    const controller = createHeadlessController(
-      createDeps({ getStatus })
-    );
+    const controller = createHeadlessController(createDeps({ getStatus }));
 
     await controller.onAppActive('android');
 
@@ -272,6 +306,29 @@ describe('createHeadlessController external store', () => {
       permission: 'granted',
       needsPermissionRecheck: true,
       shouldMountView: false,
+    });
+  });
+
+  it('fatal view error 只有 retry 才递增 view generation', () => {
+    const controller = createHeadlessController(createDeps());
+    controller.dispatch({
+      type: 'permissionChecked',
+      status: 'granted',
+      os: 'android',
+    });
+
+    controller.dispatch({
+      type: 'scanError',
+      error: { code: 'E_CAMERA_INIT', message: 'camera init failed' },
+    });
+    expect(controller.getSnapshot().viewGeneration).toBe(0);
+
+    controller.dispatch({ type: 'retry' });
+    expect(controller.getSnapshot()).toMatchObject({
+      paused: false,
+      error: null,
+      viewGeneration: 1,
+      shouldMountView: true,
     });
   });
 });

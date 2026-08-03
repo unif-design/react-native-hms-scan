@@ -25,6 +25,7 @@ export type HeadlessState = {
   results: readonly ScanResult[];
   error: ScanError | null;
   needsPermissionRecheck: boolean;
+  viewGeneration: number;
 };
 
 export type HeadlessSnapshot = HeadlessState & {
@@ -63,6 +64,7 @@ export const initialHeadlessState: HeadlessState = {
   results: [],
   error: null,
   needsPermissionRecheck: false,
+  viewGeneration: 0,
 };
 
 function permissionAfterCheck(
@@ -72,8 +74,8 @@ function permissionAfterCheck(
   if (status === 'granted') return 'granted';
 
   if (os === 'ios') {
-    // iOS 的 undetermined/blocked 是原生事实；UI denied 仅表示仍需一次用户动作。
-    return 'denied';
+    // iOS query 能区分首次可请求与已阻止；blocked 必须直接引导设置。
+    return status === 'blocked' ? 'blocked' : 'denied';
   }
 
   // Android query 不区分 denied/blocked，blocked 只采信 request 的结果。
@@ -100,10 +102,7 @@ function mergeScanResults(
 
   for (const result of incoming) {
     const key = scanResultKey(result);
-    merged = [
-      result,
-      ...merged.filter((item) => scanResultKey(item) !== key),
-    ];
+    merged = [result, ...merged.filter((item) => scanResultKey(item) !== key)];
   }
 
   return merged.slice(0, 20);
@@ -196,13 +195,15 @@ export function headlessReducer(
         ...state,
         paused: false,
         error: null,
+        viewGeneration:
+          state.error && state.error.code !== 'E_NO_RESULT'
+            ? state.viewGeneration + 1
+            : state.viewGeneration,
       };
   }
 }
 
-export function toHeadlessSnapshot(
-  state: HeadlessState
-): HeadlessSnapshot {
+export function toHeadlessSnapshot(state: HeadlessState): HeadlessSnapshot {
   return {
     ...state,
     shouldMountView:

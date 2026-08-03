@@ -104,8 +104,7 @@ export function HeadlessShowcaseScreen({
   }, [controller]);
 
   const permissionPending =
-    snapshot.permission === 'checking' ||
-    snapshot.permission === 'requesting';
+    snapshot.permission === 'checking' || snapshot.permission === 'requesting';
 
   return (
     <ShowcaseScaffold
@@ -151,11 +150,7 @@ export function HeadlessShowcaseScreen({
                   title="相机权限已被阻止"
                   desc="请在系统设置中允许相机权限，返回 App 后会重新检查。"
                 />
-                <Button
-                  label="打开系统设置"
-                  block
-                  onPress={openSettings}
-                />
+                <Button label="打开系统设置" block onPress={openSettings} />
               </>
             ) : null}
 
@@ -188,6 +183,7 @@ export function HeadlessShowcaseScreen({
           <Card bare>
             <View testID="headless-preview" style={styles.preview}>
               <HmsScanViewComponent
+                key={snapshot.viewGeneration}
                 style={StyleSheet.absoluteFill}
                 paused={snapshot.paused}
                 continuous={snapshot.continuous}
@@ -206,7 +202,9 @@ export function HeadlessShowcaseScreen({
                 <View style={styles.previewStatus}>
                   <StatusDot
                     status={snapshot.paused ? 'pending' : 'active'}
-                    accessibilityLabel=""
+                    accessibilityLabel={
+                      snapshot.paused ? '扫描已暂停' : '正在扫描'
+                    }
                   />
                   <Text style={styles.previewStatusText}>
                     {snapshot.paused ? '扫描已暂停' : '正在扫描'}
