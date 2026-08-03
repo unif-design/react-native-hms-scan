@@ -84,10 +84,11 @@ decodeImage        从本地图片识别 → ScanResult[]
 
 ### `<Scanner>`(`src/Scanner/`)
 
-- **开箱即用** — 自带状态机 + 权限流 + `ThemeProvider`/`ToastHost`,整屏直接丢进去即可;也兼容放进宿主已有的 `ThemeProvider`。
-- **状态机** — `Phase`:`init → scan → detecting → success / fail / denied / done`。默认成功进入 `success`,点「确定」或「重扫」后 `reset` 回 `scan`;`autoConfirm` 成功时跳过结果卡、调用 `onConfirm` 后进入 `done`,相机保持暂停且不自动重扫。未识别仍进入 `fail`,`handlingRef` 防重入。
+- **开箱即用** — 自带状态机 + 权限流 + `ThemeProvider`,整屏直接丢进去即可;也兼容放进宿主已有的 `ThemeProvider`。
+- **Toast** — `ToastHost` 是宿主职责,按需在 App 根部挂载。
+- **状态机** — `Phase`:`init → scan → detecting → success / fail / denied / error / done`。默认成功进入 `success`,点「确定」或「重扫」后 `reset` 回 `scan`;`autoConfirm` 在有 `onConfirm` 时跳过结果卡、调用成功后进入 `done`,相机保持暂停且不自动重扫;未传 `onConfirm` 则回退结果卡。未识别仍进入 `fail`,`handlingRef` 防双入口;独立 processing generation 跨 `pickImage` / `decodeImage` / `resolveProduct` 的 await 校验,fatal、denied、reset、retry 会让旧链失效且不得再写 phase 或触发 `onConfirm`;scan session generation 会拒绝 retry、设置恢复或 reset 后才到达的旧 view callback。
 - **`done` 的前提是 `onConfirm` 正常返回** — `resolveProduct` 与 `onConfirm` 在 `handleResult` 的同一个 `try` 内调用,`setPhase('done')` 排在 `onConfirm` 之后。宿主 `onConfirm` 同步 throw 会被同一个 `catch` 收成 `fail`(可重扫),**不会**进入 `done`。不得把 `autoConfirm` 描述成「调用 `onConfirm` 即必然进入终态」。
-- **权限异常的当前边界** — 初始化权限 helper reject 时 `<Scanner>` 当前会 catch 后进入 `scan`(fail-open);`onScanError` 也只对 `E_NO_CAMERA_PERMISSION` 切 `denied`,而当前原生 view 明确产生的是 Android `E_CAMERA_INIT` / iOS `E_NO_RESULT`。不得把它描述成所有权限 / 相机异常都会进入 denied;若整改为 fail-closed,必须先补 helper reject 与 native code 的状态机测试。
+- **权限与相机异常边界** — view error 分三路:`E_NO_RESULT` 是 soft error,只经 `onScanError` 上报而不切换 phase;`E_NO_CAMERA_PERMISSION` 进入 `denied` 并卸载相机 view;其余 fatal view error 进入可重试的 `error`。权限 helper reject、打开系统设置失败也进入 `error`;从系统设置返回 App 后会自动重新查询权限。`onScanError` 收到的是普通 `ScanError` `{ code, message }`,不是 `HmsScanError`;可能包括 `E_CAMERA_INIT`、`E_NO_RESULT`、`E_NO_ACTIVITY` 或 `E_UNKNOWN`。
 - **样式** — 取景框 / 工具栏 / 结果卡全用 `@unif/react-native-design`(peer 依赖)的主题令牌与组件绘制,统一风格。
 - **图片选择器不内置**(遵循 RN 惯例) — `pickImage` 传了才显示「相册」按钮,内部对返回的本地 uri 调 `decodeImage`。
 - **商品解析交宿主** — `resolveProduct` 由宿主解析商品,返回 `null` / 抛错 = 未识别 → `fail`。
@@ -98,12 +99,12 @@ decodeImage        从本地图片识别 → ScanResult[]
 
 | prop | 默认 | 说明 |
 | --- | --- | --- |
-| `formats` | 省略 = 全部 | 限定码制 |
+| `formats` | `readonly BarcodeFormat[]`；省略 = 全部 | 限定码制 |
 | `continuous` | `true` | 连续扫描 |
 | `paused` | `false` | 暂停 |
 | `torch` | `false` | 手电,**iOS best-effort** |
 | `onScanResult(results: ScanResult[])` | — | 扫到码 |
-| `onScanError` | — | 扫码出错 |
+| `onScanError` | `(error: ScanError) => void` | 扫码出错；普通 `{ code, message }`，不是 `HmsScanError` |
 | `onTorchStatus` | — | 手电状态 |
 
 原生回传的是 JSON 字符串,组件内用 `parseResultsJson` 解析成强类型 `ScanResult[]` 再回调。
@@ -140,7 +141,7 @@ decodeImage        从本地图片识别 → ScanResult[]
   远程 / 当前平台不支持的 URI 会抛 `E_IMAGE_LOAD_FAILED`,不是返回 `[]`;跨平台优先传 `file://` 或绝对路径。
 - **`decodeImage` 空数组 `[]` 是正常结果**(图里没码),不是错误、不会 throw。
 - **错误通道不要混用** — `decodeImage` 失败会 throw `HmsScanError`;当前原生明确产生 `E_IMAGE_LOAD_FAILED` / `E_DECODE_FAILED`,其他 native reject 在 JS 收敛为 `E_UNKNOWN`。`<HmsScanView>` 则通过 `onScanError({ code, message })` 上报普通对象,不是 `HmsScanError`;当前 view 原生 code 为 Android `E_CAMERA_INIT`、iOS `E_NO_RESULT`。
-- **手电 iOS best-effort** — iOS 的 `torch` 可能不生效;`onTorchStatus` 会随 `torch` 初次应用 / 变更回传,其中 `available` 表示是否有手电硬件、`on` 表示真实点亮状态,不是暗光信号。只有 Android 的 `available` 来自环境光回调。
+- **手电 iOS best-effort** — iOS 的 `torch` 可能不生效;`onTorchStatus` 会随 `torch` 初次应用 / 变更回传,其中 `available` 表示是否有手电硬件、`on` 表示真实点亮状态,不是暗光信号。只有 Android 的 `available` 来自环境光回调;`<Scanner>` 的手电标签最终以 `onTorchStatus.on` 回写为准。
 - **Android 宿主必须添加 Huawei Maven** — `scanplus` 依赖由库声明,但库项目的 repository 不传播给 consumer;宿主须在实际参与依赖解析的 `repositories` 中加入 `https://developer.huawei.com/repo/`。仍然无需 agconnect、`agconnect-services.json` 或 API Key,minSdkVersion 必须 ≥24。
 - **仅新架构** — 宿主必须开新架构(Fabric + TurboModule),`codegenConfig` 为 `ReactNativeHmsScanSpec`。
 
@@ -149,7 +150,7 @@ decodeImage        从本地图片识别 → ScanResult[]
 加 / 改测试,或下游消费者要 mock 本库时看这里。
 
 - 测试 colocate 在 `src/__tests__/`(注意:与 design 仓不同 —— design 放仓库根 `__tests__/`,本仓在 `src/` 内)。
-- 覆盖纯逻辑(`format`)、`<Scanner>` 状态机(含权限、普通确认、`autoConfirm` 及未识别分支)、`ResultFocus` 可读性 token 和官方 mock 自检;组件测试只 mock 原生边界、权限与 `decodeImage`。
+- 覆盖纯逻辑(`format`)、`<Scanner>` 状态机(含权限、从设置返回重查、fatal error、普通确认、`autoConfirm` 回退结果卡及未识别分支)、相册并发、旧异步链失效与跨 scan session 迟到 callback、手电状态回写、readonly 类型、`ResultFocus` 可读性 token 和官方 mock 自检;组件测试只 mock 原生边界、权限与 `decodeImage`;Android torch 的 RemoteView 生命周期 / 回读 / emit 契约由 `scripts/verify-android-integration.mjs` 锁定。
 - `jest` 用 `@react-native/jest-preset`,`setupFiles: ./jest.setup.ts`。
 - **消费者**测试本库:用随包官方 mock 整包替换(避免 jest 环境加载 TurboModule / Fabric 组件崩溃):
 

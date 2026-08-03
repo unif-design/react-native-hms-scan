@@ -8,7 +8,9 @@ description: "用 <Scanner> 快速接入完整扫码页：title / onClose / reso
 
 `<Scanner>` 是开箱即用的成品扫码界面(聚焦款,浅色)。底层用 `<HmsScanView>` 出相机画面,取景框 / 工具栏 / 结果卡全用 [`@unif/react-native-design`](https://www.npmjs.com/package/@unif/react-native-design) 的主题令牌与组件绘制。
 
-它**自带 `ThemeProvider` + `ToastHost` + 权限流 + 状态机**,可直接作为一个路由整屏接入;放进宿主已有的 `ThemeProvider` 里也兼容。
+它自带 `ThemeProvider`、权限流和状态机,可直接作为一个路由整屏接入;放进宿主已有的 `ThemeProvider` 里也兼容。
+
+`ToastHost` 由宿主按需在 App 根部挂载。
 
 :::info 何时用 `<Scanner>` vs `<HmsScanView>`
 要现成的扫一扫页 → 用 `<Scanner>`(本页)。要完全自绘 UI(自定义取景框 / 工具栏布局)→ 用底层 [`<HmsScanView>`](/docs/guides/headless)。
@@ -19,17 +21,24 @@ description: "用 <Scanner> 快速接入完整扫码页：title / onClose / reso
 ## 内部状态机 {#state-machine}
 
 ```
-init → scan（取景）→ detecting（识别中）
-                       ↓
-                success（浮层确认卡）→ 手动确认 → onConfirm → scan
-                       ↘ autoConfirm → onConfirm → done（暂停终态）
-                       ↓
-                  fail（未识别弹层）→ 重扫 → scan
-                       ↓
-                denied（无权限遮罩）→ 去系统设置
+权限流:
+init ─ 已授权 → scan（取景）
+  ├─ 未授权 → denied（无权限遮罩）→ 去系统设置 → 返回后自动重查
+  └─ helper reject → error（fatal）→ 重试 → init
+
+识别流:
+scan → detecting（识别中）
+          ├─ 解析成功 → success（浮层确认卡）→ 确认 / 重扫 → scan
+          ├─ autoConfirm + onConfirm 正常返回 → done（暂停终态）
+          └─ 未识别 / 解析或 onConfirm 抛错 → fail（未识别弹层）→ 重扫 → scan
+
+view error:
+scan / detecting ─ E_NO_CAMERA_PERMISSION → denied
+                ├─ 其他 fatal error → error → 重试 → init
+                └─ E_NO_RESULT → 只上报，phase 不变
 ```
 
-`<Scanner>` 挂载时**自动请求相机权限**:已授权直接进入取景;永久拒绝则展示引导去系统设置的遮罩(`denied`)。**一次扫一个** —— 扫到 `results[0]` 即进入 `detecting`;手动确认或重扫后复位到 `scan`。`autoConfirm` 成功时调用 `onConfirm` 后进入 `done`,相机保持暂停且不会自动重扫;`onConfirm` 同步抛错会被 `resolveProduct` 那一层的 `catch` 收成 `fail`,**不会**进入 `done`。
+`<Scanner>` 挂载时**自动请求相机权限**:已授权直接进入取景;永久拒绝则展示引导去系统设置的遮罩(`denied`),从系统设置返回后会自动重新查询。**一次扫一个** —— 扫到 `results[0]` 即进入 `detecting`;手动确认或重扫后复位到 `scan`。`autoConfirm` 仅在传入 `onConfirm` 时调用回调后进入 `done`,未传回调则显示结果卡;相机保持暂停且不会自动重扫。`onConfirm` 同步抛错会被 `resolveProduct` 那一层的 `catch` 收成 `fail`,**不会**进入 `done`。相机 view error 分三路:`E_NO_RESULT` 仅作 soft error 回调上报;`E_NO_CAMERA_PERMISSION` 进入 `denied` 并卸载相机 view;其余 fatal view error 进入可重试的 `error`。权限 helper reject 也进入 `error`。
 
 ---
 
@@ -111,6 +120,8 @@ import { launchImageLibrary } from 'react-native-image-picker';
 
 - **Android** —— 可编程控制,稳定可用。
 - **iOS** —— HMS 未提供公开手电 API,本库通过 `AVCaptureDevice` **尽力而为**,不保证点亮。
+
+手电按钮最终以底层 `onTorchStatus.on` 的真实点亮状态回写;`available` 的含义仍按平台不同：Android 是环境暗光提示，iOS 是设备是否有手电硬件。
 
 不想在 iOS 上呈现一个可能无效的按钮,可关掉:
 

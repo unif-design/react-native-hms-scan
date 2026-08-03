@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
 // Jest 环境没有原生侧，这里把会触碰原生的依赖替换成纯 JS 桩：
 //   - react-native-svg：渲染成普通 View。
 //   - @unif/react-native-design：渲染成轻量桩（避免 jest 加载 reanimated/手势等原生
@@ -120,7 +119,7 @@ jest.mock('@unif/react-native-design', () => {
     motion: {},
     // feedback
     toast,
-    ToastHost: () => null,
+    ToastHost: () => React.createElement(View, { testID: 'design-toast-host' }),
     // components
     Icon: box(),
     IconButton,

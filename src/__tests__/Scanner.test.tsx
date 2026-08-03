@@ -1,17 +1,35 @@
 /// <reference types="jest" />
 
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react-native';
+import { AppState, Linking } from 'react-native';
 import { Scanner } from '../Scanner/Scanner';
 
 // 把底层原生组件换成纯桩，并捕获其 onScanResult / onScanError 供测试触发。
 // （jest.mock 工厂不能引外部非 mock 前缀变量，故用 globalThis 中转。）
-jest.mock('../HmsScanView', () => ({
-  HmsScanView: (props: { onScanResult?: unknown; onScanError?: unknown }) => {
-    (globalThis as Record<string, unknown>).__emitScan = props.onScanResult;
-    (globalThis as Record<string, unknown>).__emitError = props.onScanError;
-    return null;
-  },
-}));
+type MockHmsScanViewProps = {
+  paused?: boolean;
+  torch?: boolean;
+  onScanResult?: (results: unknown[]) => void;
+  onScanError?: (error: { code: string; message: string }) => void;
+  onTorchStatus?: (status: { available: boolean; on: boolean }) => void;
+};
+
+jest.mock('../HmsScanView', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    HmsScanView: (props: MockHmsScanViewProps) => {
+      (globalThis as Record<string, unknown>).__hmsScanProps = props;
+      return React.createElement(View, { testID: 'hms-scan-view' });
+    },
+  };
+});
 
 jest.mock('../permissions', () => ({
   getCameraPermissionStatus: jest.fn(async () => 'granted'),
@@ -21,20 +39,112 @@ jest.mock('../permissions', () => ({
 jest.mock('../decodeImage', () => ({ decodeImage: jest.fn(async () => []) }));
 
 const HINT = '将条码 / 二维码放入框内，自动扫描';
-const emitScan = (results: unknown[]) =>
-  (
-    (globalThis as Record<string, unknown>).__emitScan as (r: unknown[]) => void
-  )?.(results);
+const emitScan = (results: unknown[]) => nativeProps().onScanResult?.(results);
+const nativeProps = () =>
+  (globalThis as Record<string, unknown>)
+    .__hmsScanProps as MockHmsScanViewProps;
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+let appStateListener: ((state: string) => void) | undefined;
+
+beforeEach(() => {
+  appStateListener = undefined;
+  jest
+    .spyOn(AppState, 'addEventListener')
+    .mockImplementation((_event, listener) => {
+      appStateListener = listener as (state: string) => void;
+      return { remove: jest.fn() };
+    });
+  jest.spyOn(Linking, 'openSettings').mockResolvedValue();
+
+  const perms = jest.requireMock('../permissions') as {
+    getCameraPermissionStatus: jest.Mock;
+    requestCameraPermission: jest.Mock;
+  };
+  perms.getCameraPermissionStatus.mockReset().mockResolvedValue('granted');
+  perms.requestCameraPermission.mockReset().mockResolvedValue('granted');
+
+  const image = jest.requireMock('../decodeImage') as {
+    decodeImage: jest.Mock;
+  };
+  image.decodeImage.mockReset().mockResolvedValue([]);
+});
 
 afterEach(() => {
-  jest.clearAllMocks();
+  jest.restoreAllMocks();
 });
 
 describe('<Scanner>', () => {
+  it('不挂载内部 ToastHost，宿主无需 SafeAreaProvider', async () => {
+    render(<Scanner />);
+    await screen.findByText('扫一扫');
+    expect(screen.queryByTestId('design-toast-host')).toBeNull();
+  });
+
+  it('autoConfirm 未传 onConfirm 时降级显示确认卡', async () => {
+    render(
+      <Scanner autoConfirm resolveProduct={async () => ({ name: 'X 商品' })} />
+    );
+    await screen.findByText('扫一扫');
+    await act(async () => {
+      emitScan([{ value: '1', format: 'QR_CODE' }]);
+    });
+    expect(await screen.findByText('X 商品')).toBeTruthy();
+    expect(screen.getByText('确定')).toBeTruthy();
+  });
+
+  it('resolveProduct 的 undefined barcode 回退到扫描值', async () => {
+    const onConfirm = jest.fn();
+    render(
+      <Scanner
+        onConfirm={onConfirm}
+        resolveProduct={async () => ({ name: 'X 商品', barcode: undefined })}
+      />
+    );
+    await screen.findByText('扫一扫');
+    await act(async () => {
+      emitScan([{ value: '690', format: 'EAN_13' }]);
+    });
+    fireEvent.press(await screen.findByText('确定'));
+    expect(onConfirm.mock.calls[0][0].barcode).toBe('690');
+  });
+
   it('已授权 → 进入取景，显示标题与提示', async () => {
     render(<Scanner />);
     expect(await screen.findByText('扫一扫')).toBeTruthy();
     expect(screen.getByText(HINT)).toBeTruthy();
+  });
+
+  it('原生回报未点亮时撤销已开灯状态', async () => {
+    render(<Scanner />);
+    await screen.findByText('扫一扫');
+    fireEvent.press(screen.getByText('手电筒'));
+    expect(screen.getByText('已开灯')).toBeTruthy();
+    expect(nativeProps().torch).toBe(true);
+
+    act(() => nativeProps().onTorchStatus?.({ available: true, on: false }));
+    expect(screen.getByText('手电筒')).toBeTruthy();
+    expect(nativeProps().torch).toBe(false);
+  });
+
+  it('showTorch 关闭时主动请求关灯', async () => {
+    const view = render(<Scanner showTorch />);
+    await screen.findByText('扫一扫');
+    fireEvent.press(screen.getByText('手电筒'));
+    expect(nativeProps().torch).toBe(true);
+
+    view.rerender(<Scanner showTorch={false} />);
+    await waitFor(() => expect(nativeProps().torch).toBe(false));
+    expect(screen.queryByText('已开灯')).toBeNull();
   });
 
   it('扫到码 → 解析商品 → 浮层确认卡 → 点确定带回结果', async () => {
@@ -62,7 +172,9 @@ describe('<Scanner>', () => {
 
     fireEvent.press(screen.getByText('确定'));
     expect(onConfirm).toHaveBeenCalledTimes(1);
-    expect(onConfirm.mock.calls[0][0]).toMatchObject({ name: '阿萨姆原味奶茶 500ml' });
+    expect(onConfirm.mock.calls[0][0]).toMatchObject({
+      name: '阿萨姆原味奶茶 500ml',
+    });
     expect(onConfirm.mock.calls[0][1]).toEqual({
       value: '6925303773908',
       format: 'EAN_13',
@@ -119,7 +231,11 @@ describe('<Scanner>', () => {
   it('autoConfirm + 未识别 → 仍走失败态，不触发 onConfirm', async () => {
     const onConfirm = jest.fn();
     render(
-      <Scanner autoConfirm onConfirm={onConfirm} resolveProduct={async () => null} />
+      <Scanner
+        autoConfirm
+        onConfirm={onConfirm}
+        resolveProduct={async () => null}
+      />
     );
     await screen.findByText('扫一扫');
 
@@ -129,6 +245,334 @@ describe('<Scanner>', () => {
 
     expect(await screen.findByText('未识别到条码')).toBeTruthy();
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('打开相册前即暂停相机，并忽略等待期间的相机结果', async () => {
+    let resolvePick!: (uri: string | null) => void;
+    const pickImage = jest.fn(
+      () =>
+        new Promise<string | null>((resolve) => {
+          resolvePick = resolve;
+        })
+    );
+    const resolveProduct = jest.fn(async () => ({ name: 'X 商品' }));
+    render(<Scanner pickImage={pickImage} resolveProduct={resolveProduct} />);
+    await screen.findByText('扫一扫');
+
+    fireEvent.press(screen.getByText('相册'));
+    await waitFor(() => expect(nativeProps().paused).toBe(true));
+
+    await act(async () => {
+      nativeProps().onScanResult?.([{ value: 'camera', format: 'QR_CODE' }]);
+    });
+    expect(resolveProduct).not.toHaveBeenCalled();
+
+    await act(async () => resolvePick(null));
+    expect(await screen.findByText(HINT)).toBeTruthy();
+    expect(nativeProps().paused).toBe(false);
+
+    await act(async () => {
+      nativeProps().onScanResult?.([
+        { value: 'after-cancel', format: 'QR_CODE' },
+      ]);
+    });
+    await waitFor(() =>
+      expect(resolveProduct).toHaveBeenCalledWith({
+        value: 'after-cancel',
+        format: 'QR_CODE',
+      })
+    );
+  });
+
+  it('双入口时只确认相册图片结果', async () => {
+    let resolvePick!: (uri: string | null) => void;
+    const pickImage = jest.fn(
+      () =>
+        new Promise<string | null>((resolve) => {
+          resolvePick = resolve;
+        })
+    );
+    const decode = jest.requireMock('../decodeImage') as {
+      decodeImage: jest.Mock;
+    };
+    decode.decodeImage.mockResolvedValueOnce([
+      { value: 'image', format: 'QR_CODE' },
+    ]);
+    const onConfirm = jest.fn();
+    const resolveProduct = jest.fn(async () => ({ name: '图片商品' }));
+    render(
+      <Scanner
+        autoConfirm
+        pickImage={pickImage}
+        onConfirm={onConfirm}
+        resolveProduct={resolveProduct}
+      />
+    );
+    await screen.findByText('扫一扫');
+
+    fireEvent.press(screen.getByText('相册'));
+    await waitFor(() => expect(nativeProps().paused).toBe(true));
+    await act(async () => {
+      nativeProps().onScanResult?.([{ value: 'camera', format: 'QR_CODE' }]);
+    });
+    await act(async () => resolvePick('file:///image.png'));
+
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+    expect(resolveProduct).toHaveBeenCalledTimes(1);
+    expect(onConfirm.mock.calls[0][1]).toEqual({
+      value: 'image',
+      format: 'QR_CODE',
+    });
+  });
+
+  it('等待相册选择时发生 fatal error，旧选择完成后仍停在错误页', async () => {
+    const pendingPick = deferred<string | null>();
+    const pickImage = jest.fn(() => pendingPick.promise);
+    const decode = jest.requireMock('../decodeImage') as {
+      decodeImage: jest.Mock;
+    };
+    const onConfirm = jest.fn();
+    render(
+      <Scanner
+        autoConfirm
+        pickImage={pickImage}
+        onConfirm={onConfirm}
+        resolveProduct={async () => ({ name: '图片商品' })}
+      />
+    );
+    await screen.findByText(HINT);
+
+    fireEvent.press(screen.getByText('相册'));
+    await waitFor(() => expect(nativeProps().paused).toBe(true));
+    act(() =>
+      nativeProps().onScanError?.({ code: 'E_CAMERA_INIT', message: 'boom' })
+    );
+    expect(await screen.findByText('相机启动失败')).toBeTruthy();
+
+    await act(async () => pendingPick.resolve('file:///late.png'));
+    expect(screen.getByText('相机启动失败')).toBeTruthy();
+    expect(decode.decodeImage).not.toHaveBeenCalled();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('等待图片解码时发生 fatal error，旧解码完成后不得覆盖错误态', async () => {
+    const pendingDecode =
+      deferred<Array<{ value: string; format: 'QR_CODE' }>>();
+    const decode = jest.requireMock('../decodeImage') as {
+      decodeImage: jest.Mock;
+    };
+    decode.decodeImage.mockReturnValueOnce(pendingDecode.promise);
+    const onConfirm = jest.fn();
+    render(
+      <Scanner
+        autoConfirm
+        pickImage={async () => 'file:///pending.png'}
+        onConfirm={onConfirm}
+        resolveProduct={async () => ({ name: '图片商品' })}
+      />
+    );
+    await screen.findByText(HINT);
+
+    fireEvent.press(screen.getByText('相册'));
+    await waitFor(() => expect(decode.decodeImage).toHaveBeenCalledTimes(1));
+    act(() =>
+      nativeProps().onScanError?.({ code: 'E_CAMERA_INIT', message: 'boom' })
+    );
+    expect(await screen.findByText('相机启动失败')).toBeTruthy();
+
+    await act(async () =>
+      pendingDecode.resolve([{ value: 'late-image', format: 'QR_CODE' }])
+    );
+    expect(screen.getByText('相机启动失败')).toBeTruthy();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('等待商品解析时收到 denied，旧解析完成后保持拒权且不自动确认', async () => {
+    const pendingProduct = deferred<{ name: string }>();
+    const onConfirm = jest.fn();
+    render(
+      <Scanner
+        autoConfirm
+        onConfirm={onConfirm}
+        resolveProduct={() => pendingProduct.promise}
+      />
+    );
+    await screen.findByText(HINT);
+
+    act(() => emitScan([{ value: 'camera', format: 'QR_CODE' }]));
+    await waitFor(() => expect(nativeProps().paused).toBe(true));
+    act(() =>
+      nativeProps().onScanError?.({
+        code: 'E_NO_CAMERA_PERMISSION',
+        message: 'permission missing',
+      })
+    );
+    expect(await screen.findByText('需要相机权限')).toBeTruthy();
+
+    await act(async () => pendingProduct.resolve({ name: '迟到商品' }));
+    expect(screen.getByText('需要相机权限')).toBeTruthy();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('fatal 后重试会释放处理锁，且旧解析完成不会二次确认', async () => {
+    const staleProduct = deferred<{ name: string }>();
+    const resolveProduct = jest
+      .fn()
+      .mockReturnValueOnce(staleProduct.promise)
+      .mockResolvedValueOnce({ name: '新商品' });
+    const onConfirm = jest.fn();
+    render(
+      <Scanner
+        autoConfirm
+        onConfirm={onConfirm}
+        resolveProduct={resolveProduct}
+      />
+    );
+    await screen.findByText(HINT);
+
+    act(() => emitScan([{ value: 'stale', format: 'QR_CODE' }]));
+    await waitFor(() => expect(resolveProduct).toHaveBeenCalledTimes(1));
+    act(() =>
+      nativeProps().onScanError?.({ code: 'E_CAMERA_INIT', message: 'boom' })
+    );
+    fireEvent.press(await screen.findByText('重试'));
+    await screen.findByText(HINT);
+
+    await act(async () => emitScan([{ value: 'fresh', format: 'QR_CODE' }]));
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+    expect(onConfirm.mock.calls[0][1]).toEqual({
+      value: 'fresh',
+      format: 'QR_CODE',
+    });
+
+    await act(async () => staleProduct.resolve({ name: '旧商品' }));
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it('fatal 后忽略卸载前已排队的相机结果', async () => {
+    const resolveProduct = jest.fn(async () => ({ name: '迟到商品' }));
+    render(<Scanner resolveProduct={resolveProduct} />);
+    await screen.findByText(HINT);
+    const queuedScanResult = nativeProps().onScanResult;
+
+    act(() =>
+      nativeProps().onScanError?.({ code: 'E_CAMERA_INIT', message: 'boom' })
+    );
+    expect(await screen.findByText('相机启动失败')).toBeTruthy();
+    await act(async () =>
+      queuedScanResult?.([{ value: 'queued', format: 'QR_CODE' }])
+    );
+
+    expect(screen.getByText('相机启动失败')).toBeTruthy();
+    expect(resolveProduct).not.toHaveBeenCalled();
+  });
+
+  it('fatal 重试后拒绝上一相机 session 的迟到结果', async () => {
+    const resolveProduct = jest.fn(async () => ({ name: '商品' }));
+    const onConfirm = jest.fn();
+    render(
+      <Scanner
+        autoConfirm
+        resolveProduct={resolveProduct}
+        onConfirm={onConfirm}
+      />
+    );
+    await screen.findByText(HINT);
+    const staleResult = nativeProps().onScanResult;
+
+    act(() =>
+      nativeProps().onScanError?.({ code: 'E_CAMERA_INIT', message: 'boom' })
+    );
+    fireEvent.press(await screen.findByText('重试'));
+    await screen.findByText(HINT);
+    const currentResult = nativeProps().onScanResult;
+
+    await act(async () =>
+      staleResult?.([{ value: 'stale', format: 'QR_CODE' }])
+    );
+    expect(resolveProduct).not.toHaveBeenCalled();
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    await act(async () =>
+      currentResult?.([{ value: 'fresh', format: 'QR_CODE' }])
+    );
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+    expect(onConfirm.mock.calls[0][1]).toEqual({
+      value: 'fresh',
+      format: 'QR_CODE',
+    });
+  });
+
+  it('权限恢复后拒绝上一相机 session 的迟到结果', async () => {
+    const resolveProduct = jest.fn(async () => ({ name: '商品' }));
+    const onConfirm = jest.fn();
+    render(
+      <Scanner
+        autoConfirm
+        resolveProduct={resolveProduct}
+        onConfirm={onConfirm}
+      />
+    );
+    await screen.findByText(HINT);
+    const staleResult = nativeProps().onScanResult;
+
+    act(() =>
+      nativeProps().onScanError?.({
+        code: 'E_NO_CAMERA_PERMISSION',
+        message: 'permission missing',
+      })
+    );
+    fireEvent.press(await screen.findByText('去设置开启'));
+    await act(async () => appStateListener?.('active'));
+    await screen.findByText(HINT);
+    const currentResult = nativeProps().onScanResult;
+
+    await act(async () =>
+      staleResult?.([{ value: 'stale', format: 'QR_CODE' }])
+    );
+    expect(resolveProduct).not.toHaveBeenCalled();
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    await act(async () =>
+      currentResult?.([{ value: 'fresh', format: 'QR_CODE' }])
+    );
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+    expect(onConfirm.mock.calls[0][1]).toEqual({
+      value: 'fresh',
+      format: 'QR_CODE',
+    });
+  });
+
+  it('重扫后拒绝上一相机 session 的迟到结果', async () => {
+    const resolveProduct = jest.fn(async () => ({ name: '商品' }));
+    render(<Scanner resolveProduct={resolveProduct} />);
+    await screen.findByText(HINT);
+    const staleResult = nativeProps().onScanResult;
+
+    await act(async () =>
+      staleResult?.([{ value: 'first', format: 'QR_CODE' }])
+    );
+    await screen.findByText('商品');
+    fireEvent.press(screen.getByText('重扫'));
+    await screen.findByText(HINT);
+    const currentResult = nativeProps().onScanResult;
+    resolveProduct.mockClear();
+
+    await act(async () =>
+      staleResult?.([{ value: 'stale', format: 'QR_CODE' }])
+    );
+    expect(resolveProduct).not.toHaveBeenCalled();
+    expect(screen.getByText(HINT)).toBeTruthy();
+
+    await act(async () =>
+      currentResult?.([{ value: 'fresh', format: 'QR_CODE' }])
+    );
+    await waitFor(() =>
+      expect(resolveProduct).toHaveBeenCalledWith({
+        value: 'fresh',
+        format: 'QR_CODE',
+      })
+    );
   });
 
   it('权限被拒 → 显示无权限遮罩', async () => {
@@ -141,5 +585,213 @@ describe('<Scanner>', () => {
     render(<Scanner />);
     expect(await screen.findByText('需要相机权限')).toBeTruthy();
     expect(screen.getByText('去设置开启')).toBeTruthy();
+  });
+
+  it('权限 helper reject 时 fail-closed 并通知宿主', async () => {
+    const error = Object.assign(new Error('no activity'), {
+      code: 'E_NO_ACTIVITY',
+    });
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+    };
+    perms.getCameraPermissionStatus.mockRejectedValueOnce(error);
+    const onScanError = jest.fn();
+
+    render(<Scanner onScanError={onScanError} />);
+
+    expect(await screen.findByText('相机启动失败')).toBeTruthy();
+    expect(screen.queryByTestId('hms-scan-view')).toBeNull();
+    expect(onScanError).toHaveBeenCalledWith({
+      code: 'E_NO_ACTIVITY',
+      message: 'no activity',
+    });
+  });
+
+  it('从设置授权返回后恢复取景', async () => {
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+      requestCameraPermission: jest.Mock;
+    };
+    perms.getCameraPermissionStatus
+      .mockResolvedValueOnce('blocked')
+      .mockResolvedValueOnce('granted');
+    render(<Scanner />);
+    fireEvent.press(await screen.findByText('去设置开启'));
+    expect(Linking.openSettings).toHaveBeenCalled();
+
+    await act(async () => appStateListener?.('active'));
+    expect(await screen.findByText(HINT)).toBeTruthy();
+    expect(screen.getByTestId('hms-scan-view')).toBeTruthy();
+    expect(perms.requestCameraPermission).not.toHaveBeenCalled();
+  });
+
+  it('普通 active 不重新查询权限', async () => {
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+    };
+    render(<Scanner />);
+    await screen.findByText(HINT);
+
+    await act(async () => appStateListener?.('active'));
+    expect(perms.getCameraPermissionStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('设置打开失败会清除恢复标记、进入错误页并上报', async () => {
+    const error = Object.assign(new Error('settings failed'), {
+      code: 'E_SETTINGS',
+    });
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+    };
+    perms.getCameraPermissionStatus.mockResolvedValueOnce('blocked');
+    jest.spyOn(Linking, 'openSettings').mockRejectedValueOnce(error);
+    const onScanError = jest.fn();
+    render(<Scanner onScanError={onScanError} />);
+
+    fireEvent.press(await screen.findByText('去设置开启'));
+    expect(await screen.findByText('相机启动失败')).toBeTruthy();
+    expect(onScanError).toHaveBeenCalledWith({
+      code: 'E_SETTINGS',
+      message: 'settings failed',
+    });
+
+    await act(async () => appStateListener?.('active'));
+    expect(perms.getCameraPermissionStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('设置打开失败后在途权限查询不会覆盖 fatal error', async () => {
+    const settings = deferred<void>();
+    const pendingPermission = deferred<'granted'>();
+    const error = Object.assign(new Error('settings failed'), {
+      code: 'E_SETTINGS',
+    });
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+    };
+    perms.getCameraPermissionStatus
+      .mockResolvedValueOnce('blocked')
+      .mockReturnValueOnce(pendingPermission.promise);
+    jest.spyOn(Linking, 'openSettings').mockReturnValueOnce(settings.promise);
+    render(<Scanner />);
+
+    fireEvent.press(await screen.findByText('去设置开启'));
+    await act(async () => appStateListener?.('active'));
+    await act(async () => settings.reject(error));
+    expect(await screen.findByText('相机启动失败')).toBeTruthy();
+
+    await act(async () => pendingPermission.resolve('granted'));
+    expect(screen.getByText('相机启动失败')).toBeTruthy();
+    expect(screen.queryByTestId('hms-scan-view')).toBeNull();
+  });
+
+  it('较旧 permission generation 晚完成不会覆盖较新的检查', async () => {
+    const olderPermission = deferred<'blocked'>();
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+    };
+    perms.getCameraPermissionStatus
+      .mockResolvedValueOnce('blocked')
+      .mockReturnValueOnce(olderPermission.promise)
+      .mockResolvedValueOnce('granted');
+    render(<Scanner />);
+
+    fireEvent.press(await screen.findByText('去设置开启'));
+    await act(async () => appStateListener?.('active'));
+    fireEvent.press(screen.getByText('去设置开启'));
+    await act(async () => appStateListener?.('active'));
+    expect(await screen.findByText(HINT)).toBeTruthy();
+
+    await act(async () => olderPermission.resolve('blocked'));
+    expect(screen.getByText(HINT)).toBeTruthy();
+    expect(screen.queryByText('需要相机权限')).toBeNull();
+  });
+
+  it('卸载后忽略尚未完成的权限检查', async () => {
+    const pendingPermission = deferred<never>();
+    const error = Object.assign(new Error('late permission failure'), {
+      code: 'E_NO_ACTIVITY',
+    });
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+    };
+    perms.getCameraPermissionStatus.mockReturnValueOnce(
+      pendingPermission.promise
+    );
+    const onScanError = jest.fn();
+    const { unmount } = render(<Scanner onScanError={onScanError} />);
+
+    unmount();
+    await act(async () => pendingPermission.reject(error));
+    expect(onScanError).not.toHaveBeenCalled();
+  });
+
+  it('E_CAMERA_INIT 进入错误页，重试后重新挂载相机', async () => {
+    const onScanError = jest.fn();
+    render(<Scanner onScanError={onScanError} />);
+    await screen.findByText(HINT);
+    act(() =>
+      nativeProps().onScanError?.({ code: 'E_CAMERA_INIT', message: 'boom' })
+    );
+    expect(await screen.findByText('相机启动失败')).toBeTruthy();
+    expect(screen.queryByTestId('hms-scan-view')).toBeNull();
+    expect(onScanError).toHaveBeenCalledWith({
+      code: 'E_CAMERA_INIT',
+      message: 'boom',
+    });
+
+    fireEvent.press(screen.getByText('重试'));
+    expect(await screen.findByText(HINT)).toBeTruthy();
+    expect(screen.getByTestId('hms-scan-view')).toBeTruthy();
+  });
+
+  it('E_NO_RESULT 只通知宿主并保持取景', async () => {
+    const onScanError = jest.fn();
+    render(<Scanner onScanError={onScanError} />);
+    await screen.findByText(HINT);
+    act(() =>
+      nativeProps().onScanError?.({ code: 'E_NO_RESULT', message: 'empty' })
+    );
+    expect(screen.getByText(HINT)).toBeTruthy();
+    expect(screen.queryByText('相机启动失败')).toBeNull();
+    expect(onScanError).toHaveBeenCalledWith({
+      code: 'E_NO_RESULT',
+      message: 'empty',
+    });
+  });
+
+  it('E_NO_CAMERA_PERMISSION 进入 denied、卸载相机并通知宿主', async () => {
+    const onScanError = jest.fn();
+    render(<Scanner onScanError={onScanError} />);
+    await screen.findByText(HINT);
+    act(() =>
+      nativeProps().onScanError?.({
+        code: 'E_NO_CAMERA_PERMISSION',
+        message: 'permission missing',
+      })
+    );
+
+    expect(await screen.findByText('需要相机权限')).toBeTruthy();
+    expect(screen.queryByTestId('hms-scan-view')).toBeNull();
+    expect(onScanError).toHaveBeenCalledWith({
+      code: 'E_NO_CAMERA_PERMISSION',
+      message: 'permission missing',
+    });
+  });
+
+  it('rerender 后 view error 使用最新 onScanError', async () => {
+    const previousOnScanError = jest.fn();
+    const latestOnScanError = jest.fn();
+    const { rerender } = render(<Scanner onScanError={previousOnScanError} />);
+    await screen.findByText(HINT);
+    rerender(<Scanner onScanError={latestOnScanError} />);
+
+    act(() =>
+      nativeProps().onScanError?.({ code: 'E_NO_RESULT', message: 'empty' })
+    );
+    expect(previousOnScanError).not.toHaveBeenCalled();
+    expect(latestOnScanError).toHaveBeenCalledWith({
+      code: 'E_NO_RESULT',
+      message: 'empty',
+    });
   });
 });

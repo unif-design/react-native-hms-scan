@@ -12,6 +12,7 @@ export type {
   BarcodeContentType,
   ScanCornerPoint,
   ScanResult,
+  ScanError,
   DecodeImageOptions,
   CameraPermissionStatus,
   HmsScanErrorCode,

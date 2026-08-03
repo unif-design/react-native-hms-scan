@@ -41,6 +41,8 @@ class HmsScanView(
   // Runtime props (applied to the live RemoteView; stashed until it exists).
   private var paused: Boolean = false
   private var torch: Boolean = false
+  private var actualTorchOn: Boolean = false
+  private var torchAvailable: Boolean = false
 
   // True while this view is between onAttachedToWindow and onDetachedFromWindow.
   private var attached: Boolean = false
@@ -82,10 +84,7 @@ class HmsScanView(
     if (remoteView == null) {
       buildRemoteView()
     }
-    remoteView?.let {
-      it.onStart()
-      it.onResume()
-    }
+    startRemoteView()
   }
 
   override fun onDetachedFromWindow() {
@@ -99,6 +98,8 @@ class HmsScanView(
   override fun onHostResume() {
     if (attached) {
       remoteView?.onResume()
+      applyPaused()
+      applyTorch()
     }
   }
 
@@ -154,12 +155,18 @@ class HmsScanView(
       )
 
       remoteView = view
-
-      // Apply runtime props that may have arrived before the view existed.
-      applyPaused()
-      applyTorch()
     } catch (e: Throwable) {
       emitError("E_CAMERA_INIT", e.message ?: "Failed to initialize camera")
+    }
+  }
+
+  private fun startRemoteView() {
+    remoteView?.let {
+      it.onStart()
+      it.onResume()
+      // RemoteView 进入 active lifecycle 后再落实首次收到的 runtime props。
+      applyPaused()
+      applyTorch()
     }
   }
 
@@ -174,6 +181,7 @@ class HmsScanView(
     }
     removeView(view)
     remoteView = null
+    actualTorchOn = false
   }
 
   /** Rebuild the RemoteView in place to honour a changed build-time prop. */
@@ -181,10 +189,7 @@ class HmsScanView(
     if (!attached) return
     teardownRemoteView()
     buildRemoteView()
-    remoteView?.let {
-      it.onStart()
-      it.onResume()
-    }
+    startRemoteView()
   }
 
   private fun applyPaused() {
@@ -210,6 +215,7 @@ class HmsScanView(
     } catch (_: Throwable) {
       // Ignore: device may have no flash.
     }
+    emitTorchStatus(view)
   }
 
   /** Resolve the hosting Activity required by RemoteView.Builder.setContext(). */
@@ -232,13 +238,23 @@ class HmsScanView(
   }
 
   private fun onTorchVisible(visible: Boolean) {
-    // Keep our cached torch flag in sync with the actual hardware state.
-    val on = remoteView?.lightStatus ?: torch
-    torch = on
+    torchAvailable = visible
+    val view = remoteView ?: return
+    emitTorchStatus(view)
+  }
+
+  private fun emitTorchStatus(view: RemoteView) {
+    val on =
+      try {
+        view.lightStatus
+      } catch (_: Throwable) {
+        actualTorchOn
+      }
+    actualTorchOn = on
     emitEvent(
       "topTorchStatus",
       Arguments.createMap().apply {
-        putBoolean("available", visible)
+        putBoolean("available", torchAvailable)
         putBoolean("on", on)
       },
     )

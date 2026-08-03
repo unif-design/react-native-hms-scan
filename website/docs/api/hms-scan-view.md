@@ -33,12 +33,12 @@ const HmsScanView: ForwardRefExoticComponent<
 | Prop | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `style` | `StyleProp<ViewStyle>` | — | 布局样式，通常设 `StyleSheet.absoluteFill` 或 `{ flex: 1 }`（继承自 `ViewProps`） |
-| `formats` | `BarcodeFormat[]` | — | 限定识别码制；不传 = 全部（[14 种](/docs/api/types#barcode-format)） |
+| `formats` | `readonly BarcodeFormat[]` | — | 限定识别码制；不传 = 全部（[14 种](/docs/api/types#barcode-format)） |
 | `continuous` | `boolean` | `true` | 连续扫码模式；`false` 命中后停止 |
 | `paused` | `boolean` | `false` | 暂停 / 恢复扫码；命中后置 `true` 可停在结果画面 |
 | `torch` | `boolean` | `false` | 手电筒开关（**iOS 为 best-effort**，见[平台差异](/docs/platform-differences#torch)） |
 | `onScanResult` | `(results: ScanResult[]) => void` | — | 命中一个或多个码时回调（原生 JSON 已解析为强类型） |
-| `onScanError` | `(error: { code: string; message: string }) => void` | — | 相机 / 解码出错时回调，见 [error.code](#error-codes) |
+| `onScanError` | `(error: ScanError) => void` | — | 相机 / 解码出错时回调的普通 `{ code, message }`，不是 `HmsScanError`；见 [error.code](#error-codes) |
 | `onTorchStatus` | `(status: TorchStatus) => void` | — | 手电状态回调;Android 还承载暗光提示,见 [TorchStatus](#torch-status) |
 
 :::note formats 变更会重建相机

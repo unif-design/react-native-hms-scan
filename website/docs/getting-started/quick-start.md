@@ -56,7 +56,9 @@ function ScanScreen({ navigation }) {
 
 ### ① 整屏直接用
 
-`<Scanner>` 是**整屏**组件:它**自带 `ThemeProvider` + `ToastHost` + 权限流 + 状态机**,直接作为一个路由页即可,不必再包主题。(放进宿主已有的 `ThemeProvider` 里也兼容。)
+`<Scanner>` 是**整屏**组件:它自带 `ThemeProvider`、权限流和状态机,直接作为一个路由页即可,不必再包主题。(放进宿主已有的 `ThemeProvider` 里也兼容。)
+
+若要显示 toast,由宿主按需在 App 根部挂载 `ToastHost`。
 
 ### ② 返回
 
@@ -86,12 +88,13 @@ function ScanScreen({ navigation }) {
 ```
 取景 → 识别中 →  识别成功（浮层确认卡）→ onConfirm → 带回上一级
               ↘  未识别（重扫弹层）→ 重扫 → 取景
-              ↘  无相机权限（引导去设置遮罩）
+              ↘  无相机权限（引导去设置遮罩）→ 从设置返回自动重查
+              ↘  致命权限 / 相机错误（可重试）
 ```
 
 **一次扫一个**:扫到 `results[0]` 即暂停继续扫,确定或重扫后才复位。相机权限在挂载时自动请求,永久拒绝则展示引导去系统设置的遮罩。
 
-若传 `autoConfirm`,解析成功后会跳过结果卡、调用 `onConfirm` 并进入暂停的 `done` 终态,不会自动重扫。**只有 `onConfirm` 正常返回才会进 `done`** —— 它和 `resolveProduct` 在同一个 `try` 里,同步抛错会被收成未识别的 fail 重扫层。
+若传 `autoConfirm` **且传了 `onConfirm`**,解析成功后会跳过结果卡、调用 `onConfirm` 并进入暂停的 `done` 终态,不会自动重扫；未传 `onConfirm` 会回退显示结果卡。**只有 `onConfirm` 正常返回才会进 `done`** —— 它和 `resolveProduct` 在同一个 `try` 里,同步抛错会被收成未识别的 fail 重扫层。`E_NO_RESULT` 仅作为 soft error 上报,不打断当前扫码态;`E_NO_CAMERA_PERMISSION` 进入 `denied` 并卸载相机 view;权限 helper 或其他 fatal view error 进入可重试的 `error`。
 
 ---
 

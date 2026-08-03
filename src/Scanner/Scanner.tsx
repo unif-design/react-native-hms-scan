@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
-import { ThemeProvider, ToastHost } from '@unif/react-native-design';
+import { AppState, Linking, StyleSheet, View } from 'react-native';
+import { ThemeProvider } from '@unif/react-native-design';
 import { HmsScanView } from '../HmsScanView';
 import { decodeImage } from '../decodeImage';
 import {
   getCameraPermissionStatus,
   requestCameraPermission,
 } from '../permissions';
-import type { BarcodeFormat, ScanProduct, ScanResult } from '../types';
+import type {
+  BarcodeFormat,
+  ScanError,
+  ScanProduct,
+  ScanResult,
+} from '../types';
 import { scanChrome } from './scanChrome';
 import { Viewfinder } from './Viewfinder';
 import { ScanTopBar } from './ScanTopBar';
@@ -15,18 +20,39 @@ import { ScanToolbar } from './ScanToolbar';
 import { ResultFocus } from './ResultFocus';
 import { ResultFail } from './ResultFail';
 import { DeniedOverlay } from './DeniedOverlay';
+import { ScanErrorOverlay } from './ScanErrorOverlay';
 
 // 'done':autoConfirm 自动回调后的终态——相机暂停、不出卡片、不自动重扫(宿主通常已导航离开)。
-type Phase = 'init' | 'scan' | 'detecting' | 'success' | 'fail' | 'denied' | 'done';
+type Phase =
+  | 'init'
+  | 'scan'
+  | 'detecting'
+  | 'success'
+  | 'fail'
+  | 'denied'
+  | 'error'
+  | 'done';
 
 const VF_SIZE = 256;
 const DEFAULT_HINT = '将条码 / 二维码放入框内，自动扫描';
+
+function toScanError(error: unknown, fallbackMessage: string): ScanError {
+  if (error && typeof error === 'object') {
+    const native = error as { code?: unknown; message?: unknown };
+    return {
+      code: typeof native.code === 'string' ? native.code : 'E_UNKNOWN',
+      message:
+        typeof native.message === 'string' ? native.message : fallbackMessage,
+    };
+  }
+  return { code: 'E_UNKNOWN', message: fallbackMessage };
+}
 
 export interface ScannerProps {
   /** 顶栏标题，默认 "扫一扫"。 */
   title?: string;
   /** 限定识别码制；不传 = 全部。 */
-  formats?: BarcodeFormat[];
+  formats?: readonly BarcodeFormat[];
   /** 取景态提示文案。 */
   hintText?: string;
   /** 顶部安全区（默认 54）。用 react-native-safe-area-context 时可传 insets.top。 */
@@ -37,6 +63,8 @@ export interface ScannerProps {
   showTorch?: boolean;
   /** 返回回调（退出扫码页，回到上一级）；按钮在底部工具栏，与手电筒并排。 */
   onClose?: () => void;
+  /** 扫码相机或权限检查出错时上报。 */
+  onScanError?: (error: ScanError) => void;
   /**
    * 扫到条码后由宿主解析商品信息（用于浮层确认卡）。
    * 返回 null/undefined 视为"未识别"，抛错亦然。不传则默认用扫到的原文当商品名。
@@ -47,8 +75,9 @@ export interface ScannerProps {
   /** 用户点"确认"：把结果带回上一级（宿主通常在此导航返回）。 */
   onConfirm?: (product: ScanProduct, result: ScanResult) => void;
   /**
-   * 自动确认：扫到并解析成功后**不显示结果卡**，直接触发 `onConfirm(product, result)`。
-   * 默认 `false`（显示结果卡，由用户点"确定"）。
+   * 自动确认：传 `onConfirm` 时，扫到并解析成功后**不显示结果卡**，直接触发
+   * `onConfirm(product, result)`；未传回调时仍显示结果卡。默认 `false`（显示结果卡，
+   * 由用户点"确定"）。
    * 适合"扫到即用、不需要二次确认"的场景。回调后相机暂停、不自动重扫——宿主通常在
    * `onConfirm` 里导航离开；若需再扫由宿主控制（如重新挂载 `<Scanner>`）。
    * 注：未识别（`resolveProduct` 返回 `null`/抛错）仍走失败态可重扫，不会误触发。
@@ -63,14 +92,13 @@ export interface ScannerProps {
 
 /**
  * 成品「扫一扫」界面（聚焦款）。底层 <HmsScanView> 出相机画面，取景框 / 工具栏 / 结果卡
- * 全用 @unif/react-native-design 的主题令牌与组件绘制（统一风格）。自带 ThemeProvider +
- * ToastHost，可直接整屏接入；放进宿主已有的 ThemeProvider 里也兼容。
+ * 全用 @unif/react-native-design 的主题令牌与组件绘制（统一风格）。自带 ThemeProvider，
+ * 可直接整屏接入；放进宿主已有的 ThemeProvider 里也兼容。
  */
 export function Scanner(props: ScannerProps) {
   return (
     <ThemeProvider>
       <ScannerInner {...props} />
-      <ToastHost />
     </ThemeProvider>
   );
 }
@@ -87,59 +115,148 @@ function ScannerInner({
   onConfirm,
   autoConfirm = false,
   pickImage,
+  onScanError,
 }: ScannerProps) {
   const [phase, setPhase] = useState<Phase>('init');
   const [torch, setTorch] = useState(false);
   const [product, setProduct] = useState<ScanProduct | null>(null);
   const [detectMs, setDetectMs] = useState(0);
+  const [scanSession, setScanSession] = useState(0);
 
   const handlingRef = useRef(false);
+  const acceptingResultsRef = useRef(false);
+  const scanSessionRef = useRef(0);
   const detectStartRef = useRef(0);
   const lastResultRef = useRef<ScanResult | null>(null);
   const mountedRef = useRef(true);
+  const permissionRunRef = useRef(0);
+  const processingRunRef = useRef(0);
+  const waitingForSettingsRef = useRef(false);
+  const onScanErrorRef = useRef(onScanError);
+  onScanErrorRef.current = onScanError;
+
+  const invalidateProcessing = useCallback(() => {
+    ++processingRunRef.current;
+  }, []);
+
+  const invalidateScanSession = useCallback(() => {
+    ++scanSessionRef.current;
+    acceptingResultsRef.current = false;
+  }, []);
+
+  const enterScan = useCallback(() => {
+    invalidateProcessing();
+    handlingRef.current = false;
+    const sessionId = ++scanSessionRef.current;
+    acceptingResultsRef.current = true;
+    setScanSession(sessionId);
+    setProduct(null);
+    lastResultRef.current = null;
+    setPhase('scan');
+  }, [invalidateProcessing]);
+
+  const enterDenied = useCallback(() => {
+    ++permissionRunRef.current;
+    invalidateProcessing();
+    invalidateScanSession();
+    setProduct(null);
+    setPhase('denied');
+  }, [invalidateProcessing, invalidateScanSession]);
+
+  const reportFatalError = useCallback(
+    (error: ScanError) => {
+      // fatal 后不允许已在途的权限检查或扫码 / 相册处理链覆盖 error phase。
+      ++permissionRunRef.current;
+      invalidateProcessing();
+      invalidateScanSession();
+      setProduct(null);
+      setPhase('error');
+      onScanErrorRef.current?.(error);
+    },
+    [invalidateProcessing, invalidateScanSession]
+  );
+
+  const runPermissionFlow = useCallback(
+    async (requestIfNeeded: boolean) => {
+      const runId = ++permissionRunRef.current;
+      const isCurrent = () =>
+        mountedRef.current && permissionRunRef.current === runId;
+      try {
+        let status = await getCameraPermissionStatus();
+        if (!isCurrent()) return;
+        if (
+          requestIfNeeded &&
+          (status === 'undetermined' || status === 'denied')
+        ) {
+          status = await requestCameraPermission();
+          if (!isCurrent()) return;
+        }
+        if (status === 'granted') {
+          enterScan();
+        } else {
+          enterDenied();
+        }
+      } catch (error) {
+        if (!isCurrent()) return;
+        reportFatalError(toScanError(error, '检查相机权限失败'));
+      }
+    },
+    [enterDenied, enterScan, reportFatalError]
+  );
 
   // 权限流：已授权 → scan；否则请求；仍未授权 → denied。
   useEffect(() => {
     mountedRef.current = true;
-    (async () => {
-      try {
-        let status = await getCameraPermissionStatus();
-        if (status === 'undetermined' || status === 'denied') {
-          status = await requestCameraPermission();
-        }
-        if (!mountedRef.current) return;
-        setPhase(status === 'granted' ? 'scan' : 'denied');
-      } catch {
-        if (mountedRef.current) setPhase('scan');
-      }
-    })();
+    void runPermissionFlow(true);
     return () => {
       mountedRef.current = false;
+      ++permissionRunRef.current;
+      invalidateProcessing();
+      invalidateScanSession();
     };
-  }, []);
+  }, [invalidateProcessing, invalidateScanSession, runPermissionFlow]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active' && waitingForSettingsRef.current) {
+        waitingForSettingsRef.current = false;
+        void runPermissionFlow(false);
+      }
+    });
+    return () => subscription.remove();
+  }, [runPermissionFlow]);
+
+  useEffect(() => {
+    if (!showTorch) setTorch(false);
+  }, [showTorch]);
 
   const reset = useCallback(() => {
-    handlingRef.current = false;
-    setProduct(null);
-    setPhase('scan');
-  }, []);
+    enterScan();
+  }, [enterScan]);
 
   const finalize = useCallback(
-    async (result: ScanResult) => {
+    async (result: ScanResult, runId: number) => {
+      const isCurrent = () =>
+        mountedRef.current && processingRunRef.current === runId;
+      if (!isCurrent()) return;
       lastResultRef.current = result;
       try {
         const resolved = resolveProduct
           ? await resolveProduct(result)
           : { name: result.value };
-        if (!mountedRef.current) return;
+        if (!isCurrent()) return;
         if (!resolved) {
           setPhase('fail');
           return;
         }
-        const p: ScanProduct = { barcode: result.value, ...resolved };
-        if (autoConfirm) {
+        const p: ScanProduct = {
+          ...resolved,
+          barcode: resolved.barcode ?? result.value,
+        };
+        if (autoConfirm && onConfirm) {
           // 跳过结果卡:直接回调,进 'done' 终态(相机暂停、不自动重扫)。
-          onConfirm?.(p, result);
+          onConfirm(p, result);
+          if (!isCurrent()) return;
           setPhase('done');
           return;
         }
@@ -147,7 +264,7 @@ function ScannerInner({
         setDetectMs(Date.now() - detectStartRef.current);
         setPhase('success');
       } catch {
-        if (mountedRef.current) setPhase('fail');
+        if (isCurrent()) setPhase('fail');
       }
     },
     [resolveProduct, autoConfirm, onConfirm]
@@ -155,44 +272,98 @@ function ScannerInner({
 
   const onCameraResult = useCallback(
     (results: ScanResult[]) => {
-      if (phase !== 'scan' || handlingRef.current) return;
+      if (
+        scanSession !== scanSessionRef.current ||
+        phase !== 'scan' ||
+        !acceptingResultsRef.current ||
+        handlingRef.current
+      ) {
+        return;
+      }
       const first = results[0];
       if (!first) return;
+      acceptingResultsRef.current = false;
       handlingRef.current = true;
+      const runId = ++processingRunRef.current;
       detectStartRef.current = Date.now();
       setPhase('detecting');
-      void finalize(first);
+      void finalize(first, runId);
     },
-    [phase, finalize]
+    [phase, scanSession, finalize]
   );
 
-  const onScanError = useCallback((error: { code: string; message: string }) => {
-    if (error.code === 'E_NO_CAMERA_PERMISSION') setPhase('denied');
-  }, []);
+  const handleViewScanError = useCallback(
+    (error: ScanError) => {
+      if (error.code === 'E_NO_CAMERA_PERMISSION') {
+        enterDenied();
+      } else if (error.code !== 'E_NO_RESULT') {
+        reportFatalError(error);
+        return;
+      }
+      onScanErrorRef.current?.(error);
+    },
+    [enterDenied, reportFatalError]
+  );
+
+  const onTorchStatus = useCallback(
+    (status: { available: boolean; on: boolean }) => {
+      setTorch(status.on);
+    },
+    []
+  );
+
+  const openSettings = useCallback(async () => {
+    waitingForSettingsRef.current = true;
+    try {
+      await Linking.openSettings();
+    } catch (error) {
+      waitingForSettingsRef.current = false;
+      if (mountedRef.current) {
+        reportFatalError(toScanError(error, '打开系统设置失败'));
+      }
+    }
+  }, [reportFatalError]);
+
+  const retryCamera = useCallback(() => {
+    invalidateProcessing();
+    invalidateScanSession();
+    handlingRef.current = false;
+    setProduct(null);
+    lastResultRef.current = null;
+    setPhase('init');
+    void runPermissionFlow(true);
+  }, [invalidateProcessing, invalidateScanSession, runPermissionFlow]);
 
   const onAlbum = useCallback(async () => {
-    if (!pickImage || handlingRef.current) return;
+    if (!pickImage || !acceptingResultsRef.current || handlingRef.current) {
+      return;
+    }
+    acceptingResultsRef.current = false;
+    handlingRef.current = true;
+    const runId = ++processingRunRef.current;
+    const isCurrent = () =>
+      mountedRef.current && processingRunRef.current === runId;
+    setPhase('detecting');
     try {
       const uri = await pickImage();
-      if (!uri || !mountedRef.current) return;
-      handlingRef.current = true;
+      if (!isCurrent()) return;
+      if (!uri) {
+        reset();
+        return;
+      }
       detectStartRef.current = Date.now();
-      setPhase('detecting');
       const results = await decodeImage(uri, formats ? { formats } : undefined);
-      if (!mountedRef.current) return;
+      if (!isCurrent()) return;
       const first = results[0];
       if (!first) {
         setPhase('fail');
         return;
       }
-      await finalize(first);
+      await finalize(first, runId);
     } catch {
-      if (mountedRef.current) {
-        handlingRef.current = true;
-        setPhase('fail');
-      }
+      if (isCurrent()) setPhase('fail');
     }
-  }, [pickImage, formats, finalize]);
+  }, [pickImage, formats, finalize, reset]);
 
   const onConfirmPress = useCallback(() => {
     const r = lastResultRef.current;
@@ -207,22 +378,27 @@ function ScannerInner({
 
   return (
     <View style={styles.root}>
-      {phase !== 'denied' && phase !== 'init' && (
+      {phase !== 'denied' && phase !== 'init' && phase !== 'error' && (
         <HmsScanView
           style={StyleSheet.absoluteFill}
           formats={formats}
           paused={phase !== 'scan'}
           torch={torch}
           onScanResult={onCameraResult}
-          onScanError={onScanError}
+          onScanError={handleViewScanError}
+          onTorchStatus={onTorchStatus}
         />
       )}
 
       {showChrome && (
-        <Viewfinder size={VF_SIZE} detecting={phase === 'detecting'} hintText={hintText} />
+        <Viewfinder
+          size={VF_SIZE}
+          detecting={phase === 'detecting'}
+          hintText={hintText}
+        />
       )}
 
-      {phase !== 'denied' && phase !== 'init' && (
+      {phase !== 'denied' && phase !== 'init' && phase !== 'error' && (
         <ScanTopBar title={title} topInset={topInset} />
       )}
 
@@ -246,10 +422,16 @@ function ScannerInner({
         />
       )}
 
-      {phase === 'fail' && <ResultFail bottomInset={bottomInset} onRescan={reset} />}
+      {phase === 'fail' && (
+        <ResultFail bottomInset={bottomInset} onRescan={reset} />
+      )}
+
+      {phase === 'error' && (
+        <ScanErrorOverlay onClose={onClose} onRetry={retryCamera} />
+      )}
 
       {phase === 'denied' && (
-        <DeniedOverlay onClose={onClose} onSettings={() => Linking.openSettings()} />
+        <DeniedOverlay onClose={onClose} onSettings={openSettings} />
       )}
     </View>
   );

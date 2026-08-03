@@ -1,7 +1,7 @@
 ---
 sidebar_position: 4
 title: 类型
-description: "@unif/react-native-hms-scan 所有公开类型定义：BarcodeFormat（14 种 + UNKNOWN）、BarcodeContentType、ScanResult、ScanProduct、CameraPermissionStatus（granted/denied/blocked/undetermined）、HmsScanErrorCode、HmsScanError、ScanCornerPoint、DecodeImageOptions。"
+description: "@unif/react-native-hms-scan 所有公开类型定义：BarcodeFormat（14 种 + UNKNOWN）、BarcodeContentType、ScanResult、ScanProduct、ScanError、CameraPermissionStatus（granted/denied/blocked/undetermined）、HmsScanErrorCode、HmsScanError、ScanCornerPoint、DecodeImageOptions。"
 ---
 
 # 类型
@@ -14,6 +14,7 @@ import type {
   BarcodeContentType,
   ScanCornerPoint,
   ScanResult,
+  ScanError,
   DecodeImageOptions,
   CameraPermissionStatus,
   HmsScanErrorCode,
@@ -128,7 +129,22 @@ iOS 的 `sceneType` 没有公开枚举，本库只映射少数已知场景，其
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `formats` | `BarcodeFormat[]` | 限定识别码制；不传 = 全部 |
+| `formats` | `readonly BarcodeFormat[]` | 限定识别码制；不传 = 全部 |
+
+---
+
+## ScanError {#scan-error}
+
+`<Scanner>` / `<HmsScanView>` 的 `onScanError` 回调使用的普通错误对象，不是 `HmsScanError`：
+
+```ts
+interface ScanError {
+  code: string;
+  message: string;
+}
+```
+
+`<Scanner>` 还会把权限 helper 的失败上报为此类型，可能包括 `E_CAMERA_INIT`、`E_NO_RESULT`、`E_NO_ACTIVITY`、`E_UNKNOWN` 等 code。view error 分三路:`E_NO_RESULT` 是 soft error;`E_NO_CAMERA_PERMISSION` 进入 `denied` 并卸载相机 view;其余 fatal view error 进入可重试的 `error`。权限 helper reject 也进入 `error`。`<HmsScanView>` 当前原生事件为 Android `E_CAMERA_INIT` 与 iOS `E_NO_RESULT`。
 
 ---
 
@@ -160,7 +176,7 @@ Android `getCameraPermissionStatus` 对任何未授权状态返回 `denied`,当�
 | `'E_NO_READ_PERMISSION'` | 公共 union 的兼容保留值;当前 native 不产生 | 当前无 native 来源 |
 | `'E_CAMERA_INIT'` | 相机 / 预览初始化失败 | `<HmsScanView>` `onScanError`（Android） |
 | `'E_NO_RESULT'` | 解码结果为空或无法解析 | `<HmsScanView>` `onScanError`（iOS） |
-| `'E_NO_CAMERA_PERMISSION'` | 公共 union 的兼容保留值;当前 native 不产生 | 当前无 native 来源(仅 `<Scanner>` 有监听它的分支) |
+| `'E_NO_CAMERA_PERMISSION'` | 公共 union 的兼容保留值;当前 native 不产生 | 当前无 native 来源 |
 | `'E_UNKNOWN'` | 其他未知错误 | `decodeImage` 兜底 |
 
 :::note 错误码分布
