@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/npm/l/@unif/react-native-hms-scan.svg?color=blue)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-unif--design.github.io-orange.svg)](https://unif-design.github.io/react-native-hms-scan/)
 
-华为 **HMS 统一扫码(HUAWEI Scan Kit)** 的 React Native 封装,面向 RN 0.85 新架构(Fabric + TurboModule):成品扫一扫页、headless 自定义扫码 UI、从图片识别条码 / 二维码。
+华为 **HMS 统一扫码(HUAWEI Scan Kit)** 的 React Native 封装,面向 RN 0.86.2 新架构(Fabric + TurboModule):成品扫一扫页、headless 自定义扫码 UI、从图片识别条码 / 二维码。
 
 ## 特性
 
@@ -61,6 +61,16 @@ function ScanScreen({ navigation }) {
 
 headless `<HmsScanView>`(完全自定义 UI)、图片识别 `decodeImage`、权限、平台差异 —— 见[文档站](https://unif-design.github.io/react-native-hms-scan/)。
 
+## Example 能力展厅
+
+仓库内的 [`example/`](example/) 是可直接运行的三能力展示应用，而非 library API 的一部分：
+
+- **Scanner 成品页** — 配置码制、`autoConfirm`、相册选图与商品确认流。
+- **HmsScanView 自定义页** — 展示由宿主管理的权限、`paused` / `continuous` / `torch`、结果和错误状态。
+- **decodeImage 图片识别** — 从设备上的本地图片选择并离线解码，展示成功、空数组和 `HmsScanError`。
+
+运行、原生配置、平台边界和测试矩阵见 [example/README.md](example/README.md)。示例的 image-picker 与本地商品表仅用于演示，接入应用应替换为自己的选择器和业务数据。
+
 ## 文档
 
 - **完整文档**(安装 · 平台配置 · API · 平台差异 · 故障排查):https://unif-design.github.io/react-native-hms-scan/
@@ -71,7 +81,7 @@ headless `<HmsScanView>`(完全自定义 UI)、图片识别 `decodeImage`、权�
 
 | 平台 | 支持 |
 | --- | --- |
-| React Native | 新架构(Fabric + TurboModule)**必须开启**;在 RN 0.85 上开发与验证 |
+| React Native | 新架构(Fabric + TurboModule)**必须开启**;在 RN 0.86.2 / React 19.2.3 上开发与验证 |
 | Android | ✅ minSdkVersion ≥ 24(Android 7.0) |
 | iOS | ✅ 官方 CocoaPod `ScanKitFrameWork 1.1.2.305` + 真机 |
 | iOS Simulator | ❌ 不支持;无硬件逻辑测试使用随包 Jest mock |

@@ -92,10 +92,12 @@ jobs:
               - '*.podspec'
             website:
               - 'AGENTS.md'
+              - 'README.md'
+              - 'example/README.md'
               - 'website/**'
               - 'src/**'
               - 'package.json'
-              - 'yarn.lock'
+              - 'yarn.lock'                 # lockfile 改动必须继续触发 website 验证
               - '.yarnrc.yml'
               - '.yarn/releases/**'
               - 'tsconfig*.json'
@@ -156,8 +158,17 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
 
-      - name: Run unit tests
-        run: yarn test --maxWorkers=2 --coverage
+      - name: Verify cross-platform integration contracts
+        run: yarn verify:integration-contracts
+
+      - name: Verify Android integration contract
+        run: yarn verify:android-integration
+
+      - name: Verify iOS integration contract
+        run: yarn verify:ios-integration
+
+      - name: Run root Jest including example showcase
+        run: yarn jest --maxWorkers=2 --coverage
 
   website:
     runs-on: ubuntu-latest

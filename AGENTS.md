@@ -28,7 +28,7 @@ npx skills add unif-design/skills --skill rn-library --skill hms-scan --global -
 
 ## 仓库定位
 
-`@unif/react-native-hms-scan` —— 华为 **HMS 统一扫码(Scan Kit)** 的 React Native 封装。提供三种用法:成品「扫一扫」页 `<Scanner>`、headless 相机组件 `<HmsScanView>`、从本地图片识别 `decodeImage`。目标运行时:**RN 0.85 新架构**(Fabric + TurboModule)、React 19、TypeScript 6。**仅支持新架构**。
+`@unif/react-native-hms-scan` —— 华为 **HMS 统一扫码(Scan Kit)** 的 React Native 封装。提供三种用法:成品「扫一扫」页 `<Scanner>`、headless 相机组件 `<HmsScanView>`、从本地图片识别 `decodeImage`。当前开发与 example 基线为 **RN 0.86.2 新架构**(Fabric + TurboModule)、React 19.2.3、TypeScript 6。**仅支持新架构**。
 
 Android 用 **Scan SDK-Plus**(`com.huawei.hms:scanplus`,**内置引擎,非华为机也能用,不依赖设备装 HMS Core APK**);iOS 通过 CocoaPods 安装官方 **ScanKitFrameWork 1.1.2.305**,仅支持真机。两端**都不需要 AppGallery Connect / agconnect / API Key**。
 
@@ -42,9 +42,11 @@ yarn workspaces 单仓库:库本体在根目录,`example/` 是宿主 RN app,`web
 yarn                  # 安装(yarn 4.11,node v24.13.0,见 .nvmrc)
 yarn typecheck        # tsc(strict)
 yarn lint             # eslint **/*.{js,ts,tsx}
-yarn test             # jest(跑 src/__tests__/ 下的逻辑 / 组件 / mock 测试)
+yarn test             # integration contracts + root Jest（src/ 与 example 测试）
 yarn test src/__tests__/format.test.ts    # 跑单文件
 yarn test -t "pattern"                    # 按测试名过滤
+yarn jest example/src --runInBand          # 只跑 example showcase 测试（root Jest 配置）
+yarn test --runInBand                      # integration contracts + root Jest（含 example）
 yarn prepare          # react-native-builder-bob → lib/module(ESM)+ lib/typescript(.d.ts)
 yarn clean            # 清 lib/ + example 原生构建产物
 
@@ -61,7 +63,7 @@ yarn workspace @unif/react-native-hms-scan-website build:llms
 
 ## 当前依赖基线
 
-开发与 example 仍使用 `@unif/react-native-design@0.8.1`、RNGH 2(`^2.21.0`)和 Carousel 5 beta(`^5.0.0-beta.5`)。
+开发与 example 使用 `@unif/react-native-design@0.20.0`、React `19.2.3`、RN `0.86.2`、RNGH 3(`^3.1.0`)和 Carousel 5(`^5.0.0`)。发布包的 public peer contract **保持根 `package.json` 既有原值**（包括 Design `>=0.8.0`、RN `>=0.80.0`、RNGH `>=2.21.0` 等）；不得为了开发基线而收紧或改写 public peers。
 
 ## 架构与约定
 

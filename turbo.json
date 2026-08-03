@@ -1,8 +1,29 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [".nvmrc", ".yarnrc.yml"],
+  "globalDependencies": [".nvmrc", ".yarnrc.yml", "package.json", "yarn.lock"],
   "globalEnv": ["NODE_ENV"],
   "tasks": {
+    "//#lint": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "//#typecheck": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "//#test": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": []
+    },
+    "//#prepare": {
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["lib/**"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["build/**"]
+    },
     "build:android": {
       "env": ["ANDROID_HOME", "ORG_GRADLE_PROJECT_newArchEnabled"],
       "inputs": [

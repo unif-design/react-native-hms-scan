@@ -1,96 +1,133 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# HMS Scan Example
 
-# Getting Started
+`example/` 是 `@unif/react-native-hms-scan` 的展示宿主。首页提供三个独立入口：成品 `<Scanner>`、headless `<HmsScanView>` 与 `decodeImage` 本地图片识别。它使用 RN 0.86.2、React 19.2.3、`@unif/react-native-design` 0.20.0 和 RNGH 3；这些是仓库开发基线，不会改变 library 在根 `package.json` 中的 public peer contract。
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## 安装
 
-## Step 1: Start Metro
-
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
+在仓库根目录安装依赖：
 
 ```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
+yarn install --immutable
 ```
 
-## Step 2: Build and run your app
+示例依赖 `react-native-image-picker`，但它和示例内的本地商品表都只服务演示；library 不会提供图片选择器或业务商品数据。
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+## Android Huawei Maven / iOS permissions
 
-### Android
+Android 的 `scanplus` 依赖需要宿主在实际参与依赖解析的 `repositories` 中加入 Huawei Maven：
+
+```gradle
+maven { url 'https://developer.huawei.com/repo/' }
+```
+
+Android 使用 Scan SDK-Plus 内置引擎，**非华为设备不需要 HMS Core、agconnect、`agconnect-services.json` 或 API Key**。扫码权限由 library Manifest 合并；示例 Manifest 不额外声明相机或定位权限。
+
+iOS 宿主需要在 `Info.plist` 声明 `NSCameraUsageDescription`；本示例还因 image-picker 声明 `NSPhotoLibraryUsageDescription`。安装 Pods：
 
 ```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+bundle exec pod install --project-directory=example/ios
 ```
 
-### iOS
+这会安装官方 `ScanKitFrameWork 1.1.2.305`。iOS Simulator 不支持，不能用 Simulator 构建或运行结果代替真机验证。
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+## Metro
 
 ```sh
-bundle install
+yarn example start
 ```
 
-Then, and every time you update your native dependencies, run:
+在另一个终端启动目标平台。Metro 仅提供 JS bundle；扫码相机和图片解码仍须按下面的平台边界在设备上验证。
+
+## Android 非华为真机 / iPhone physical device
+
+Android 可使用非华为真机（也可使用已满足环境要求的 Android 目标）：
 
 ```sh
-bundle exec pod install
+yarn example android
+# CI/本地 arm64 contract build
+yarn example build:android
 ```
 
-This installs the official `ScanKitFrameWork 1.1.2.305` CocoaPod. The iOS native target supports physical devices only; iOS Simulator is not supported.
-
-Connect a physical iPhone, then run:
+iOS 只选择物理 iPhone：
 
 ```sh
-yarn ios
+yarn example ios
+# generic physical iphoneos contract build，不签名
+yarn example build:ios
 ```
 
-The script opens physical-device selection and runs the app on the selected iPhone.
+不要改成 iOS Simulator，也不要伪造 Simulator slice。没有可用 iPhone 时，使用 Jest 覆盖 JS 行为并把 iOS 真机构建留给具备 Xcode/设备环境的门禁。
 
-If everything is set up correctly, you should see your new app running in the Android Emulator or on a connected Android / iOS device.
+## Scanner
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+`Scanner` 是完整的扫一扫页：它管理相机权限、取景框、手电、状态机和结果确认卡；宿主只接入业务解析和导航。示例入口展示 `formats`、`autoConfirm`、相册选图和普通 `ScanError` 回调。
 
-## Step 3: Modify your app
+| prop | 说明 |
+| --- | --- |
+| `title` | 顶栏标题，默认“扫一扫”。 |
+| `formats` | `readonly BarcodeFormat[]`；省略时识别全部。 |
+| `hintText` | 取景态提示文字。 |
+| `topInset` / `bottomInset` | 安全区边距，默认 54 / 34。 |
+| `showTorch` | 是否显示手电按钮，默认 `true`；iOS 为 best-effort。 |
+| `onClose` | 退出扫码页。 |
+| `onScanError` | 接收普通 `{ code, message }`，不是 `HmsScanError`。 |
+| `resolveProduct` | 宿主将 `ScanResult` 解析为 `ScanProduct`；返回 `null` / `undefined` 或抛错会进入未识别状态。 |
+| `onConfirm` | 用户确认后接收 `(product, result)`。 |
+| `autoConfirm` | 仅与 `onConfirm` 一起生效；成功后跳过结果卡，回调正常返回后停在 `done`。 |
+| `pickImage` | 可选本地图片选择器；传入才显示相册按钮，取消时返回 `null`。 |
 
-Now that you have successfully run the app, let's make changes!
+`Scanner` 使用 Design token 和组件绘制，也兼容宿主已有 `ThemeProvider`；如需自定义取景 UI，请使用下一节的 `HmsScanView`。
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+## HmsScanView
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+`HmsScanView` 只提供相机预览与事件。取景框、扫描线、按钮、权限流和错误 UI 均由宿主绘制和管理。示例演示了 headless 权限查询/请求/设置返回、手电与 `paused` / `continuous` 控制。
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
+| prop | 默认值 | 说明 |
+| --- | --- | --- |
+| `formats` | 全部 | `readonly BarcodeFormat[]` 过滤码制。 |
+| `continuous` | `true` | 是否持续扫描。 |
+| `paused` | `false` | 是否暂停预览扫描。 |
+| `torch` | `false` | 请求手电状态；iOS 为 best-effort。 |
+| `onScanResult` | — | 接收已解析的 `ScanResult[]`。 |
+| `onScanError` | — | 接收普通 `{ code, message }`。 |
+| `onTorchStatus` | — | 接收 `{ available, on }`；`on` 才是实际点亮状态。 |
 
-## Congratulations! :tada:
+headless 使用方式下，相机权限与图片 URI grant 由宿主管理。`E_NO_RESULT` 是 soft error；其他 view 错误应由宿主决定重试或展示错误。
 
-You've successfully run and modified your React Native App. :partying_face:
+## decodeImage
 
-### Now what?
+`decodeImage` 在设备本地离线识别图片，不走相机：
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+```ts
+const results = await decodeImage(localUri, { formats: ['QR_CODE'] });
+```
 
-# Troubleshooting
+支持的 URI 因平台不同：iOS 支持 `file://`、绝对路径和 `data:`；Android 支持 `file://`、绝对路径、`content://` 与 `android.resource://`。跨平台优先传 `file://` 或绝对路径。
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+## 空数组/错误语义
 
-# Learn More
+成功加载但没有识别到码时，`decodeImage` resolve `[]`；这是正常“空结果”，不是错误。图片加载失败或 URI 不被当前平台支持时会 throw `HmsScanError`（例如 `E_IMAGE_LOAD_FAILED` 或 `E_DECODE_FAILED`）。
 
-To learn more about React Native, take a look at the following resources:
+`decodeImage` **不会下载 URL**：`http(s)://` 不是可识别输入，先下载到设备本地再调用。图片选择器取消也不是错误，示例会回到 idle 状态。
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+## 复制边界
+
+可复制示例的权限处理、`HmsScanView` 状态控制、`Scanner` props 适配和 `decodeImage` 成功/空/错误分支。不要复制以下示例专用实现为 library 行为：
+
+- `react-native-image-picker` 的调用与相册文案；由宿主选择自己的图片选择器。
+- `showcases/scanner/products.ts` 的本地商品表；由宿主接入真实业务解析。
+- 示例导航、展示文案与测试用 mock；它们不属于 public API。
+
+library 只提供三种扫码能力及其公开类型；任何应用层权限、业务数据、导航、Design 外观扩展都应保留在宿主。
+
+## 测试矩阵
+
+| 场景 | 命令 / 环境 | 预期 |
+| --- | --- | --- |
+| JS（含 example） | `yarn test --runInBand` | 根 Jest 与 Android/iOS integration contract 通过。 |
+| 类型与 lint | `yarn typecheck` / `yarn lint` | 根 TypeScript 与 ESLint 覆盖 example 源码。 |
+| Android native | `yarn example build:android` | arm64 Android build。 |
+| iOS native | `bundle exec pod install --project-directory=example/ios` 后 `yarn example build:ios` | generic physical iphoneos build；不是 Simulator。 |
+| website / llms | `yarn prepare`、`node website/scripts/build-llms.test.js`、website `typecheck` / `build` | 文档站与生成入口通过。 |
+
+完整 CI 也会显式执行 root Jest、lint、typecheck、两个原生 integration contract 和 website 门禁。
