@@ -192,6 +192,44 @@ describe('createDecodeController lifecycle', () => {
 });
 
 describe('createDecodeController operation ordering', () => {
+  it('较旧 picker 晚完成时不解码旧 URI，也不覆盖较新选择', async () => {
+    const olderPicker = deferred<string | null>();
+    const newerPicker = deferred<string | null>();
+    const pickImage = jest
+      .fn<Promise<string | null>, []>()
+      .mockReturnValueOnce(olderPicker.promise)
+      .mockReturnValueOnce(newerPicker.promise);
+    mockDecodeImage.mockResolvedValueOnce([eanResult]);
+    const controller = createDecodeController(createDeps({ pickImage }));
+
+    const olderOperation = controller.pickAndDecode();
+    const newerOperation = controller.pickAndDecode(['EAN_13']);
+
+    newerPicker.resolve('file:///new.png');
+    await newerOperation;
+    expect(controller.getSnapshot()).toMatchObject({
+      phase: 'success',
+      selectedUri: 'file:///new.png',
+      results: [eanResult],
+      activeToken: 2,
+    });
+
+    olderPicker.resolve('file:///old.png');
+    await olderOperation;
+
+    expect(mockDecodeImage).toHaveBeenCalledTimes(1);
+    expect(mockDecodeImage).toHaveBeenCalledWith('file:///new.png', {
+      formats: ['EAN_13'],
+    });
+    expect(mockDecodeImage).not.toHaveBeenCalledWith('file:///old.png');
+    expect(controller.getSnapshot()).toMatchObject({
+      phase: 'success',
+      selectedUri: 'file:///new.png',
+      results: [eanResult],
+      activeToken: 2,
+    });
+  });
+
   it('较旧解码晚完成时不能覆盖较新选择的结果', async () => {
     const olderDecode = deferred<ScanResult[]>();
     const pickImage = jest
