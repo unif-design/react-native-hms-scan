@@ -5,8 +5,9 @@ import { HmsScanError, type DecodeImageOptions, type ScanResult } from './types'
 /**
  * 从本地图片解码条码 / 二维码（华为 Bitmap 模式）。
  *
- * @param uri 本地图片：file:// / content:// / ph:// / 绝对路径。**不下载远程 URL**，
- *            如需识别网络图请宿主先下载到本地再传入。
+ * @param uri 本地图片。iOS 支持 file://、绝对路径、data:；Android 支持
+ *            file://、绝对路径、content://、android.resource://。
+ *            两端都不下载远程 URL，也不支持 ph:// / assets-library://。
  * @param options 可选；formats 限定码制，不传 = 全部。
  * @returns 命中的结果数组（可能为空）。
  * @throws HmsScanError 图片加载失败 / 读权限缺失等。

@@ -2,7 +2,7 @@ import { forwardRef, type ComponentRef } from 'react';
 import type { ViewProps } from 'react-native';
 import NativeHmsScanView from './HmsScanViewNativeComponent';
 import { formatsToCsv, parseResultsJson } from './format';
-import type { BarcodeFormat, ScanResult } from './types';
+import type { BarcodeFormat, ScanError, ScanResult } from './types';
 
 /** 平台相关的暗光提示 / 手电状态。 */
 export interface TorchStatus {
@@ -14,7 +14,7 @@ export interface TorchStatus {
 
 export interface HmsScanViewProps extends ViewProps {
   /** 限定码制；不传 = 全部。 */
-  formats?: BarcodeFormat[];
+  formats?: readonly BarcodeFormat[];
   /** 连续扫码，默认 true。 */
   continuous?: boolean;
   /** 暂停/恢复扫码，默认 false。 */
@@ -24,7 +24,7 @@ export interface HmsScanViewProps extends ViewProps {
   /** 命中一个或多个码时回调（已解析为强类型）。 */
   onScanResult?: (results: ScanResult[]) => void;
   /** 相机/解码出错时回调。 */
-  onScanError?: (error: { code: string; message: string }) => void;
+  onScanError?: (error: ScanError) => void;
   /** Android 暗光提示或 iOS 手电硬件 / 点亮状态变化时回调。 */
   onTorchStatus?: (status: TorchStatus) => void;
 }

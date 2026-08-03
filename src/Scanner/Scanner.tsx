@@ -26,7 +26,7 @@ export interface ScannerProps {
   /** 顶栏标题，默认 "扫一扫"。 */
   title?: string;
   /** 限定识别码制；不传 = 全部。 */
-  formats?: BarcodeFormat[];
+  formats?: readonly BarcodeFormat[];
   /** 取景态提示文案。 */
   hintText?: string;
   /** 顶部安全区（默认 54）。用 react-native-safe-area-context 时可传 insets.top。 */

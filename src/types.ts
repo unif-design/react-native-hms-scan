@@ -82,7 +82,13 @@ export interface ScanResult {
 /** decodeImage 选项。 */
 export interface DecodeImageOptions {
   /** 限定识别码制；不传 = 全部。 */
-  formats?: BarcodeFormat[];
+  formats?: readonly BarcodeFormat[];
+}
+
+/** `<HmsScanView>` / `<Scanner>` 通过回调上报的普通错误对象。 */
+export interface ScanError {
+  code: string;
+  message: string;
 }
 
 /** 相机权限状态。 */
