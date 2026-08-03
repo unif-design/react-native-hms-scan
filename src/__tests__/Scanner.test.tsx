@@ -197,6 +197,16 @@ describe('<Scanner>', () => {
     await act(async () => resolvePick(null));
     expect(await screen.findByText(HINT)).toBeTruthy();
     expect(nativeProps().paused).toBe(false);
+
+    await act(async () => {
+      nativeProps().onScanResult?.([{ value: 'after-cancel', format: 'QR_CODE' }]);
+    });
+    await waitFor(() =>
+      expect(resolveProduct).toHaveBeenCalledWith({
+        value: 'after-cancel',
+        format: 'QR_CODE',
+      })
+    );
   });
 
   it('双入口时只确认相册图片结果', async () => {
