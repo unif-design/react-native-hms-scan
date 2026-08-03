@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.5](https://github.com/unif-design/react-native-hms-scan/compare/v0.5.4...v0.5.5) (2026-08-03)
+
+
+### Bug Fixes
+
+* **scanner:** harden scan state and async recovery ([#57](https://github.com/unif-design/react-native-hms-scan/issues/57)) ([6dc1ecb](https://github.com/unif-design/react-native-hms-scan/commit/6dc1ecb5870a521830b16859681782f6f168fe46))
+
 ## [0.5.4](https://github.com/unif-design/react-native-hms-scan/compare/v0.5.3...v0.5.4) (2026-07-31)
 
 
