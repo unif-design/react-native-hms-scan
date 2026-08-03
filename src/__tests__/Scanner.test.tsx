@@ -112,6 +112,29 @@ describe('<Scanner>', () => {
     expect(screen.getByText(HINT)).toBeTruthy();
   });
 
+  it('原生回报未点亮时撤销已开灯状态', async () => {
+    render(<Scanner />);
+    await screen.findByText('扫一扫');
+    fireEvent.press(screen.getByText('手电筒'));
+    expect(screen.getByText('已开灯')).toBeTruthy();
+    expect(nativeProps().torch).toBe(true);
+
+    act(() => nativeProps().onTorchStatus?.({ available: true, on: false }));
+    expect(screen.getByText('手电筒')).toBeTruthy();
+    expect(nativeProps().torch).toBe(false);
+  });
+
+  it('showTorch 关闭时主动请求关灯', async () => {
+    const view = render(<Scanner showTorch />);
+    await screen.findByText('扫一扫');
+    fireEvent.press(screen.getByText('手电筒'));
+    expect(nativeProps().torch).toBe(true);
+
+    view.rerender(<Scanner showTorch={false} />);
+    await waitFor(() => expect(nativeProps().torch).toBe(false));
+    expect(screen.queryByText('已开灯')).toBeNull();
+  });
+
   it('扫到码 → 解析商品 → 浮层确认卡 → 点确定带回结果', async () => {
     const onConfirm = jest.fn();
     const resolveProduct = jest.fn(async () => ({

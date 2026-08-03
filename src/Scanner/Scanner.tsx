@@ -172,6 +172,10 @@ function ScannerInner({
     return () => subscription.remove();
   }, [runPermissionFlow]);
 
+  useEffect(() => {
+    if (!showTorch) setTorch(false);
+  }, [showTorch]);
+
   const reset = useCallback(() => {
     handlingRef.current = false;
     setProduct(null);
@@ -229,6 +233,10 @@ function ScannerInner({
     }
     onScanErrorRef.current?.(error);
   }, [reportFatalError]);
+
+  const onTorchStatus = useCallback((status: { available: boolean; on: boolean }) => {
+    setTorch(status.on);
+  }, []);
 
   const openSettings = useCallback(async () => {
     waitingForSettingsRef.current = true;
@@ -295,6 +303,7 @@ function ScannerInner({
           torch={torch}
           onScanResult={onCameraResult}
           onScanError={handleViewScanError}
+          onTorchStatus={onTorchStatus}
         />
       )}
 
