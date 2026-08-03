@@ -126,6 +126,8 @@ function ScannerInner({
   onScanErrorRef.current = onScanError;
 
   const reportFatalError = useCallback((error: ScanError) => {
+    // fatal 后不允许已在途的权限检查覆盖 error phase。
+    ++permissionRunRef.current;
     setPhase('error');
     onScanErrorRef.current?.(error);
   }, []);
@@ -222,10 +224,11 @@ function ScannerInner({
     if (error.code === 'E_NO_CAMERA_PERMISSION') {
       setPhase('denied');
     } else if (error.code !== 'E_NO_RESULT') {
-      setPhase('error');
+      reportFatalError(error);
+      return;
     }
     onScanErrorRef.current?.(error);
-  }, []);
+  }, [reportFatalError]);
 
   const openSettings = useCallback(async () => {
     waitingForSettingsRef.current = true;

@@ -38,6 +38,16 @@ const emitScan = (results: unknown[]) =>
 const nativeProps = () =>
   (globalThis as Record<string, unknown>).__hmsScanProps as MockHmsScanViewProps;
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 let appStateListener: ((state: string) => void) | undefined;
 
 beforeEach(() => {
@@ -310,6 +320,95 @@ describe('<Scanner>', () => {
     await act(async () => appStateListener?.('active'));
     expect(await screen.findByText(HINT)).toBeTruthy();
     expect(screen.getByTestId('hms-scan-view')).toBeTruthy();
+    expect(perms.requestCameraPermission).not.toHaveBeenCalled();
+  });
+
+  it('普通 active 不重新查询权限', async () => {
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+    };
+    render(<Scanner />);
+    await screen.findByText(HINT);
+
+    await act(async () => appStateListener?.('active'));
+    expect(perms.getCameraPermissionStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('设置打开失败会清除恢复标记、进入错误页并上报', async () => {
+    const error = Object.assign(new Error('settings failed'), { code: 'E_SETTINGS' });
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+    };
+    perms.getCameraPermissionStatus.mockResolvedValueOnce('blocked');
+    jest.spyOn(Linking, 'openSettings').mockRejectedValueOnce(error);
+    const onScanError = jest.fn();
+    render(<Scanner onScanError={onScanError} />);
+
+    fireEvent.press(await screen.findByText('去设置开启'));
+    expect(await screen.findByText('相机启动失败')).toBeTruthy();
+    expect(onScanError).toHaveBeenCalledWith({ code: 'E_SETTINGS', message: 'settings failed' });
+
+    await act(async () => appStateListener?.('active'));
+    expect(perms.getCameraPermissionStatus).toHaveBeenCalledTimes(1);
+  });
+
+  it('设置打开失败后在途权限查询不会覆盖 fatal error', async () => {
+    const settings = deferred<void>();
+    const pendingPermission = deferred<'granted'>();
+    const error = Object.assign(new Error('settings failed'), { code: 'E_SETTINGS' });
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+    };
+    perms.getCameraPermissionStatus
+      .mockResolvedValueOnce('blocked')
+      .mockReturnValueOnce(pendingPermission.promise);
+    jest.spyOn(Linking, 'openSettings').mockReturnValueOnce(settings.promise);
+    render(<Scanner />);
+
+    fireEvent.press(await screen.findByText('去设置开启'));
+    await act(async () => appStateListener?.('active'));
+    await act(async () => settings.reject(error));
+    expect(await screen.findByText('相机启动失败')).toBeTruthy();
+
+    await act(async () => pendingPermission.resolve('granted'));
+    expect(screen.getByText('相机启动失败')).toBeTruthy();
+    expect(screen.queryByTestId('hms-scan-view')).toBeNull();
+  });
+
+  it('较旧 permission generation 晚完成不会覆盖较新的检查', async () => {
+    const olderPermission = deferred<'blocked'>();
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+    };
+    perms.getCameraPermissionStatus
+      .mockResolvedValueOnce('blocked')
+      .mockReturnValueOnce(olderPermission.promise)
+      .mockResolvedValueOnce('granted');
+    render(<Scanner />);
+
+    fireEvent.press(await screen.findByText('去设置开启'));
+    await act(async () => appStateListener?.('active'));
+    fireEvent.press(screen.getByText('去设置开启'));
+    await act(async () => appStateListener?.('active'));
+    expect(await screen.findByText(HINT)).toBeTruthy();
+
+    await act(async () => olderPermission.resolve('blocked'));
+    expect(screen.getByText(HINT)).toBeTruthy();
+    expect(screen.queryByText('需要相机权限')).toBeNull();
+  });
+
+  it('卸载后忽略尚未完成的权限检查', async () => {
+    const pendingPermission = deferred<'granted'>();
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+    };
+    perms.getCameraPermissionStatus.mockReturnValueOnce(pendingPermission.promise);
+    const onScanError = jest.fn();
+    const { unmount } = render(<Scanner onScanError={onScanError} />);
+
+    unmount();
+    await act(async () => pendingPermission.resolve('granted'));
+    expect(onScanError).not.toHaveBeenCalled();
   });
 
   it('E_CAMERA_INIT 进入错误页，重试后重新挂载相机', async () => {
@@ -334,5 +433,36 @@ describe('<Scanner>', () => {
     expect(screen.getByText(HINT)).toBeTruthy();
     expect(screen.queryByText('相机启动失败')).toBeNull();
     expect(onScanError).toHaveBeenCalledWith({ code: 'E_NO_RESULT', message: 'empty' });
+  });
+
+  it('E_NO_CAMERA_PERMISSION 进入 denied、卸载相机并通知宿主', async () => {
+    const onScanError = jest.fn();
+    render(<Scanner onScanError={onScanError} />);
+    await screen.findByText(HINT);
+    act(() =>
+      nativeProps().onScanError?.({
+        code: 'E_NO_CAMERA_PERMISSION',
+        message: 'permission missing',
+      })
+    );
+
+    expect(await screen.findByText('需要相机权限')).toBeTruthy();
+    expect(screen.queryByTestId('hms-scan-view')).toBeNull();
+    expect(onScanError).toHaveBeenCalledWith({
+      code: 'E_NO_CAMERA_PERMISSION',
+      message: 'permission missing',
+    });
+  });
+
+  it('rerender 后 view error 使用最新 onScanError', async () => {
+    const previousOnScanError = jest.fn();
+    const latestOnScanError = jest.fn();
+    const { rerender } = render(<Scanner onScanError={previousOnScanError} />);
+    await screen.findByText(HINT);
+    rerender(<Scanner onScanError={latestOnScanError} />);
+
+    act(() => nativeProps().onScanError?.({ code: 'E_NO_RESULT', message: 'empty' }));
+    expect(previousOnScanError).not.toHaveBeenCalled();
+    expect(latestOnScanError).toHaveBeenCalledWith({ code: 'E_NO_RESULT', message: 'empty' });
   });
 });
