@@ -18,9 +18,11 @@ export function navigationReducer(
 ): NavigationState {
   switch (action.type) {
     case 'navigate':
-      return {
-        stack: [...state.stack, action.route],
-      };
+      return action.route.name === 'home'
+        ? { stack: [action.route] }
+        : {
+            stack: [{ name: 'home' }, action.route],
+          };
     case 'back':
       return canGoBack(state)
         ? { stack: state.stack.slice(0, -1) }

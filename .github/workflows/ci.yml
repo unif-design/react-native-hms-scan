@@ -115,6 +115,8 @@ jobs:
               - 'turbo.json'
               - 'tsconfig*.json'
               - 'babel.config.js'
+              - 'eslint.config.mjs'
+              - 'jest.setup.ts'
               - 'react-native.config.js'
               - 'example/package.json'
               - 'example/**'

@@ -22,10 +22,14 @@ maven { url 'https://developer.huawei.com/repo/' }
 
 Android 使用 Scan SDK-Plus 内置引擎，**非华为设备不需要 HMS Core、agconnect、`agconnect-services.json` 或 API Key**。扫码权限由 library Manifest 合并；示例 Manifest 不额外声明相机或定位权限。
 
-iOS 宿主需要在 `Info.plist` 声明 `NSCameraUsageDescription`；本示例还因 image-picker 声明 `NSPhotoLibraryUsageDescription`。安装 Pods：
+iOS 宿主需要在 `Info.plist` 声明 `NSCameraUsageDescription`；本示例还因 image-picker 声明 `NSPhotoLibraryUsageDescription`。从仓库根目录安装 Pods；子 shell 会进入 `example/` 读取其中的 Gemfile，结束后仍回到仓库根目录：
 
 ```sh
-bundle exec pod install --project-directory=example/ios
+(
+  cd example
+  bundle install
+  bundle exec pod install --project-directory=ios
+)
 ```
 
 这会安装官方 `ScanKitFrameWork 1.1.2.305`。iOS Simulator 不支持，不能用 Simulator 构建或运行结果代替真机验证。
@@ -61,6 +65,8 @@ yarn example build:ios
 ## Scanner
 
 `Scanner` 是完整的扫一扫页：它管理相机权限、取景框、手电、状态机和结果确认卡；宿主只接入业务解析和导航。示例入口展示 `formats`、`autoConfirm`、相册选图和普通 `ScanError` 回调。
+
+真机复现商品流时，选择“商品条码”并扫描 EAN-13 `6925303773908`，预期商品为“统一 阿萨姆原味奶茶 500ml”（`¥5.50`）。这是本地演示表唯一匹配项；其他条码由 `lookupDemoProduct` 返回 `null` 并进入未识别状态。关闭 `autoConfirm` 可查看商品确认卡，开启后会直接保存结果并返回配置页。
 
 | prop | 说明 |
 | --- | --- |
@@ -127,7 +133,7 @@ library 只提供三种扫码能力及其公开类型；任何应用层权限、
 | JS（含 example） | `yarn test --runInBand` | 根 Jest 与 Android/iOS integration contract 通过。 |
 | 类型与 lint | `yarn typecheck` / `yarn lint` | 根 TypeScript 与 ESLint 覆盖 example 源码。 |
 | Android native | `yarn example build:android` | arm64 Android build。 |
-| iOS native | `bundle exec pod install --project-directory=example/ios` 后 `yarn example build:ios` | generic physical iphoneos build；不是 Simulator。 |
+| iOS native | `(cd example && bundle install && bundle exec pod install --project-directory=ios)` 后 `yarn example build:ios` | generic physical iphoneos build；不是 Simulator。 |
 | website / llms | `yarn prepare`、`node website/scripts/build-llms.test.js`、website `typecheck` / `build` | 文档站与生成入口通过。 |
 
 完整 CI 也会显式执行 root Jest、lint、typecheck、两个原生 integration contract 和 website 门禁。

@@ -31,6 +31,7 @@ const mockedLaunchImageLibrary = jest.mocked(launchImageLibrary);
 
 describe('App showcase shell', () => {
   beforeEach(() => {
+    jest.restoreAllMocks();
     jest.clearAllMocks();
   });
 
@@ -71,7 +72,7 @@ describe('App showcase shell', () => {
     expect(screen.getByText('同一个 SDK 的三种使用层级')).toBeOnTheScreen();
   });
 
-  it('Android hardware back 只在二级 route 消费事件', () => {
+  it('Android hardware back 先关闭 active Scanner，再从配置页返回首页', () => {
     let hardwareBackHandler:
       | Parameters<typeof BackHandler.addEventListener>[1]
       | undefined;
@@ -91,6 +92,13 @@ describe('App showcase shell', () => {
 
     expect(hardwareBackHandler?.(hardwareBackEvent)).toBe(false);
     fireEvent.press(screen.getByRole('button', { name: /Scanner 成品页/ }));
+    fireEvent.press(screen.getByRole('button', { name: '进入全屏 Scanner' }));
+    expect(screen.queryByText('Scanner 配置')).toBeNull();
+
+    act(() => {
+      expect(hardwareBackHandler?.(hardwareBackEvent)).toBe(true);
+    });
+    expect(screen.getByText('Scanner 配置')).toBeOnTheScreen();
 
     act(() => {
       expect(hardwareBackHandler?.(hardwareBackEvent)).toBe(true);

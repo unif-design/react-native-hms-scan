@@ -70,7 +70,9 @@ function createCallbacks(): Required<
   };
 }
 
-function renderWithScanner() {
+function renderWithScanner(
+  onActiveBackHandlerChange?: (handler: (() => boolean) | null) => void
+) {
   let capturedProps: ScannerProps | null = null;
 
   function ScannerProbe(props: ScannerProps) {
@@ -81,6 +83,7 @@ function renderWithScanner() {
   render(
     <ScannerShowcaseScreen
       onBack={jest.fn()}
+      onActiveBackHandlerChange={onActiveBackHandlerChange}
       ScannerComponent={ScannerProbe}
     />
   );
@@ -142,6 +145,23 @@ describe('ScannerShowcaseScreen', () => {
     expect(getScannerProps()?.resolveProduct).toBe(lookupDemoProduct);
   });
 
+  it('配置页公开唯一 demo EAN-13、预期商品和未命中边界', async () => {
+    render(<ScannerShowcaseScreen onBack={jest.fn()} />);
+
+    expect(screen.getByText('EAN-13：6925303773908')).toBeOnTheScreen();
+    expect(screen.getByText(/阿萨姆原味奶茶 500ml/)).toBeOnTheScreen();
+    expect(screen.getByText(/其他条码.*null/)).toBeOnTheScreen();
+    await expect(lookupDemoProduct(milkTeaResult)).resolves.toEqual(
+      milkTeaProduct
+    );
+    await expect(
+      lookupDemoProduct({
+        ...milkTeaResult,
+        value: '6900000000000',
+      })
+    ).resolves.toBeNull();
+  });
+
   it('Scanner onClose 返回配置页', () => {
     const { getScannerProps } = renderWithScanner();
     fireEvent.press(screen.getByRole('button', { name: '进入全屏 Scanner' }));
@@ -151,6 +171,25 @@ describe('ScannerShowcaseScreen', () => {
     });
 
     expect(screen.getByText('Scanner 配置')).toBeOnTheScreen();
+  });
+
+  it('只在 Scanner active 生命周期向 Router 注册可消费的 back handler', () => {
+    const onActiveBackHandlerChange = jest.fn();
+    renderWithScanner(onActiveBackHandlerChange);
+
+    fireEvent.press(screen.getByRole('button', { name: '进入全屏 Scanner' }));
+
+    expect(onActiveBackHandlerChange).toHaveBeenLastCalledWith(
+      expect.any(Function)
+    );
+    const activeBackHandler = onActiveBackHandlerChange.mock.calls.at(-1)?.[0];
+
+    act(() => {
+      expect(activeBackHandler?.()).toBe(true);
+    });
+
+    expect(screen.getByText('Scanner 配置')).toBeOnTheScreen();
+    expect(onActiveBackHandlerChange).toHaveBeenLastCalledWith(null);
   });
 
   it('保存普通 ScanError，并可从 Scanner 返回后查看', () => {

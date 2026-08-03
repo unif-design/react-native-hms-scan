@@ -23,6 +23,28 @@ describe('exampleNavigation', () => {
     });
   });
 
+  it('重复 navigate 只替换 child，不累积第二层或重复 route', () => {
+    const scannerState = navigationReducer(homeState, {
+      type: 'navigate',
+      route: { name: 'scanner' },
+    });
+    const headlessState = navigationReducer(scannerState, {
+      type: 'navigate',
+      route: { name: 'headless' },
+    });
+    const repeatedState = navigationReducer(headlessState, {
+      type: 'navigate',
+      route: { name: 'headless' },
+    });
+
+    expect(headlessState).toEqual({
+      stack: [{ name: 'home' }, { name: 'headless' }],
+    });
+    expect(repeatedState).toEqual({
+      stack: [{ name: 'home' }, { name: 'headless' }],
+    });
+  });
+
   it.each([
     { name: 'scanner' },
     { name: 'headless' },

@@ -41,6 +41,19 @@ const sharedRuntimeDependencies = {
   'react-native-worklets': '^0.11.3',
 };
 
+const expectedPublicPeerDependencies = {
+  '@sbaiahmed1/react-native-blur': '>=4',
+  '@unif/react-native-design': '>=0.8.0',
+  react: '>=19.0.0',
+  'react-native': '>=0.80.0',
+  'react-native-gesture-handler': '>=2.21.0',
+  'react-native-reanimated': '>=4.0.0',
+  'react-native-reanimated-carousel': '>=5.0.0-beta.0',
+  'react-native-safe-area-context': '>=5.0.0',
+  'react-native-svg': '>=15',
+  'react-native-worklets': '*',
+};
+
 function assertExactDependencies(manifest, field, manifestPath, expected) {
   for (const [name, version] of Object.entries(expected)) {
     assert.equal(
@@ -146,8 +159,11 @@ assert.match(
   'example 必须启用 React Native 新架构'
 );
 
-assert.equal(rootPackage.peerDependencies['@unif/react-native-design'], '>=0.8.0');
-assert.equal(rootPackage.peerDependencies['react-native'], '>=0.80.0');
+assert.deepEqual(
+  rootPackage.peerDependencies,
+  expectedPublicPeerDependencies,
+  'package.json peerDependencies must match the published public contract exactly'
+);
 
 const installedDesign = readPackageJson(
   'node_modules/@unif/react-native-design/package.json'

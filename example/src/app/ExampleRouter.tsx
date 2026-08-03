@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { BackHandler } from 'react-native';
 import {
   canGoBack,
@@ -9,7 +9,10 @@ import {
 import { HomeScreen } from '../screens/HomeScreen';
 import { DecodeImageShowcaseScreen } from '../showcases/decode-image/DecodeImageShowcaseScreen';
 import { HeadlessShowcaseScreen } from '../showcases/headless/HeadlessShowcaseScreen';
-import { ScannerShowcaseScreen } from '../showcases/scanner/ScannerShowcaseScreen';
+import {
+  ScannerShowcaseScreen,
+  type ActiveBackHandler,
+} from '../showcases/scanner/ScannerShowcaseScreen';
 
 const homeRoute: ExampleRoute = { name: 'home' };
 const initialNavigationState: NavigationState = {
@@ -21,6 +24,7 @@ export function ExampleRouter() {
     navigationReducer,
     initialNavigationState
   );
+  const activeBackHandlerRef = useRef<ActiveBackHandler | null>(null);
 
   const navigate = useCallback((route: ExampleRoute) => {
     dispatch({ type: 'navigate', route });
@@ -30,7 +34,15 @@ export function ExampleRouter() {
     dispatch({ type: 'back' });
   }, []);
 
+  const handleActiveBackHandlerChange = useCallback(
+    (handler: ActiveBackHandler | null) => {
+      activeBackHandlerRef.current = handler;
+    },
+    []
+  );
+
   const handleHardwareBack = useCallback(() => {
+    if (activeBackHandlerRef.current?.()) return true;
     if (!canGoBack(navigation)) return false;
 
     dispatch({ type: 'back' });
@@ -53,7 +65,12 @@ export function ExampleRouter() {
     case 'home':
       return <HomeScreen onNavigate={navigate} />;
     case 'scanner':
-      return <ScannerShowcaseScreen onBack={back} />;
+      return (
+        <ScannerShowcaseScreen
+          onBack={back}
+          onActiveBackHandlerChange={handleActiveBackHandlerChange}
+        />
+      );
     case 'headless':
       return <HeadlessShowcaseScreen onBack={back} />;
     case 'decode-image':
