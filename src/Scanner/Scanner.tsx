@@ -172,12 +172,16 @@ function ScannerInner({
 
   const onAlbum = useCallback(async () => {
     if (!pickImage || handlingRef.current) return;
+    handlingRef.current = true;
+    setPhase('detecting');
     try {
       const uri = await pickImage();
-      if (!uri || !mountedRef.current) return;
-      handlingRef.current = true;
+      if (!mountedRef.current) return;
+      if (!uri) {
+        reset();
+        return;
+      }
       detectStartRef.current = Date.now();
-      setPhase('detecting');
       const results = await decodeImage(uri, formats ? { formats } : undefined);
       if (!mountedRef.current) return;
       const first = results[0];
@@ -187,12 +191,9 @@ function ScannerInner({
       }
       await finalize(first);
     } catch {
-      if (mountedRef.current) {
-        handlingRef.current = true;
-        setPhase('fail');
-      }
+      if (mountedRef.current) setPhase('fail');
     }
-  }, [pickImage, formats, finalize]);
+  }, [pickImage, formats, finalize, reset]);
 
   const onConfirmPress = useCallback(() => {
     const r = lastResultRef.current;

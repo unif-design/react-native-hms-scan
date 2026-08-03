@@ -5,13 +5,24 @@ import { Scanner } from '../Scanner/Scanner';
 
 // 把底层原生组件换成纯桩，并捕获其 onScanResult / onScanError 供测试触发。
 // （jest.mock 工厂不能引外部非 mock 前缀变量，故用 globalThis 中转。）
-jest.mock('../HmsScanView', () => ({
-  HmsScanView: (props: { onScanResult?: unknown; onScanError?: unknown }) => {
-    (globalThis as Record<string, unknown>).__emitScan = props.onScanResult;
-    (globalThis as Record<string, unknown>).__emitError = props.onScanError;
-    return null;
-  },
-}));
+type MockHmsScanViewProps = {
+  paused?: boolean;
+  torch?: boolean;
+  onScanResult?: (results: unknown[]) => void;
+  onScanError?: (error: { code: string; message: string }) => void;
+  onTorchStatus?: (status: { available: boolean; on: boolean }) => void;
+};
+
+jest.mock('../HmsScanView', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  return {
+    HmsScanView: (props: MockHmsScanViewProps) => {
+      (globalThis as Record<string, unknown>).__hmsScanProps = props;
+      return React.createElement(View, { testID: 'hms-scan-view' });
+    },
+  };
+});
 
 jest.mock('../permissions', () => ({
   getCameraPermissionStatus: jest.fn(async () => 'granted'),
@@ -22,9 +33,9 @@ jest.mock('../decodeImage', () => ({ decodeImage: jest.fn(async () => []) }));
 
 const HINT = '将条码 / 二维码放入框内，自动扫描';
 const emitScan = (results: unknown[]) =>
-  (
-    (globalThis as Record<string, unknown>).__emitScan as (r: unknown[]) => void
-  )?.(results);
+  nativeProps().onScanResult?.(results);
+const nativeProps = () =>
+  (globalThis as Record<string, unknown>).__hmsScanProps as MockHmsScanViewProps;
 
 afterEach(() => {
   jest.clearAllMocks();
@@ -161,6 +172,65 @@ describe('<Scanner>', () => {
 
     expect(await screen.findByText('未识别到条码')).toBeTruthy();
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('打开相册前即暂停相机，并忽略等待期间的相机结果', async () => {
+    let resolvePick!: (uri: string | null) => void;
+    const pickImage = jest.fn(
+      () =>
+        new Promise<string | null>((resolve) => {
+          resolvePick = resolve;
+        })
+    );
+    const resolveProduct = jest.fn(async () => ({ name: 'X 商品' }));
+    render(<Scanner pickImage={pickImage} resolveProduct={resolveProduct} />);
+    await screen.findByText('扫一扫');
+
+    fireEvent.press(screen.getByText('相册'));
+    await waitFor(() => expect(nativeProps().paused).toBe(true));
+
+    await act(async () => {
+      nativeProps().onScanResult?.([{ value: 'camera', format: 'QR_CODE' }]);
+    });
+    expect(resolveProduct).not.toHaveBeenCalled();
+
+    await act(async () => resolvePick(null));
+    expect(await screen.findByText(HINT)).toBeTruthy();
+    expect(nativeProps().paused).toBe(false);
+  });
+
+  it('双入口时只确认相册图片结果', async () => {
+    let resolvePick!: (uri: string | null) => void;
+    const pickImage = jest.fn(
+      () =>
+        new Promise<string | null>((resolve) => {
+          resolvePick = resolve;
+        })
+    );
+    const decode = jest.requireMock('../decodeImage') as { decodeImage: jest.Mock };
+    decode.decodeImage.mockResolvedValueOnce([{ value: 'image', format: 'QR_CODE' }]);
+    const onConfirm = jest.fn();
+    const resolveProduct = jest.fn(async () => ({ name: '图片商品' }));
+    render(
+      <Scanner
+        autoConfirm
+        pickImage={pickImage}
+        onConfirm={onConfirm}
+        resolveProduct={resolveProduct}
+      />
+    );
+    await screen.findByText('扫一扫');
+
+    fireEvent.press(screen.getByText('相册'));
+    await waitFor(() => expect(nativeProps().paused).toBe(true));
+    await act(async () => {
+      nativeProps().onScanResult?.([{ value: 'camera', format: 'QR_CODE' }]);
+    });
+    await act(async () => resolvePick('file:///image.png'));
+
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+    expect(resolveProduct).toHaveBeenCalledTimes(1);
+    expect(onConfirm.mock.calls[0][1]).toEqual({ value: 'image', format: 'QR_CODE' });
   });
 
   it('权限被拒 → 显示无权限遮罩', async () => {
