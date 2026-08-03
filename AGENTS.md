@@ -88,7 +88,7 @@ decodeImage        从本地图片识别 → ScanResult[]
 - **Toast** — `ToastHost` 是宿主职责,按需在 App 根部挂载。
 - **状态机** — `Phase`:`init → scan → detecting → success / fail / denied / error / done`。默认成功进入 `success`,点「确定」或「重扫」后 `reset` 回 `scan`;`autoConfirm` 在有 `onConfirm` 时跳过结果卡、调用成功后进入 `done`,相机保持暂停且不自动重扫;未传 `onConfirm` 则回退结果卡。未识别仍进入 `fail`,`handlingRef` 防重入。
 - **`done` 的前提是 `onConfirm` 正常返回** — `resolveProduct` 与 `onConfirm` 在 `handleResult` 的同一个 `try` 内调用,`setPhase('done')` 排在 `onConfirm` 之后。宿主 `onConfirm` 同步 throw 会被同一个 `catch` 收成 `fail`(可重扫),**不会**进入 `done`。不得把 `autoConfirm` 描述成「调用 `onConfirm` 即必然进入终态」。
-- **权限与相机异常边界** — 权限 helper reject、打开系统设置失败及除 `E_NO_RESULT` 外的 view error 都进入可重试的 `error`;从系统设置返回 App 后会自动重新查询权限。`E_NO_RESULT` 是 soft error,只经 `onScanError` 上报而不切换 phase。`onScanError` 收到的是普通 `ScanError` `{ code, message }`,不是 `HmsScanError`;可能包括 `E_CAMERA_INIT`、`E_NO_RESULT`、`E_NO_ACTIVITY` 或 `E_UNKNOWN`。
+- **权限与相机异常边界** — view error 分三路:`E_NO_RESULT` 是 soft error,只经 `onScanError` 上报而不切换 phase;`E_NO_CAMERA_PERMISSION` 进入 `denied`;其余 fatal view error 进入可重试的 `error`。权限 helper reject、打开系统设置失败也进入 `error`;从系统设置返回 App 后会自动重新查询权限。`onScanError` 收到的是普通 `ScanError` `{ code, message }`,不是 `HmsScanError`;可能包括 `E_CAMERA_INIT`、`E_NO_RESULT`、`E_NO_ACTIVITY` 或 `E_UNKNOWN`。
 - **样式** — 取景框 / 工具栏 / 结果卡全用 `@unif/react-native-design`(peer 依赖)的主题令牌与组件绘制,统一风格。
 - **图片选择器不内置**(遵循 RN 惯例) — `pickImage` 传了才显示「相册」按钮,内部对返回的本地 uri 调 `decodeImage`。
 - **商品解析交宿主** — `resolveProduct` 由宿主解析商品,返回 `null` / 抛错 = 未识别 → `fail`。

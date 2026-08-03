@@ -9,7 +9,7 @@ description: "相机权限：<Scanner> 自动处理；headless <HmsScanView> 用
 扫码用相机,需要相机权限;本库提供两个权限工具函数供手动管理。`decodeImage` 不申请相册权限,所选图片能否读取由宿主 picker / URI grant 决定。
 
 :::info `<Scanner>` 的权限恢复与错误边界
-`<Scanner>` 自动请求权限：未获授权进入 `denied` 设置遮罩；用户从系统设置返回 App 后会自动重新查询。权限 helper reject 会进入可重试的 `error`,并由 `onScanError` 上报普通 `{ code, message }`（不是 `HmsScanError`）。相机 view 的 `E_NO_RESULT` 是 soft error，只上报、不离开扫码态；`E_CAMERA_INIT` 等其他 fatal error 同样进入 `error`。
+`<Scanner>` 自动请求权限：未获授权进入 `denied` 设置遮罩；用户从系统设置返回 App 后会自动重新查询。权限 helper reject 会进入可重试的 `error`,并由 `onScanError` 上报普通 `{ code, message }`（不是 `HmsScanError`）。相机 view error 分三路:`E_NO_RESULT` 是 soft error,只上报、不离开扫码态;`E_NO_CAMERA_PERMISSION` 进入 `denied`;`E_CAMERA_INIT` 等其他 fatal error 进入 `error`。
 :::
 
 ---
