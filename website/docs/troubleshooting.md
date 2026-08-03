@@ -83,7 +83,7 @@ maven { url 'https://developer.huawei.com/repo/' }
 
 ✅ `CAMERA` 是运行时权限,声明之外还要在运行时请求。用 `<Scanner>` 会自动处理;用 `<HmsScanView>` 时自己先调 `requestCameraPermission`。见[权限处理](/docs/guides/permissions)。
 
-若 `requestCameraPermission()` 直接 reject `E_NO_ACTIVITY`,当前前台 Activity 不存在或不是 `PermissionAwareActivity`;先确认在可见 RN Activity 中调用。不要把该 reject 当作某个权限 status。另请注意 `<Scanner>` 当前对权限 helper reject 会 fail-open,严格权限门禁应采用 headless 流程自行兜底。
+若 `requestCameraPermission()` 直接 reject `E_NO_ACTIVITY`,当前前台 Activity 不存在或不是 `PermissionAwareActivity`;先确认在可见 RN Activity 中调用。不要把该 reject 当作某个权限 status。`<Scanner>` 会将这类权限 helper reject 切到可重试的 `error` 并通过 `onScanError` 上报；headless 场景仍应自行 `try/catch`。
 
 :::note 无需 agconnect / API Key
 宿主必须添加 Huawei Maven,但**不需要** `agconnect-services.json`、AppGallery Connect 插件或 API Key。若你在为「漏配 agconnect」排查 —— 不必,本库不依赖它。

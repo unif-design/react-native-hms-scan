@@ -1,12 +1,14 @@
 ---
 sidebar_position: 1
 title: Scanner
-description: "<Scanner> 成品扫一扫页完整 props 参考：title / formats / hintText / topInset / bottomInset / showTorch / onClose / resolveProduct / onConfirm / autoConfirm / pickImage，以及回调用到的 ScanResult / ScanProduct 类型。自带状态机 + 权限流 + 主题。"
+description: "<Scanner> 成品扫一扫页完整 props 参考：title / formats / hintText / topInset / bottomInset / showTorch / onClose / onScanError / resolveProduct / onConfirm / autoConfirm / pickImage，以及回调用到的 ScanResult / ScanProduct / ScanError 类型。自带状态机 + 权限流 + 主题。"
 ---
 
 # Scanner
 
-成品「扫一扫」界面（聚焦款，浅色）。底层使用 [`<HmsScanView>`](/docs/api/hms-scan-view) 出相机画面，取景框 / 工具栏 / 结果卡全用 `@unif/react-native-design` 的主题令牌与组件绘制。**自带 `ThemeProvider` + `ToastHost` + 权限流**，可直接整屏接入。
+成品「扫一扫」界面（聚焦款，浅色）。底层使用 [`<HmsScanView>`](/docs/api/hms-scan-view) 出相机画面，取景框 / 工具栏 / 结果卡全用 `@unif/react-native-design` 的主题令牌与组件绘制。自带 `ThemeProvider`、权限流和状态机，可直接整屏接入。
+
+`ToastHost` 由宿主按需在 App 根部挂载。
 
 ```tsx
 import { Scanner } from '@unif/react-native-hms-scan';
@@ -27,15 +29,16 @@ function Scanner(props: ScannerProps): JSX.Element
 | Prop | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `title` | `string` | `'扫一扫'` | 顶栏标题 |
-| `formats` | `BarcodeFormat[]` | — | 限定识别码制；不传 = 全部（[14 种](/docs/api/types#barcode-format)） |
+| `formats` | `readonly BarcodeFormat[]` | — | 限定识别码制；不传 = 全部（[14 种](/docs/api/types#barcode-format)） |
 | `hintText` | `string` | `'将条码 / 二维码放入框内，自动扫描'` | 取景态提示文案 |
 | `topInset` | `number` | `54` | 顶部安全区高度（px）。用 `react-native-safe-area-context` 时传 `insets.top` |
 | `bottomInset` | `number` | `34` | 底部安全区高度（px）。用 `react-native-safe-area-context` 时传 `insets.bottom` |
-| `showTorch` | `boolean` | `true` | 是否显示手电筒按钮。手电由库内自管：Android 可编程控制，**iOS 为 best-effort**（见[平台差异](/docs/platform-differences#torch)），可在 iOS 传 `false` 隐藏 |
+| `showTorch` | `boolean` | `true` | 是否显示手电筒按钮。手电由库内自管，最终以 `onTorchStatus.on` 的真实点亮状态回写标签；Android 可编程控制，**iOS 为 best-effort**（见[平台差异](/docs/platform-differences#torch)），可在 iOS 传 `false` 隐藏 |
 | `onClose` | `() => void` | — | 返回按钮回调（退出扫码页；按钮在底部工具栏，与手电筒并排） |
+| `onScanError` | `(error: ScanError) => void` | — | 权限 helper 或相机扫码出错时上报普通 `{ code, message }`；不是 `HmsScanError`，见[错误回调](#scan-error) |
 | `resolveProduct` | `(result: ScanResult) => ScanProduct \| null \| undefined \| Promise<ScanProduct \| null \| undefined>` | — | 扫到条码后由宿主解析商品信息（用于浮层确认卡）。返回 `null` / `undefined` **或抛错** = 未识别 → 进入 fail 重扫层。不传则以 `result.value` 作为商品名 |
 | `onConfirm` | `(product: ScanProduct, result: ScanResult) => void` | — | 用户点"确定"时回调（宿主通常在此导航返回）。`autoConfirm` 为真时由库自动触发 |
-| `autoConfirm` | `boolean` | `false` | 扫到并解析成功后**不显示结果卡**，直接触发 `onConfirm(product, result)`。适合"扫到即用、无需二次确认"。回调后相机暂停、不自动重扫（宿主通常在 `onConfirm` 里导航离开；再扫由宿主控制）。未识别（`resolveProduct` 返回 `null` / 抛错）仍走 fail 重扫，不会误触发 |
+| `autoConfirm` | `boolean` | `false` | 传了 `onConfirm` 时，扫到并解析成功后**不显示结果卡**，直接触发 `onConfirm(product, result)`。未传 `onConfirm` 则回退结果卡。回调后相机暂停、不自动重扫（宿主通常在 `onConfirm` 里导航离开；再扫由宿主控制）。未识别（`resolveProduct` 返回 `null` / 抛错）仍走 fail 重扫，不会误触发 |
 | `pickImage` | `() => Promise<string \| null>` | — | 点"相册"：宿主用自己的图片选择器选图并返回本地 uri（取消返回 `null`）。**库不内置图片选择器：传了才显示相册按钮，不传则隐藏** |
 
 :::note 返回 / 手电 / 相册按钮的显隐
@@ -71,6 +74,17 @@ function Scanner(props: ScannerProps): JSX.Element
 | `stockShort` | `string` | — | 库存短描述 |
 | `price` | `string` | — | 价格展示串 |
 | `priceCaption` | `string` | — | 价格副标题，默认 "建议零售" |
+
+### ScanError {#scan-error}
+
+`onScanError` 收到的是普通对象，不是 `HmsScanError` 实例：
+
+```ts
+onScanError?: (error: ScanError) => void;
+// error: { code: string; message: string }
+```
+
+可能包括 `E_CAMERA_INIT`、`E_NO_RESULT`、`E_NO_ACTIVITY`、`E_UNKNOWN` 等 code。`E_NO_RESULT` 是 soft error，只上报、不离开当前扫码态；权限 helper reject 和其他相机 view error 会进入带「重试」按钮的 `error` 态。
 
 ---
 
@@ -109,9 +123,10 @@ function ScanScreen({ navigation }) {
 
 ## 注意事项
 
-- 挂载时**自动请求相机权限**：已授权直接进入取景；永久拒绝（`blocked`）展示引导去系统设置的遮罩。无需自行写权限流。
-- 内部状态机:`init → scan → detecting → success / fail / denied / done`,**一次扫一个**。手动确认或重扫后回 `scan`;`autoConfirm` 成功后进 `done`,相机保持暂停且不自动重扫。
+- 挂载时**自动请求相机权限**：已授权直接进入取景；永久拒绝（`blocked`）展示引导去系统设置的遮罩。从系统设置授权返回后会自动重新查询权限。
+- 内部状态机:`init → scan → detecting → success / fail / denied / error / done`,**一次扫一个**。手动确认或重扫后回 `scan`;`autoConfirm` 在有 `onConfirm` 时成功后进 `done`,相机保持暂停且不自动重扫；未传回调则显示结果卡。
 - `autoConfirm` 进 `done` 的前提是 **`onConfirm` 正常返回**:它与 `resolveProduct` 在同一个 `try` 里调用,`onConfirm` 同步抛错会被收成 fail 重扫层,不会到达 `done`。宿主导航可能抛错时，请在 `onConfirm` 内部自行 try/catch。
+- 权限 helper reject、打开系统设置失败及除 `E_NO_RESULT` 外的 view error 均进入可重试的 `error`;`E_NO_RESULT` 是 soft error，只通过 `onScanError` 上报。
 - `resolveProduct` **抛错与返回 `null` / `undefined` 效果相同**，均进入 fail 重扫层。
 - 自带 `ThemeProvider`；放进宿主已有的 `ThemeProvider` 里也兼容（嵌套不报错）。
 - `@unif/react-native-design` 是 peer 依赖，`<Scanner>` 的 UI 依赖它（及其链上的 `react-native-reanimated` / `react-native-gesture-handler`）。

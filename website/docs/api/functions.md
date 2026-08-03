@@ -26,7 +26,7 @@ import {
 | [`requestCameraPermission`](#request) | 请求相机权限（必要时弹窗） | ✅ |
 | [`coerceFormat`](#coerce-format) | 字符串安全收敛为 `BarcodeFormat` | ❌ 纯函数 |
 | [`coerceContentType`](#coerce-content-type) | 字符串安全收敛为 `BarcodeContentType` | ❌ 纯函数 |
-| [`formatsToCsv`](#formats-to-csv) | `BarcodeFormat[]` → 逗号分隔 CSV | ❌ 纯函数 |
+| [`formatsToCsv`](#formats-to-csv) | `readonly BarcodeFormat[]` → 逗号分隔 CSV | ❌ 纯函数 |
 
 ---
 
@@ -49,7 +49,7 @@ function decodeImage(
 | --- | --- | --- | --- |
 | `uri` | `string` | ✅ | 本地图片 URI / 路径，见下方[接受的 URI](#accepted-uri)。**不下载远程 URL** |
 | `options` | `DecodeImageOptions` | — | 可选配置 |
-| `options.formats` | `BarcodeFormat[]` | — | 限定识别码制；不传 = 全部 |
+| `options.formats` | `readonly BarcodeFormat[]` | — | 限定识别码制；不传 = 全部 |
 
 ### 接受的 URI {#accepted-uri}
 
@@ -217,7 +217,7 @@ coerceContentType('FOO'); // undefined
 
 ### formatsToCsv {#formats-to-csv}
 
-把 `BarcodeFormat[]` 转成传给原生的逗号分隔 CSV；空数组 / 未传 → `''`（= 识别全部码制）。
+把 `readonly BarcodeFormat[]` 转成传给原生的逗号分隔 CSV；空数组 / 未传 → `''`（= 识别全部码制）。
 
 ```ts
 function formatsToCsv(formats?: readonly BarcodeFormat[]): string

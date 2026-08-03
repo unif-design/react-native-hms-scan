@@ -8,8 +8,8 @@ description: "相机权限：<Scanner> 自动处理；headless <HmsScanView> 用
 
 扫码用相机,需要相机权限;本库提供两个权限工具函数供手动管理。`decodeImage` 不申请相册权限,所选图片能否读取由宿主 picker / URI grant 决定。
 
-:::warning `<Scanner>` 当前的权限异常边界
-正常返回 status 时,`<Scanner>` 会自动请求权限并在拒绝后展示设置遮罩。但权限 helper **reject** 时当前实现会 fail-open 进入扫码态;`onScanError` 也只对 `E_NO_CAMERA_PERMISSION` 切拒权页,而当前原生 view 的错误码是 Android `E_CAMERA_INIT` / iOS `E_NO_RESULT`。权限必须 fail-closed 的业务应使用 headless 流程自行处理,不要假定所有异常都会进入 denied。
+:::info `<Scanner>` 的权限恢复与错误边界
+`<Scanner>` 自动请求权限：未获授权进入 `denied` 设置遮罩；用户从系统设置返回 App 后会自动重新查询。权限 helper reject 会进入可重试的 `error`,并由 `onScanError` 上报普通 `{ code, message }`（不是 `HmsScanError`）。相机 view 的 `E_NO_RESULT` 是 soft error，只上报、不离开扫码态；`E_CAMERA_INIT` 等其他 fatal error 同样进入 `error`。
 :::
 
 ---
@@ -98,7 +98,7 @@ async function ensureCameraPermission(): Promise<boolean> {
 }
 ```
 
-> 这是 headless 场景的推荐主流程;生产代码还应 catch helper reject。`<Scanner>` 正常 status 路径相同,但当前 helper reject 会 fail-open,见本页开头警告。
+> 这是 headless 场景的推荐主流程;生产代码还应 catch helper reject。`<Scanner>` 已把 helper reject 收敛为可重试的 `error`，无需借由它实现 headless 权限流。
 
 ---
 
