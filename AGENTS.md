@@ -86,7 +86,7 @@ decodeImage        从本地图片识别 → ScanResult[]
 
 - **开箱即用** — 自带状态机 + 权限流 + `ThemeProvider`,整屏直接丢进去即可;也兼容放进宿主已有的 `ThemeProvider`。
 - **Toast** — `ToastHost` 是宿主职责,按需在 App 根部挂载。
-- **状态机** — `Phase`:`init → scan → detecting → success / fail / denied / error / done`。默认成功进入 `success`,点「确定」或「重扫」后 `reset` 回 `scan`;`autoConfirm` 在有 `onConfirm` 时跳过结果卡、调用成功后进入 `done`,相机保持暂停且不自动重扫;未传 `onConfirm` 则回退结果卡。未识别仍进入 `fail`,`handlingRef` 防重入。
+- **状态机** — `Phase`:`init → scan → detecting → success / fail / denied / error / done`。默认成功进入 `success`,点「确定」或「重扫」后 `reset` 回 `scan`;`autoConfirm` 在有 `onConfirm` 时跳过结果卡、调用成功后进入 `done`,相机保持暂停且不自动重扫;未传 `onConfirm` 则回退结果卡。未识别仍进入 `fail`,`handlingRef` 防双入口;独立 processing generation 跨 `pickImage` / `decodeImage` / `resolveProduct` 的 await 校验,fatal、denied、reset、retry 会让旧链失效且不得再写 phase 或触发 `onConfirm`。
 - **`done` 的前提是 `onConfirm` 正常返回** — `resolveProduct` 与 `onConfirm` 在 `handleResult` 的同一个 `try` 内调用,`setPhase('done')` 排在 `onConfirm` 之后。宿主 `onConfirm` 同步 throw 会被同一个 `catch` 收成 `fail`(可重扫),**不会**进入 `done`。不得把 `autoConfirm` 描述成「调用 `onConfirm` 即必然进入终态」。
 - **权限与相机异常边界** — view error 分三路:`E_NO_RESULT` 是 soft error,只经 `onScanError` 上报而不切换 phase;`E_NO_CAMERA_PERMISSION` 进入 `denied` 并卸载相机 view;其余 fatal view error 进入可重试的 `error`。权限 helper reject、打开系统设置失败也进入 `error`;从系统设置返回 App 后会自动重新查询权限。`onScanError` 收到的是普通 `ScanError` `{ code, message }`,不是 `HmsScanError`;可能包括 `E_CAMERA_INIT`、`E_NO_RESULT`、`E_NO_ACTIVITY` 或 `E_UNKNOWN`。
 - **样式** — 取景框 / 工具栏 / 结果卡全用 `@unif/react-native-design`(peer 依赖)的主题令牌与组件绘制,统一风格。
@@ -150,7 +150,7 @@ decodeImage        从本地图片识别 → ScanResult[]
 加 / 改测试,或下游消费者要 mock 本库时看这里。
 
 - 测试 colocate 在 `src/__tests__/`(注意:与 design 仓不同 —— design 放仓库根 `__tests__/`,本仓在 `src/` 内)。
-- 覆盖纯逻辑(`format`)、`<Scanner>` 状态机(含权限、从设置返回重查、fatal error、普通确认、`autoConfirm` 回退结果卡及未识别分支)、相册并发、手电状态回写、readonly 类型、`ResultFocus` 可读性 token 和官方 mock 自检;组件测试只 mock 原生边界、权限与 `decodeImage`。
+- 覆盖纯逻辑(`format`)、`<Scanner>` 状态机(含权限、从设置返回重查、fatal error、普通确认、`autoConfirm` 回退结果卡及未识别分支)、相册并发与旧异步链失效、手电状态回写、readonly 类型、`ResultFocus` 可读性 token 和官方 mock 自检;组件测试只 mock 原生边界、权限与 `decodeImage`;Android torch 的 RemoteView 生命周期 / 回读 / emit 契约由 `scripts/verify-android-integration.mjs` 锁定。
 - `jest` 用 `@react-native/jest-preset`,`setupFiles: ./jest.setup.ts`。
 - **消费者**测试本库:用随包官方 mock 整包替换(避免 jest 环境加载 TurboModule / Fabric 组件崩溃):
 

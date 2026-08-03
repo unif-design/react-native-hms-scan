@@ -38,7 +38,7 @@ function Scanner(props: ScannerProps): JSX.Element
 | `onScanError` | `(error: ScanError) => void` | — | 权限 helper 或相机扫码出错时上报普通 `{ code, message }`；不是 `HmsScanError`，见[错误回调](#scan-error) |
 | `resolveProduct` | `(result: ScanResult) => ScanProduct \| null \| undefined \| Promise<ScanProduct \| null \| undefined>` | — | 扫到条码后由宿主解析商品信息（用于浮层确认卡）。返回 `null` / `undefined` **或抛错** = 未识别 → 进入 fail 重扫层。不传则以 `result.value` 作为商品名 |
 | `onConfirm` | `(product: ScanProduct, result: ScanResult) => void` | — | 用户点"确定"时回调（宿主通常在此导航返回）。`autoConfirm` 为真时由库自动触发 |
-| `autoConfirm` | `boolean` | `false` | 传了 `onConfirm` 时，扫到并解析成功后**不显示结果卡**，直接触发 `onConfirm(product, result)`。未传 `onConfirm` 则回退结果卡。回调后相机暂停、不自动重扫（宿主通常在 `onConfirm` 里导航离开；再扫由宿主控制）。未识别（`resolveProduct` 返回 `null` / 抛错）仍走 fail 重扫，不会误触发 |
+| `autoConfirm` | `boolean` | `false` | 传了 `onConfirm` 时，扫到并解析成功后**不显示结果卡**，直接触发 `onConfirm(product, result)`；只有 `onConfirm` 同步正常返回后才进入 `done`，相机保持暂停且不自动重扫。`onConfirm` 同步抛错则进入 fail 重扫。未传 `onConfirm` 时回退结果卡；未识别（`resolveProduct` 返回 `null` / 抛错）也进入 fail，不会误触发 |
 | `pickImage` | `() => Promise<string \| null>` | — | 点"相册"：宿主用自己的图片选择器选图并返回本地 uri（取消返回 `null`）。**库不内置图片选择器：传了才显示相册按钮，不传则隐藏** |
 
 :::note 返回 / 手电 / 相册按钮的显隐

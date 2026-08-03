@@ -40,7 +40,8 @@
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
     "prepare": "bob build",
     "typecheck": "tsc",
-    "test": "yarn verify:ios-integration && jest",
+    "test": "yarn verify:android-integration && yarn verify:ios-integration && jest",
+    "verify:android-integration": "node scripts/verify-android-integration.mjs",
     "verify:ios-integration": "node scripts/verify-ios-integration.mjs",
     "lint": "eslint \"**/*.{js,ts,tsx}\""
   },

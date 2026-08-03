@@ -7,7 +7,12 @@ import {
   getCameraPermissionStatus,
   requestCameraPermission,
 } from '../permissions';
-import type { BarcodeFormat, ScanError, ScanProduct, ScanResult } from '../types';
+import type {
+  BarcodeFormat,
+  ScanError,
+  ScanProduct,
+  ScanResult,
+} from '../types';
 import { scanChrome } from './scanChrome';
 import { Viewfinder } from './Viewfinder';
 import { ScanTopBar } from './ScanTopBar';
@@ -36,7 +41,8 @@ function toScanError(error: unknown, fallbackMessage: string): ScanError {
     const native = error as { code?: unknown; message?: unknown };
     return {
       code: typeof native.code === 'string' ? native.code : 'E_UNKNOWN',
-      message: typeof native.message === 'string' ? native.message : fallbackMessage,
+      message:
+        typeof native.message === 'string' ? native.message : fallbackMessage,
     };
   }
   return { code: 'E_UNKNOWN', message: fallbackMessage };
@@ -117,39 +123,76 @@ function ScannerInner({
   const [detectMs, setDetectMs] = useState(0);
 
   const handlingRef = useRef(false);
+  const acceptingResultsRef = useRef(false);
   const detectStartRef = useRef(0);
   const lastResultRef = useRef<ScanResult | null>(null);
   const mountedRef = useRef(true);
   const permissionRunRef = useRef(0);
+  const processingRunRef = useRef(0);
   const waitingForSettingsRef = useRef(false);
   const onScanErrorRef = useRef(onScanError);
   onScanErrorRef.current = onScanError;
 
-  const reportFatalError = useCallback((error: ScanError) => {
-    // fatal 后不允许已在途的权限检查覆盖 error phase。
-    ++permissionRunRef.current;
-    setPhase('error');
-    onScanErrorRef.current?.(error);
+  const invalidateProcessing = useCallback(() => {
+    ++processingRunRef.current;
   }, []);
+
+  const enterScan = useCallback(() => {
+    invalidateProcessing();
+    handlingRef.current = false;
+    acceptingResultsRef.current = true;
+    setProduct(null);
+    lastResultRef.current = null;
+    setPhase('scan');
+  }, [invalidateProcessing]);
+
+  const enterDenied = useCallback(() => {
+    ++permissionRunRef.current;
+    invalidateProcessing();
+    acceptingResultsRef.current = false;
+    setProduct(null);
+    setPhase('denied');
+  }, [invalidateProcessing]);
+
+  const reportFatalError = useCallback(
+    (error: ScanError) => {
+      // fatal 后不允许已在途的权限检查或扫码 / 相册处理链覆盖 error phase。
+      ++permissionRunRef.current;
+      invalidateProcessing();
+      acceptingResultsRef.current = false;
+      setProduct(null);
+      setPhase('error');
+      onScanErrorRef.current?.(error);
+    },
+    [invalidateProcessing]
+  );
 
   const runPermissionFlow = useCallback(
     async (requestIfNeeded: boolean) => {
       const runId = ++permissionRunRef.current;
-      const isCurrent = () => mountedRef.current && permissionRunRef.current === runId;
+      const isCurrent = () =>
+        mountedRef.current && permissionRunRef.current === runId;
       try {
         let status = await getCameraPermissionStatus();
         if (!isCurrent()) return;
-        if (requestIfNeeded && (status === 'undetermined' || status === 'denied')) {
+        if (
+          requestIfNeeded &&
+          (status === 'undetermined' || status === 'denied')
+        ) {
           status = await requestCameraPermission();
           if (!isCurrent()) return;
         }
-        setPhase(status === 'granted' ? 'scan' : 'denied');
+        if (status === 'granted') {
+          enterScan();
+        } else {
+          enterDenied();
+        }
       } catch (error) {
         if (!isCurrent()) return;
         reportFatalError(toScanError(error, '检查相机权限失败'));
       }
     },
-    [reportFatalError]
+    [enterDenied, enterScan, reportFatalError]
   );
 
   // 权限流：已授权 → scan；否则请求；仍未授权 → denied。
@@ -159,8 +202,10 @@ function ScannerInner({
     return () => {
       mountedRef.current = false;
       ++permissionRunRef.current;
+      invalidateProcessing();
+      acceptingResultsRef.current = false;
     };
-  }, [runPermissionFlow]);
+  }, [invalidateProcessing, runPermissionFlow]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
@@ -177,27 +222,32 @@ function ScannerInner({
   }, [showTorch]);
 
   const reset = useCallback(() => {
-    handlingRef.current = false;
-    setProduct(null);
-    setPhase('scan');
-  }, []);
+    enterScan();
+  }, [enterScan]);
 
   const finalize = useCallback(
-    async (result: ScanResult) => {
+    async (result: ScanResult, runId: number) => {
+      const isCurrent = () =>
+        mountedRef.current && processingRunRef.current === runId;
+      if (!isCurrent()) return;
       lastResultRef.current = result;
       try {
         const resolved = resolveProduct
           ? await resolveProduct(result)
           : { name: result.value };
-        if (!mountedRef.current) return;
+        if (!isCurrent()) return;
         if (!resolved) {
           setPhase('fail');
           return;
         }
-        const p: ScanProduct = { ...resolved, barcode: resolved.barcode ?? result.value };
+        const p: ScanProduct = {
+          ...resolved,
+          barcode: resolved.barcode ?? result.value,
+        };
         if (autoConfirm && onConfirm) {
           // 跳过结果卡:直接回调,进 'done' 终态(相机暂停、不自动重扫)。
           onConfirm(p, result);
+          if (!isCurrent()) return;
           setPhase('done');
           return;
         }
@@ -205,7 +255,7 @@ function ScannerInner({
         setDetectMs(Date.now() - detectStartRef.current);
         setPhase('success');
       } catch {
-        if (mountedRef.current) setPhase('fail');
+        if (isCurrent()) setPhase('fail');
       }
     },
     [resolveProduct, autoConfirm, onConfirm]
@@ -213,30 +263,44 @@ function ScannerInner({
 
   const onCameraResult = useCallback(
     (results: ScanResult[]) => {
-      if (phase !== 'scan' || handlingRef.current) return;
+      if (
+        phase !== 'scan' ||
+        !acceptingResultsRef.current ||
+        handlingRef.current
+      ) {
+        return;
+      }
       const first = results[0];
       if (!first) return;
+      acceptingResultsRef.current = false;
       handlingRef.current = true;
+      const runId = ++processingRunRef.current;
       detectStartRef.current = Date.now();
       setPhase('detecting');
-      void finalize(first);
+      void finalize(first, runId);
     },
     [phase, finalize]
   );
 
-  const handleViewScanError = useCallback((error: ScanError) => {
-    if (error.code === 'E_NO_CAMERA_PERMISSION') {
-      setPhase('denied');
-    } else if (error.code !== 'E_NO_RESULT') {
-      reportFatalError(error);
-      return;
-    }
-    onScanErrorRef.current?.(error);
-  }, [reportFatalError]);
+  const handleViewScanError = useCallback(
+    (error: ScanError) => {
+      if (error.code === 'E_NO_CAMERA_PERMISSION') {
+        enterDenied();
+      } else if (error.code !== 'E_NO_RESULT') {
+        reportFatalError(error);
+        return;
+      }
+      onScanErrorRef.current?.(error);
+    },
+    [enterDenied, reportFatalError]
+  );
 
-  const onTorchStatus = useCallback((status: { available: boolean; on: boolean }) => {
-    setTorch(status.on);
-  }, []);
+  const onTorchStatus = useCallback(
+    (status: { available: boolean; on: boolean }) => {
+      setTorch(status.on);
+    },
+    []
+  );
 
   const openSettings = useCallback(async () => {
     waitingForSettingsRef.current = true;
@@ -251,34 +315,43 @@ function ScannerInner({
   }, [reportFatalError]);
 
   const retryCamera = useCallback(() => {
+    invalidateProcessing();
+    acceptingResultsRef.current = false;
     handlingRef.current = false;
     setProduct(null);
+    lastResultRef.current = null;
     setPhase('init');
     void runPermissionFlow(true);
-  }, [runPermissionFlow]);
+  }, [invalidateProcessing, runPermissionFlow]);
 
   const onAlbum = useCallback(async () => {
-    if (!pickImage || handlingRef.current) return;
+    if (!pickImage || !acceptingResultsRef.current || handlingRef.current) {
+      return;
+    }
+    acceptingResultsRef.current = false;
     handlingRef.current = true;
+    const runId = ++processingRunRef.current;
+    const isCurrent = () =>
+      mountedRef.current && processingRunRef.current === runId;
     setPhase('detecting');
     try {
       const uri = await pickImage();
-      if (!mountedRef.current) return;
+      if (!isCurrent()) return;
       if (!uri) {
         reset();
         return;
       }
       detectStartRef.current = Date.now();
       const results = await decodeImage(uri, formats ? { formats } : undefined);
-      if (!mountedRef.current) return;
+      if (!isCurrent()) return;
       const first = results[0];
       if (!first) {
         setPhase('fail');
         return;
       }
-      await finalize(first);
+      await finalize(first, runId);
     } catch {
-      if (mountedRef.current) setPhase('fail');
+      if (isCurrent()) setPhase('fail');
     }
   }, [pickImage, formats, finalize, reset]);
 
@@ -308,7 +381,11 @@ function ScannerInner({
       )}
 
       {showChrome && (
-        <Viewfinder size={VF_SIZE} detecting={phase === 'detecting'} hintText={hintText} />
+        <Viewfinder
+          size={VF_SIZE}
+          detecting={phase === 'detecting'}
+          hintText={hintText}
+        />
       )}
 
       {phase !== 'denied' && phase !== 'init' && phase !== 'error' && (
@@ -335,9 +412,13 @@ function ScannerInner({
         />
       )}
 
-      {phase === 'fail' && <ResultFail bottomInset={bottomInset} onRescan={reset} />}
+      {phase === 'fail' && (
+        <ResultFail bottomInset={bottomInset} onRescan={reset} />
+      )}
 
-      {phase === 'error' && <ScanErrorOverlay onClose={onClose} onRetry={retryCamera} />}
+      {phase === 'error' && (
+        <ScanErrorOverlay onClose={onClose} onRetry={retryCamera} />
+      )}
 
       {phase === 'denied' && (
         <DeniedOverlay onClose={onClose} onSettings={openSettings} />
