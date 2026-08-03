@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -141,10 +141,37 @@ assert.equal(
 
 if (process.argv.includes('--require-lock')) {
   const lockPath = path.join(rootDir, 'example/ios/Podfile.lock');
+  const repositoryLockPath = 'example/ios/Podfile.lock';
   assert.equal(
     existsSync(lockPath),
     true,
     'native build 前必须生成 example/ios/Podfile.lock'
+  );
+  const tracked = spawnSync(
+    'git',
+    ['ls-files', '--error-unmatch', repositoryLockPath],
+    {
+      cwd: rootDir,
+      encoding: 'utf8',
+    }
+  );
+  assert.equal(
+    tracked.status,
+    0,
+    `${repositoryLockPath} 必须纳入 Git 版本控制: ${tracked.stderr}`
+  );
+  const ignored = spawnSync(
+    'git',
+    ['check-ignore', '--no-index', '-v', repositoryLockPath],
+    {
+      cwd: rootDir,
+      encoding: 'utf8',
+    }
+  );
+  assert.equal(
+    ignored.status,
+    1,
+    `${repositoryLockPath} 不得匹配 ignore 规则: ${ignored.stdout}`
   );
   assert.match(
     read('example/ios/Podfile.lock'),
