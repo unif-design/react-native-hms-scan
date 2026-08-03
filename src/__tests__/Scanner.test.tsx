@@ -398,7 +398,8 @@ describe('<Scanner>', () => {
   });
 
   it('卸载后忽略尚未完成的权限检查', async () => {
-    const pendingPermission = deferred<'granted'>();
+    const pendingPermission = deferred<never>();
+    const error = Object.assign(new Error('late permission failure'), { code: 'E_NO_ACTIVITY' });
     const perms = jest.requireMock('../permissions') as {
       getCameraPermissionStatus: jest.Mock;
     };
@@ -407,7 +408,7 @@ describe('<Scanner>', () => {
     const { unmount } = render(<Scanner onScanError={onScanError} />);
 
     unmount();
-    await act(async () => pendingPermission.resolve('granted'));
+    await act(async () => pendingPermission.reject(error));
     expect(onScanError).not.toHaveBeenCalled();
   });
 
