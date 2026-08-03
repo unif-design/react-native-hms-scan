@@ -32,7 +32,7 @@ init → scan（取景）→ detecting（识别中）
                        ↘ error（fatal 权限 / view error）→ 重试
 ```
 
-`<Scanner>` 挂载时**自动请求相机权限**:已授权直接进入取景;永久拒绝则展示引导去系统设置的遮罩(`denied`),从系统设置返回后会自动重新查询。**一次扫一个** —— 扫到 `results[0]` 即进入 `detecting`;手动确认或重扫后复位到 `scan`。`autoConfirm` 仅在传入 `onConfirm` 时调用回调后进入 `done`,未传回调则显示结果卡;相机保持暂停且不会自动重扫。`onConfirm` 同步抛错会被 `resolveProduct` 那一层的 `catch` 收成 `fail`,**不会**进入 `done`。相机 view error 分三路:`E_NO_RESULT` 仅作 soft error 回调上报;`E_NO_CAMERA_PERMISSION` 进入 `denied`;其余 fatal view error 进入可重试的 `error`。权限 helper reject 也进入 `error`。
+`<Scanner>` 挂载时**自动请求相机权限**:已授权直接进入取景;永久拒绝则展示引导去系统设置的遮罩(`denied`),从系统设置返回后会自动重新查询。**一次扫一个** —— 扫到 `results[0]` 即进入 `detecting`;手动确认或重扫后复位到 `scan`。`autoConfirm` 仅在传入 `onConfirm` 时调用回调后进入 `done`,未传回调则显示结果卡;相机保持暂停且不会自动重扫。`onConfirm` 同步抛错会被 `resolveProduct` 那一层的 `catch` 收成 `fail`,**不会**进入 `done`。相机 view error 分三路:`E_NO_RESULT` 仅作 soft error 回调上报;`E_NO_CAMERA_PERMISSION` 进入 `denied` 并卸载相机 view;其余 fatal view error 进入可重试的 `error`。权限 helper reject 也进入 `error`。
 
 ---
 

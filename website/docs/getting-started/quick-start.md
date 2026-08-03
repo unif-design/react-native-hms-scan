@@ -94,7 +94,7 @@ function ScanScreen({ navigation }) {
 
 **一次扫一个**:扫到 `results[0]` 即暂停继续扫,确定或重扫后才复位。相机权限在挂载时自动请求,永久拒绝则展示引导去系统设置的遮罩。
 
-若传 `autoConfirm` **且传了 `onConfirm`**,解析成功后会跳过结果卡、调用 `onConfirm` 并进入暂停的 `done` 终态,不会自动重扫；未传 `onConfirm` 会回退显示结果卡。**只有 `onConfirm` 正常返回才会进 `done`** —— 它和 `resolveProduct` 在同一个 `try` 里,同步抛错会被收成未识别的 fail 重扫层。`E_NO_RESULT` 仅作为 soft error 上报,不打断当前扫码态;`E_NO_CAMERA_PERMISSION` 进入 `denied`;权限 helper 或其他 fatal view error 进入可重试的 `error`。
+若传 `autoConfirm` **且传了 `onConfirm`**,解析成功后会跳过结果卡、调用 `onConfirm` 并进入暂停的 `done` 终态,不会自动重扫；未传 `onConfirm` 会回退显示结果卡。**只有 `onConfirm` 正常返回才会进 `done`** —— 它和 `resolveProduct` 在同一个 `try` 里,同步抛错会被收成未识别的 fail 重扫层。`E_NO_RESULT` 仅作为 soft error 上报,不打断当前扫码态;`E_NO_CAMERA_PERMISSION` 进入 `denied` 并卸载相机 view;权限 helper 或其他 fatal view error 进入可重试的 `error`。
 
 ---
 

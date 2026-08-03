@@ -84,7 +84,7 @@ onScanError?: (error: ScanError) => void;
 // error: { code: string; message: string }
 ```
 
-可能包括 `E_CAMERA_INIT`、`E_NO_RESULT`、`E_NO_ACTIVITY`、`E_UNKNOWN` 等 code。view error 分三路:`E_NO_RESULT` 是 soft error,只上报、不离开当前扫码态;`E_NO_CAMERA_PERMISSION` 进入 `denied` 权限遮罩;其余 fatal view error 进入带「重试」按钮的 `error`。权限 helper reject 同样进入 `error`。
+可能包括 `E_CAMERA_INIT`、`E_NO_RESULT`、`E_NO_ACTIVITY`、`E_UNKNOWN` 等 code。view error 分三路:`E_NO_RESULT` 是 soft error,只上报、不离开当前扫码态;`E_NO_CAMERA_PERMISSION` 进入 `denied` 权限遮罩并卸载相机 view;其余 fatal view error 进入带「重试」按钮的 `error`。权限 helper reject 同样进入 `error`。
 
 ---
 
@@ -126,7 +126,7 @@ function ScanScreen({ navigation }) {
 - 挂载时**自动请求相机权限**：已授权直接进入取景；永久拒绝（`blocked`）展示引导去系统设置的遮罩。从系统设置授权返回后会自动重新查询权限。
 - 内部状态机:`init → scan → detecting → success / fail / denied / error / done`,**一次扫一个**。手动确认或重扫后回 `scan`;`autoConfirm` 在有 `onConfirm` 时成功后进 `done`,相机保持暂停且不自动重扫；未传回调则显示结果卡。
 - `autoConfirm` 进 `done` 的前提是 **`onConfirm` 正常返回**:它与 `resolveProduct` 在同一个 `try` 里调用,`onConfirm` 同步抛错会被收成 fail 重扫层,不会到达 `done`。宿主导航可能抛错时，请在 `onConfirm` 内部自行 try/catch。
-- view error 分三路:`E_NO_RESULT` 只通过 `onScanError` soft 上报;`E_NO_CAMERA_PERMISSION` 进入 `denied`;其余 fatal view error 进入可重试的 `error`。权限 helper reject 与打开系统设置失败也进入 `error`。
+- view error 分三路:`E_NO_RESULT` 只通过 `onScanError` soft 上报;`E_NO_CAMERA_PERMISSION` 进入 `denied` 并卸载相机 view;其余 fatal view error 进入可重试的 `error`。权限 helper reject 与打开系统设置失败也进入 `error`。
 - `resolveProduct` **抛错与返回 `null` / `undefined` 效果相同**，均进入 fail 重扫层。
 - 自带 `ThemeProvider`；放进宿主已有的 `ThemeProvider` 里也兼容（嵌套不报错）。
 - `@unif/react-native-design` 是 peer 依赖，`<Scanner>` 的 UI 依赖它（及其链上的 `react-native-reanimated` / `react-native-gesture-handler`）。

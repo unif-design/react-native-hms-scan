@@ -144,7 +144,7 @@ interface ScanError {
 }
 ```
 
-`<Scanner>` 还会把权限 helper 的失败上报为此类型，可能包括 `E_CAMERA_INIT`、`E_NO_RESULT`、`E_NO_ACTIVITY`、`E_UNKNOWN` 等 code。view error 分三路:`E_NO_RESULT` 是 soft error;`E_NO_CAMERA_PERMISSION` 进入 `denied`;其余 fatal view error 进入可重试的 `error`。权限 helper reject 也进入 `error`。`<HmsScanView>` 当前原生事件为 Android `E_CAMERA_INIT` 与 iOS `E_NO_RESULT`。
+`<Scanner>` 还会把权限 helper 的失败上报为此类型，可能包括 `E_CAMERA_INIT`、`E_NO_RESULT`、`E_NO_ACTIVITY`、`E_UNKNOWN` 等 code。view error 分三路:`E_NO_RESULT` 是 soft error;`E_NO_CAMERA_PERMISSION` 进入 `denied` 并卸载相机 view;其余 fatal view error 进入可重试的 `error`。权限 helper reject 也进入 `error`。`<HmsScanView>` 当前原生事件为 Android `E_CAMERA_INIT` 与 iOS `E_NO_RESULT`。
 
 ---
 
