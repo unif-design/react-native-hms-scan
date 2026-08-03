@@ -4,6 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const rootDir = fileURLToPath(new URL('..', import.meta.url));
+const readPackageJson = (relativePath) =>
+  JSON.parse(readFileSync(path.join(rootDir, relativePath), 'utf8'));
 const source = readFileSync(
   path.join(
     rootDir,
@@ -11,6 +13,30 @@ const source = readFileSync(
   ),
   'utf8'
 );
+
+const rootPackage = readPackageJson('package.json');
+const examplePackage = readPackageJson('example/package.json');
+
+assert.equal(rootPackage.devDependencies['react-native'], '0.86.2');
+assert.equal(examplePackage.dependencies['react-native'], '0.86.2');
+assert.equal(
+  examplePackage.dependencies['@unif/react-native-design'],
+  '0.20.0'
+);
+assert.equal(
+  examplePackage.dependencies['@unif/react-native-hms-scan'],
+  'workspace:*'
+);
+assert.equal(
+  examplePackage.dependencies['react-native-image-picker'],
+  '8.2.1'
+);
+assert.equal(
+  examplePackage.dependencies['react-native-gesture-handler'],
+  '^3.1.0'
+);
+assert.equal(rootPackage.peerDependencies['@unif/react-native-design'], '>=0.8.0');
+assert.equal(rootPackage.peerDependencies['react-native'], '>=0.80.0');
 
 function methodBody(signature) {
   const signatureIndex = source.indexOf(signature);
