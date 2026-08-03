@@ -121,9 +121,11 @@ function ScannerInner({
   const [torch, setTorch] = useState(false);
   const [product, setProduct] = useState<ScanProduct | null>(null);
   const [detectMs, setDetectMs] = useState(0);
+  const [scanSession, setScanSession] = useState(0);
 
   const handlingRef = useRef(false);
   const acceptingResultsRef = useRef(false);
+  const scanSessionRef = useRef(0);
   const detectStartRef = useRef(0);
   const lastResultRef = useRef<ScanResult | null>(null);
   const mountedRef = useRef(true);
@@ -137,10 +139,17 @@ function ScannerInner({
     ++processingRunRef.current;
   }, []);
 
+  const invalidateScanSession = useCallback(() => {
+    ++scanSessionRef.current;
+    acceptingResultsRef.current = false;
+  }, []);
+
   const enterScan = useCallback(() => {
     invalidateProcessing();
     handlingRef.current = false;
+    const sessionId = ++scanSessionRef.current;
     acceptingResultsRef.current = true;
+    setScanSession(sessionId);
     setProduct(null);
     lastResultRef.current = null;
     setPhase('scan');
@@ -149,22 +158,22 @@ function ScannerInner({
   const enterDenied = useCallback(() => {
     ++permissionRunRef.current;
     invalidateProcessing();
-    acceptingResultsRef.current = false;
+    invalidateScanSession();
     setProduct(null);
     setPhase('denied');
-  }, [invalidateProcessing]);
+  }, [invalidateProcessing, invalidateScanSession]);
 
   const reportFatalError = useCallback(
     (error: ScanError) => {
       // fatal 后不允许已在途的权限检查或扫码 / 相册处理链覆盖 error phase。
       ++permissionRunRef.current;
       invalidateProcessing();
-      acceptingResultsRef.current = false;
+      invalidateScanSession();
       setProduct(null);
       setPhase('error');
       onScanErrorRef.current?.(error);
     },
-    [invalidateProcessing]
+    [invalidateProcessing, invalidateScanSession]
   );
 
   const runPermissionFlow = useCallback(
@@ -203,9 +212,9 @@ function ScannerInner({
       mountedRef.current = false;
       ++permissionRunRef.current;
       invalidateProcessing();
-      acceptingResultsRef.current = false;
+      invalidateScanSession();
     };
-  }, [invalidateProcessing, runPermissionFlow]);
+  }, [invalidateProcessing, invalidateScanSession, runPermissionFlow]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
@@ -264,6 +273,7 @@ function ScannerInner({
   const onCameraResult = useCallback(
     (results: ScanResult[]) => {
       if (
+        scanSession !== scanSessionRef.current ||
         phase !== 'scan' ||
         !acceptingResultsRef.current ||
         handlingRef.current
@@ -279,7 +289,7 @@ function ScannerInner({
       setPhase('detecting');
       void finalize(first, runId);
     },
-    [phase, finalize]
+    [phase, scanSession, finalize]
   );
 
   const handleViewScanError = useCallback(
@@ -316,13 +326,13 @@ function ScannerInner({
 
   const retryCamera = useCallback(() => {
     invalidateProcessing();
-    acceptingResultsRef.current = false;
+    invalidateScanSession();
     handlingRef.current = false;
     setProduct(null);
     lastResultRef.current = null;
     setPhase('init');
     void runPermissionFlow(true);
-  }, [invalidateProcessing, runPermissionFlow]);
+  }, [invalidateProcessing, invalidateScanSession, runPermissionFlow]);
 
   const onAlbum = useCallback(async () => {
     if (!pickImage || !acceptingResultsRef.current || handlingRef.current) {

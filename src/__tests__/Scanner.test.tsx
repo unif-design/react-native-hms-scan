@@ -467,6 +467,114 @@ describe('<Scanner>', () => {
     expect(resolveProduct).not.toHaveBeenCalled();
   });
 
+  it('fatal 重试后拒绝上一相机 session 的迟到结果', async () => {
+    const resolveProduct = jest.fn(async () => ({ name: '商品' }));
+    const onConfirm = jest.fn();
+    render(
+      <Scanner
+        autoConfirm
+        resolveProduct={resolveProduct}
+        onConfirm={onConfirm}
+      />
+    );
+    await screen.findByText(HINT);
+    const staleResult = nativeProps().onScanResult;
+
+    act(() =>
+      nativeProps().onScanError?.({ code: 'E_CAMERA_INIT', message: 'boom' })
+    );
+    fireEvent.press(await screen.findByText('重试'));
+    await screen.findByText(HINT);
+    const currentResult = nativeProps().onScanResult;
+
+    await act(async () =>
+      staleResult?.([{ value: 'stale', format: 'QR_CODE' }])
+    );
+    expect(resolveProduct).not.toHaveBeenCalled();
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    await act(async () =>
+      currentResult?.([{ value: 'fresh', format: 'QR_CODE' }])
+    );
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+    expect(onConfirm.mock.calls[0][1]).toEqual({
+      value: 'fresh',
+      format: 'QR_CODE',
+    });
+  });
+
+  it('权限恢复后拒绝上一相机 session 的迟到结果', async () => {
+    const resolveProduct = jest.fn(async () => ({ name: '商品' }));
+    const onConfirm = jest.fn();
+    render(
+      <Scanner
+        autoConfirm
+        resolveProduct={resolveProduct}
+        onConfirm={onConfirm}
+      />
+    );
+    await screen.findByText(HINT);
+    const staleResult = nativeProps().onScanResult;
+
+    act(() =>
+      nativeProps().onScanError?.({
+        code: 'E_NO_CAMERA_PERMISSION',
+        message: 'permission missing',
+      })
+    );
+    fireEvent.press(await screen.findByText('去设置开启'));
+    await act(async () => appStateListener?.('active'));
+    await screen.findByText(HINT);
+    const currentResult = nativeProps().onScanResult;
+
+    await act(async () =>
+      staleResult?.([{ value: 'stale', format: 'QR_CODE' }])
+    );
+    expect(resolveProduct).not.toHaveBeenCalled();
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    await act(async () =>
+      currentResult?.([{ value: 'fresh', format: 'QR_CODE' }])
+    );
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+    expect(onConfirm.mock.calls[0][1]).toEqual({
+      value: 'fresh',
+      format: 'QR_CODE',
+    });
+  });
+
+  it('重扫后拒绝上一相机 session 的迟到结果', async () => {
+    const resolveProduct = jest.fn(async () => ({ name: '商品' }));
+    render(<Scanner resolveProduct={resolveProduct} />);
+    await screen.findByText(HINT);
+    const staleResult = nativeProps().onScanResult;
+
+    await act(async () =>
+      staleResult?.([{ value: 'first', format: 'QR_CODE' }])
+    );
+    await screen.findByText('商品');
+    fireEvent.press(screen.getByText('重扫'));
+    await screen.findByText(HINT);
+    const currentResult = nativeProps().onScanResult;
+    resolveProduct.mockClear();
+
+    await act(async () =>
+      staleResult?.([{ value: 'stale', format: 'QR_CODE' }])
+    );
+    expect(resolveProduct).not.toHaveBeenCalled();
+    expect(screen.getByText(HINT)).toBeTruthy();
+
+    await act(async () =>
+      currentResult?.([{ value: 'fresh', format: 'QR_CODE' }])
+    );
+    await waitFor(() =>
+      expect(resolveProduct).toHaveBeenCalledWith({
+        value: 'fresh',
+        format: 'QR_CODE',
+      })
+    );
+  });
+
   it('权限被拒 → 显示无权限遮罩', async () => {
     const perms = jest.requireMock('../permissions') as {
       getCameraPermissionStatus: jest.Mock;
