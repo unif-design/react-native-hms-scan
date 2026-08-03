@@ -1,6 +1,7 @@
 /// <reference types="jest" />
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { AppState, Linking } from 'react-native';
 import { Scanner } from '../Scanner/Scanner';
 
 // 把底层原生组件换成纯桩，并捕获其 onScanResult / onScanError 供测试触发。
@@ -37,8 +38,29 @@ const emitScan = (results: unknown[]) =>
 const nativeProps = () =>
   (globalThis as Record<string, unknown>).__hmsScanProps as MockHmsScanViewProps;
 
+let appStateListener: ((state: string) => void) | undefined;
+
+beforeEach(() => {
+  appStateListener = undefined;
+  jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => {
+    appStateListener = listener as (state: string) => void;
+    return { remove: jest.fn() };
+  });
+  jest.spyOn(Linking, 'openSettings').mockResolvedValue();
+
+  const perms = jest.requireMock('../permissions') as {
+    getCameraPermissionStatus: jest.Mock;
+    requestCameraPermission: jest.Mock;
+  };
+  perms.getCameraPermissionStatus.mockReset().mockResolvedValue('granted');
+  perms.requestCameraPermission.mockReset().mockResolvedValue('granted');
+
+  const image = jest.requireMock('../decodeImage') as { decodeImage: jest.Mock };
+  image.decodeImage.mockReset().mockResolvedValue([]);
+});
+
 afterEach(() => {
-  jest.clearAllMocks();
+  jest.restoreAllMocks();
 });
 
 describe('<Scanner>', () => {
@@ -253,5 +275,64 @@ describe('<Scanner>', () => {
     render(<Scanner />);
     expect(await screen.findByText('需要相机权限')).toBeTruthy();
     expect(screen.getByText('去设置开启')).toBeTruthy();
+  });
+
+  it('权限 helper reject 时 fail-closed 并通知宿主', async () => {
+    const error = Object.assign(new Error('no activity'), { code: 'E_NO_ACTIVITY' });
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+    };
+    perms.getCameraPermissionStatus.mockRejectedValueOnce(error);
+    const onScanError = jest.fn();
+
+    render(<Scanner onScanError={onScanError} />);
+
+    expect(await screen.findByText('相机启动失败')).toBeTruthy();
+    expect(screen.queryByTestId('hms-scan-view')).toBeNull();
+    expect(onScanError).toHaveBeenCalledWith({
+      code: 'E_NO_ACTIVITY',
+      message: 'no activity',
+    });
+  });
+
+  it('从设置授权返回后恢复取景', async () => {
+    const perms = jest.requireMock('../permissions') as {
+      getCameraPermissionStatus: jest.Mock;
+      requestCameraPermission: jest.Mock;
+    };
+    perms.getCameraPermissionStatus
+      .mockResolvedValueOnce('blocked')
+      .mockResolvedValueOnce('granted');
+    render(<Scanner />);
+    fireEvent.press(await screen.findByText('去设置开启'));
+    expect(Linking.openSettings).toHaveBeenCalled();
+
+    await act(async () => appStateListener?.('active'));
+    expect(await screen.findByText(HINT)).toBeTruthy();
+    expect(screen.getByTestId('hms-scan-view')).toBeTruthy();
+  });
+
+  it('E_CAMERA_INIT 进入错误页，重试后重新挂载相机', async () => {
+    const onScanError = jest.fn();
+    render(<Scanner onScanError={onScanError} />);
+    await screen.findByText(HINT);
+    act(() => nativeProps().onScanError?.({ code: 'E_CAMERA_INIT', message: 'boom' }));
+    expect(await screen.findByText('相机启动失败')).toBeTruthy();
+    expect(screen.queryByTestId('hms-scan-view')).toBeNull();
+    expect(onScanError).toHaveBeenCalledWith({ code: 'E_CAMERA_INIT', message: 'boom' });
+
+    fireEvent.press(screen.getByText('重试'));
+    expect(await screen.findByText(HINT)).toBeTruthy();
+    expect(screen.getByTestId('hms-scan-view')).toBeTruthy();
+  });
+
+  it('E_NO_RESULT 只通知宿主并保持取景', async () => {
+    const onScanError = jest.fn();
+    render(<Scanner onScanError={onScanError} />);
+    await screen.findByText(HINT);
+    act(() => nativeProps().onScanError?.({ code: 'E_NO_RESULT', message: 'empty' }));
+    expect(screen.getByText(HINT)).toBeTruthy();
+    expect(screen.queryByText('相机启动失败')).toBeNull();
+    expect(onScanError).toHaveBeenCalledWith({ code: 'E_NO_RESULT', message: 'empty' });
   });
 });
