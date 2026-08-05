@@ -185,6 +185,10 @@
   },
   "jest": {
     "preset": "@react-native/jest-preset",
+    "moduleNameMapper": {
+      "^@unif/react-native-hms-scan$": "<rootDir>/src/index.tsx",
+      "^@unif/react-native-hms-scan/mock$": "<rootDir>/src/mock.ts"
+    },
     "modulePathIgnorePatterns": [
       "<rootDir>/example/node_modules",
       "<rootDir>/lib/"
