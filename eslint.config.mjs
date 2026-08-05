@@ -7,7 +7,6 @@ export default tseslint.config(
     ignores: [
       'lib/**',
       'node_modules/**',
-      'example/**',
       'website/**',
       'coverage/**',
       '*.config.js',
@@ -25,6 +24,8 @@ export default tseslint.config(
         clearTimeout: 'readonly',
         jest: 'readonly',
         require: 'readonly',
+        module: 'readonly',
+        __dirname: 'readonly',
       },
     },
     rules: {

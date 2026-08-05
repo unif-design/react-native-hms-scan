@@ -4,12 +4,188 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const rootDir = fileURLToPath(new URL('..', import.meta.url));
+const readPackageJson = (relativePath) =>
+  JSON.parse(readFileSync(path.join(rootDir, relativePath), 'utf8'));
+const read = (relativePath) =>
+  readFileSync(path.join(rootDir, relativePath), 'utf8');
 const source = readFileSync(
   path.join(
     rootDir,
     'android/src/main/java/com/unif/reactnativehmsscan/HmsScanView.kt'
   ),
   'utf8'
+);
+
+const rootPackage = readPackageJson('package.json');
+const examplePackage = readPackageJson('example/package.json');
+const websitePackage = readPackageJson('website/package.json');
+const lockfile = read('yarn.lock');
+const androidManifest = read(
+  'example/android/app/src/main/AndroidManifest.xml'
+);
+const androidBuild = read('example/android/build.gradle');
+const androidGradleProperties = read(
+  'example/android/gradle.properties'
+);
+
+const sharedRuntimeDependencies = {
+  '@sbaiahmed1/react-native-blur': '^4.6.2',
+  '@unif/react-native-design': '0.20.0',
+  react: '19.2.3',
+  'react-native': '0.86.2',
+  'react-native-gesture-handler': '^3.1.0',
+  'react-native-reanimated': '^4.5.3',
+  'react-native-reanimated-carousel': '^5.0.0',
+  'react-native-safe-area-context': '^5.7.0',
+  'react-native-svg': '^15.15.5',
+  'react-native-worklets': '^0.11.3',
+};
+
+const expectedPublicPeerDependencies = {
+  '@sbaiahmed1/react-native-blur': '>=4',
+  '@unif/react-native-design': '>=0.8.0',
+  react: '>=19.0.0',
+  'react-native': '>=0.80.0',
+  'react-native-gesture-handler': '>=2.21.0',
+  'react-native-reanimated': '>=4.0.0',
+  'react-native-reanimated-carousel': '>=5.0.0-beta.0',
+  'react-native-safe-area-context': '>=5.0.0',
+  'react-native-svg': '>=15',
+  'react-native-worklets': '*',
+};
+
+function assertExactDependencies(manifest, field, manifestPath, expected) {
+  for (const [name, version] of Object.entries(expected)) {
+    assert.equal(
+      manifest[field]?.[name],
+      version,
+      `${manifestPath} must declare ${name} as ${version} in ${field}`
+    );
+  }
+}
+
+function assertReactNativeLockfileResolution(contents) {
+  const expectedResolution = 'react-native@npm:0.86.2';
+  const packageDescriptors = [
+    ...contents.matchAll(/^"(react-native@npm:[^"]+)":$/gm),
+  ].map(([, descriptor]) => descriptor);
+  const packageResolutions = [
+    ...contents.matchAll(
+      /^  resolution: "(react-native@npm:[^"]+)"$/gm
+    ),
+  ].map(([, resolution]) => resolution);
+
+  assert.deepEqual(
+    packageDescriptors,
+    [expectedResolution],
+    `yarn.lock must contain exactly one ${expectedResolution} package key; found ${packageDescriptors.join(', ') || 'none'}`
+  );
+  assert.deepEqual(
+    packageResolutions,
+    [expectedResolution],
+    `yarn.lock must contain exactly one ${expectedResolution} package resolution; found ${packageResolutions.join(', ') || 'none'}`
+  );
+}
+
+assertExactDependencies(rootPackage, 'devDependencies', 'package.json', {
+  ...sharedRuntimeDependencies,
+  '@babel/core': '^7.25.2',
+  '@eslint/js': '^8.57.1',
+  '@react-native/babel-preset': '0.86.2',
+  '@react-native/eslint-config': '0.86.2',
+  '@react-native/jest-preset': '0.86.2',
+  '@react-native/metro-config': '0.86.2',
+  eslint: '^8.57.1',
+  'react-test-renderer': '19.2.3',
+});
+assertExactDependencies(
+  examplePackage,
+  'dependencies',
+  'example/package.json',
+  {
+    ...sharedRuntimeDependencies,
+    '@unif/react-native-hms-scan': 'workspace:*',
+    'react-native-image-picker': '8.2.1',
+  }
+);
+assertExactDependencies(
+  websitePackage,
+  'dependencies',
+  'website/package.json',
+  {
+    ...sharedRuntimeDependencies,
+    '@unif/react-native-hms-scan': 'workspace:*',
+    'react-dom': '19.2.3',
+  }
+);
+assertExactDependencies(
+  websitePackage,
+  'devDependencies',
+  'website/package.json',
+  {
+    '@babel/core': '^7.25.2',
+    '@react-native/metro-config': '0.86.2',
+    '@types/react': '^19.2.0',
+  }
+);
+assertReactNativeLockfileResolution(lockfile);
+
+const examplePermissions = [
+  ...androidManifest.matchAll(
+    /<uses-permission\s+android:name="([^"]+)"/g
+  ),
+].map(([, permission]) => permission);
+assert.deepEqual(
+  examplePermissions,
+  ['android.permission.INTERNET'],
+  'example app manifest 不得新增 location 或其他权限；扫码权限由库 manifest 合并'
+);
+assert.equal(
+  androidManifest.includes('android.permission.ACCESS_FINE_LOCATION'),
+  false
+);
+assert.ok(
+  androidBuild.includes('https://developer.huawei.com/repo/'),
+  'example 必须保留 Huawei Maven'
+);
+assert.match(
+  androidBuild,
+  /minSdkVersion\s*=\s*24/,
+  'example minSdkVersion 必须为 24'
+);
+assert.match(
+  androidGradleProperties,
+  /^newArchEnabled=true$/m,
+  'example 必须启用 React Native 新架构'
+);
+
+assert.deepEqual(
+  rootPackage.peerDependencies,
+  expectedPublicPeerDependencies,
+  'package.json peerDependencies must match the published public contract exactly'
+);
+
+const installedDesign = readPackageJson(
+  'node_modules/@unif/react-native-design/package.json'
+);
+const installedGestureHandler = readPackageJson(
+  'node_modules/react-native-gesture-handler/package.json'
+);
+const installedCarousel = readPackageJson(
+  'node_modules/react-native-reanimated-carousel/package.json'
+);
+
+assert.equal(installedDesign.version, '0.20.0');
+assert.equal(
+  installedDesign.peerDependencies['react-native-gesture-handler'],
+  '>=3.0.0 <4.0.0'
+);
+assert.equal(installedGestureHandler.version, '3.1.0');
+assert.equal(installedCarousel.version, '5.0.0');
+assert.equal(
+  installedCarousel.peerDependencies['react-native-gesture-handler'],
+  '>=2.9.0 <3.0.0',
+  'only the exact Carousel 5 / Gesture Handler 3 peer exception is approved'
 );
 
 function methodBody(signature) {

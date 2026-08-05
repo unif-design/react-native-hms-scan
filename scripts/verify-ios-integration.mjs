@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,6 +7,34 @@ import { fileURLToPath } from 'node:url';
 const rootDir = fileURLToPath(new URL('..', import.meta.url));
 const read = (relativePath) =>
   readFileSync(path.join(rootDir, relativePath), 'utf8');
+const readPackageJson = (relativePath) => JSON.parse(read(relativePath));
+const infoPlist = read(
+  'example/ios/ReactNativeHmsScanExample/Info.plist'
+);
+
+function assertChineseUsageDescription(key, label) {
+  assert.match(
+    infoPlist,
+    new RegExp(
+      `<key>${key}</key>\\s*<string>[^<]*[\\u3400-\\u9fff][^<]*</string>`
+    ),
+    `example iOS 必须提供非空中文${label}用途说明`
+  );
+}
+
+assertChineseUsageDescription(
+  'NSCameraUsageDescription',
+  '相机'
+);
+assertChineseUsageDescription(
+  'NSPhotoLibraryUsageDescription',
+  '相册'
+);
+assert.equal(
+  /<key>NSLocation[^<]*UsageDescription<\/key>/.test(infoPlist),
+  false,
+  '扫码 showcase 不得申请定位权限'
+);
 
 const podspec = read('ReactNativeHmsScan.podspec');
 assert.match(
@@ -36,12 +64,41 @@ assert.equal(
   '旧 XCFramework 生成脚本必须删除'
 );
 
-const packageJson = JSON.parse(read('package.json'));
+const packageJson = readPackageJson('package.json');
 assert.equal(
   packageJson.files.includes('scripts'),
   false,
   'repo-only 验证脚本不得随 npm 包发布'
 );
+const examplePackageJson = readPackageJson('example/package.json');
+assert.equal(
+  examplePackageJson.dependencies['react-native'],
+  '0.86.2',
+  'example 必须使用 RN 0.86.2'
+);
+for (const preset of [
+  '@react-native/babel-preset',
+  '@react-native/jest-preset',
+  '@react-native/metro-config',
+  '@react-native/typescript-config',
+]) {
+  assert.equal(
+    examplePackageJson.devDependencies[preset],
+    '0.86.2',
+    `example ${preset} 必须与 RN 0.86.2 对齐`
+  );
+}
+for (const cliPackage of [
+  '@react-native-community/cli',
+  '@react-native-community/cli-platform-android',
+  '@react-native-community/cli-platform-ios',
+]) {
+  assert.equal(
+    examplePackageJson.devDependencies[cliPackage],
+    '20.1.0',
+    `example ${cliPackage} 必须使用 CLI 20.1.0`
+  );
+}
 
 const [packResult] = JSON.parse(
   execFileSync(
@@ -91,7 +148,6 @@ assert.deepEqual(
   'npm tarball 不得包含 Apple 二进制资源'
 );
 
-const examplePackageJson = JSON.parse(read('example/package.json'));
 assert.equal(
   examplePackageJson.scripts.ios,
   'react-native run-ios --device',
@@ -112,10 +168,37 @@ assert.equal(
 
 if (process.argv.includes('--require-lock')) {
   const lockPath = path.join(rootDir, 'example/ios/Podfile.lock');
+  const repositoryLockPath = 'example/ios/Podfile.lock';
   assert.equal(
     existsSync(lockPath),
     true,
     'native build 前必须生成 example/ios/Podfile.lock'
+  );
+  const tracked = spawnSync(
+    'git',
+    ['ls-files', '--error-unmatch', repositoryLockPath],
+    {
+      cwd: rootDir,
+      encoding: 'utf8',
+    }
+  );
+  assert.equal(
+    tracked.status,
+    0,
+    `${repositoryLockPath} 必须纳入 Git 版本控制: ${tracked.stderr}`
+  );
+  const ignored = spawnSync(
+    'git',
+    ['check-ignore', '--no-index', '-v', repositoryLockPath],
+    {
+      cwd: rootDir,
+      encoding: 'utf8',
+    }
+  );
+  assert.equal(
+    ignored.status,
+    1,
+    `${repositoryLockPath} 不得匹配 ignore 规则: ${ignored.stdout}`
   );
   assert.match(
     read('example/ios/Podfile.lock'),

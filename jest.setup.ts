@@ -4,6 +4,14 @@
 //     依赖）。注意：tsc 仍用 design 的真实类型校验源码，本 mock 只影响 jest 运行时。
 //   - 库自身的 Scanner 单测会再各自 mock HmsScanView / NativeHmsScan。
 
+jest.mock('./example/node_modules/react', () => jest.requireActual('react'));
+jest.mock('./example/node_modules/react/jsx-runtime', () =>
+  jest.requireActual('react/jsx-runtime')
+);
+jest.mock('./example/node_modules/react/jsx-dev-runtime', () =>
+  jest.requireActual('react/jsx-dev-runtime')
+);
+
 jest.mock('react-native-svg', () => {
   const React = require('react');
   const { View } = require('react-native');
@@ -28,6 +36,50 @@ jest.mock('react-native-svg', () => {
     Stop: passthrough('Stop'),
   };
 });
+
+jest.mock('react-native-safe-area-context', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const insets = { top: 24, right: 0, bottom: 16, left: 0 };
+  const frame = { x: 0, y: 0, width: 320, height: 640 };
+
+  return {
+    __esModule: true,
+    initialWindowMetrics: { frame, insets },
+    SafeAreaProvider: ({ children }: { children?: unknown }) => children,
+    SafeAreaView: ({
+      children,
+      ...props
+    }: {
+      children?: unknown;
+    }) => React.createElement(View, props, children),
+    useSafeAreaInsets: jest.fn(() => insets),
+    useSafeAreaFrame: jest.fn(() => frame),
+  };
+});
+
+jest.mock('./example/node_modules/react-native-safe-area-context', () =>
+  jest.requireMock('react-native-safe-area-context')
+);
+
+jest.mock('react-native-gesture-handler', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+
+  return {
+    __esModule: true,
+    GestureHandlerRootView: ({
+      children,
+      ...props
+    }: {
+      children?: unknown;
+    }) => React.createElement(View, props, children),
+  };
+});
+
+jest.mock('./example/node_modules/react-native-gesture-handler', () =>
+  jest.requireMock('react-native-gesture-handler')
+);
 
 jest.mock('@unif/react-native-design', () => {
   const React = require('react');
@@ -89,6 +141,115 @@ jest.mock('@unif/react-native-design', () => {
       ...props,
     });
 
+  const EntryCard = ({
+    title,
+    sub,
+    onPress,
+    ...props
+  }: {
+    title?: string;
+    sub?: string;
+    onPress?: () => void;
+  }) =>
+    React.createElement(
+      Pressable,
+      {
+        onPress,
+        accessibilityRole: 'button',
+        accessibilityLabel: [title, sub].filter(Boolean).join(','),
+        ...props,
+      },
+      React.createElement(Text, null, title),
+      sub ? React.createElement(Text, null, sub) : null
+    );
+
+  const Tag = ({ label, ...props }: { label?: string }) =>
+    React.createElement(View, props, React.createElement(Text, null, label));
+
+  const NavBar = ({
+    title,
+    subtitle,
+    left,
+    ...props
+  }: {
+    title?: string;
+    subtitle?: string;
+    left?: {
+      onPress?: () => void;
+      accessibilityLabel?: string;
+    };
+  }) =>
+    React.createElement(
+      View,
+      props,
+      left
+        ? React.createElement(Pressable, {
+            onPress: left.onPress,
+            accessibilityRole: 'button',
+            accessibilityLabel: left.accessibilityLabel,
+          })
+        : null,
+      React.createElement(Text, null, title),
+      subtitle ? React.createElement(Text, null, subtitle) : null
+    );
+
+  const Segmented = ({
+    value,
+    onChange,
+    items,
+    disabled,
+    ...props
+  }: {
+    value?: string;
+    onChange?: (id: string) => void;
+    items?: readonly { id: string; label: string; disabled?: boolean }[];
+    disabled?: boolean;
+  }) =>
+    React.createElement(
+      View,
+      props,
+      items?.map((item) => {
+        const itemDisabled = disabled || item.disabled;
+
+        return React.createElement(
+          Pressable,
+          {
+            key: item.id,
+            accessibilityRole: 'tab',
+            accessibilityLabel: item.label,
+            accessibilityState: {
+              selected: value === item.id,
+              disabled: itemDisabled,
+            },
+            disabled: itemDisabled,
+            onPress: () => onChange?.(item.id),
+          },
+          React.createElement(Text, null, item.label)
+        );
+      })
+    );
+
+  const Switch = ({
+    value,
+    onChange,
+    disabled,
+    accessibilityLabel,
+    ...props
+  }: {
+    value?: boolean;
+    onChange?: (value: boolean) => void;
+    disabled?: boolean;
+    accessibilityLabel?: string;
+  }) =>
+    React.createElement(Pressable, {
+      accessibilityRole: 'switch',
+      accessibilityLabel,
+      accessibilityState: { checked: value, disabled },
+      disabled,
+      onPress: () => onChange?.(!value),
+      ...props,
+    });
+
   const toast = Object.assign(jest.fn(), {
     success: jest.fn(),
     error: jest.fn(),
@@ -125,9 +286,18 @@ jest.mock('@unif/react-native-design', () => {
     IconButton,
     Button,
     Card: box(),
+    EntryCard,
+    Tag,
+    NavBar,
+    Segmented,
+    Switch,
     Avatar,
     Empty,
     Spinner: box(),
     StatusDot: box(),
   };
 });
+
+jest.mock('./example/node_modules/@unif/react-native-design', () =>
+  jest.requireMock('@unif/react-native-design')
+);
