@@ -30,7 +30,7 @@ const androidGradleProperties = read(
 
 const sharedRuntimeDependencies = {
   '@sbaiahmed1/react-native-blur': '^4.6.2',
-  '@unif/react-native-design': '0.20.0',
+  '@unif/react-native-design': '0.23.1',
   react: '19.2.3',
   'react-native': '0.86.2',
   'react-native-gesture-handler': '^3.1.0',
@@ -175,7 +175,7 @@ const installedCarousel = readPackageJson(
   'node_modules/react-native-reanimated-carousel/package.json'
 );
 
-assert.equal(installedDesign.version, '0.20.0');
+assert.equal(installedDesign.version, '0.23.1');
 assert.equal(
   installedDesign.peerDependencies['react-native-gesture-handler'],
   '>=3.0.0 <4.0.0'

@@ -139,7 +139,7 @@ test('Android integration matches React Native lock entries instead of unrelated
     const websitePackage = {
       dependencies: {
         '@sbaiahmed1/react-native-blur': '^4.6.2',
-        '@unif/react-native-design': '0.20.0',
+        '@unif/react-native-design': '0.23.1',
         '@unif/react-native-hms-scan': 'workspace:*',
         react: '19.2.3',
         'react-dom': '19.2.3',

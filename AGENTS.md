@@ -63,7 +63,7 @@ yarn workspace @unif/react-native-hms-scan-website build:llms
 
 ## 当前依赖基线
 
-开发与 example 使用 `@unif/react-native-design@0.20.0`、React `19.2.3`、RN `0.86.2`、RNGH 3(`^3.1.0`)和 Carousel 5(`^5.0.0`)。发布包的 public peer contract **保持根 `package.json` 既有原值**（包括 Design `>=0.8.0`、RN `>=0.80.0`、RNGH `>=2.21.0` 等）；不得为了开发基线而收紧或改写 public peers。
+开发与 example 使用 `@unif/react-native-design@0.23.1`、React `19.2.3`、RN `0.86.2`、RNGH 3(`^3.1.0`)和 Carousel 5(`^5.0.0`)。发布包的 public peer contract **保持根 `package.json` 既有原值**（包括 Design `>=0.8.0`、RN `>=0.80.0`、RNGH `>=2.21.0` 等）；不得为了开发基线而收紧或改写 public peers。
 
 ## 架构与约定
 
