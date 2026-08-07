@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { ThemeProvider } from '@unif/react-native-design';
 import {
   decodeImage,
   HmsScanError,
@@ -40,7 +41,9 @@ function deferred<T>() {
 }
 
 function renderScreen() {
-  render(<DecodeImageShowcaseScreen onBack={jest.fn()} />);
+  render(<DecodeImageShowcaseScreen onBack={jest.fn()} />, {
+    wrapper: ThemeProvider,
+  });
 }
 
 beforeEach(() => {

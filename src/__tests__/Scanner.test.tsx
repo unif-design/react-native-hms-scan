@@ -8,6 +8,7 @@ import {
   waitFor,
 } from '@testing-library/react-native';
 import { AppState, Linking } from 'react-native';
+import { ToastHost } from '@unif/react-native-design';
 import { Scanner } from '../Scanner/Scanner';
 
 // 把底层原生组件换成纯桩，并捕获其 onScanResult / onScanError 供测试触发。
@@ -87,7 +88,8 @@ describe('<Scanner>', () => {
   it('不挂载内部 ToastHost，宿主无需 SafeAreaProvider', async () => {
     render(<Scanner />);
     await screen.findByText('扫一扫');
-    expect(screen.queryByTestId('design-toast-host')).toBeNull();
+    // ToastHost 是宿主职责：按真实组件类型断言，空闲时渲染 null 查不出来。
+    expect(screen.UNSAFE_queryAllByType(ToastHost)).toHaveLength(0);
   });
 
   it('autoConfirm 未传 onConfirm 时降级显示确认卡', async () => {

@@ -5,6 +5,7 @@ import {
   type NativeEventSubscription,
   Text,
 } from 'react-native';
+import { ConfirmHost, ToastHost, toast } from '@unif/react-native-design';
 import {
   decodeImage,
   getCameraPermissionStatus,
@@ -127,7 +128,15 @@ describe('AppProviders', () => {
     );
 
     expect(screen.getByText('provider child')).toBeOnTheScreen();
-    expect(screen.getAllByTestId('design-toast-host')).toHaveLength(1);
-    expect(screen.queryByTestId('design-confirm-host')).toBeNull();
+    // 真 ToastHost 空闲时渲染 null（而且重复挂载的那份会被 store 判成非 owner，同样
+    // 渲染 null），所以「有且只有一个」只能按组件类型数装配，查不出来。
+    expect(screen.UNSAFE_queryAllByType(ToastHost)).toHaveLength(1);
+    expect(screen.UNSAFE_queryAllByType(ConfirmHost)).toHaveLength(0);
+
+    // 再用一次真实投递证明这一个 Host 确实活着（装配对但没接上 store 也会静默失效）。
+    act(() => {
+      toast('已保存');
+    });
+    expect(screen.getAllByText('已保存')).toHaveLength(1);
   });
 });
