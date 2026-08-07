@@ -63,7 +63,7 @@ yarn workspace @unif/react-native-hms-scan-website build:llms
 
 ## 当前依赖基线
 
-开发与 example 使用 `@unif/react-native-design@0.23.1`、React `19.2.3`、RN `0.86.2`、RNGH 3(`^3.1.0`)和 Carousel 5(`^5.0.0`)。发布包的 public peer contract **保持根 `package.json` 既有原值**（包括 Design `>=0.8.0`、RN `>=0.80.0`、RNGH `>=2.21.0` 等）；不得为了开发基线而收紧或改写 public peers。
+开发与 example 使用 `@unif/react-native-design@0.24.0`、React `19.2.3`、RN `0.86.2`、RNGH 3(`^3.1.0`)和 Carousel 5(`^5.0.0`)。发布包的 public peer contract **保持根 `package.json` 既有原值**（包括 Design `>=0.8.0`、RN `>=0.80.0`、RNGH `>=2.21.0` 等）；不得为了开发基线而收紧或改写 public peers。
 
 ## 架构与约定
 
@@ -153,7 +153,19 @@ decodeImage        从本地图片识别 → ScanResult[]
 
 - 测试 colocate 在 `src/__tests__/`(注意:与 design 仓不同 —— design 放仓库根 `__tests__/`,本仓在 `src/` 内)。
 - 覆盖纯逻辑(`format`)、`<Scanner>` 状态机(含权限、从设置返回重查、fatal error、普通确认、`autoConfirm` 回退结果卡及未识别分支)、相册并发、旧异步链失效与跨 scan session 迟到 callback、手电状态回写、readonly 类型、`ResultFocus` 可读性 token 和官方 mock 自检;组件测试只 mock 原生边界、权限与 `decodeImage`;Android torch 的 RemoteView 生命周期 / 回读 / emit 契约由 `scripts/verify-android-integration.mjs` 锁定。
-- `jest` 用 `@react-native/jest-preset`,`setupFiles: ./jest.setup.ts`。
+- 根 `jest` 用 `@unif/react-native-design/jest-preset`(design 自己发布的接线入口:RNGH 官方
+  `jestSetup` + `Pressable` / `GestureDetector` 壳、worklets 与 safe-area 官方 mock、真实
+  reanimated + `setUpTests()`、组合 resolver、`transformIgnorePatterns` 放行 design 与 7 个
+  peer)。测试渲染**真实 design 组件**,不再把 design 整包 mock 成桩。
+- 三处配套,改 jest 接线时一起看:
+  - `package.json#jest.moduleNameMapper` 把 `react` / `@unif/react-native-design` / RNGH /
+    safe-area / reanimated / worklets 钉到**仓根**那份拷贝。root 与 example 各有一份物理
+    拷贝,不钉住的话 example 测试加载的是 example 那份 —— 与 preset 里 jest-setup 注册
+    mock 的那份不是同一个模块,官方桩打不上(React 还会双实例)。
+  - `babel.config.js` 的 node_modules override 挂 `react-native-worklets/plugin`:design 发布
+    的 `lib/module` 留着没有依赖数组的 `useAnimatedStyle`,等宿主插件注入。
+  - `jest.setup.ts`(`setupFiles`)只放本仓特有替身,peer 接线全部来自 preset。
+- example 测试由**根** Jest 跑(`yarn jest example/src`);example 工作区没有自己的 jest 配置。
 - **消费者**测试本库:用随包官方 mock 整包替换(避免 jest 环境加载 TurboModule / Fabric 组件崩溃):
 
   ```ts

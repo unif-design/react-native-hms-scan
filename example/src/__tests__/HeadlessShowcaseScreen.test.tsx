@@ -7,6 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react-native';
 import { AppState, Linking, View, type AppStateStatus } from 'react-native';
+import { ThemeProvider } from '@unif/react-native-design';
 import {
   getCameraPermissionStatus,
   requestCameraPermission,
@@ -67,7 +68,8 @@ function renderScreen({
       onBack={jest.fn()}
       platform={platform}
       HmsScanViewComponent={HmsScanViewProbe}
-    />
+    />,
+    { wrapper: ThemeProvider }
   );
 
   return {

@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { View } from 'react-native';
+import { ThemeProvider } from '@unif/react-native-design';
 import type {
   ScanError,
   ScannerProps,
@@ -85,7 +86,8 @@ function renderWithScanner(
       onBack={jest.fn()}
       onActiveBackHandlerChange={onActiveBackHandlerChange}
       ScannerComponent={ScannerProbe}
-    />
+    />,
+    { wrapper: ThemeProvider }
   );
 
   return {
@@ -146,7 +148,9 @@ describe('ScannerShowcaseScreen', () => {
   });
 
   it('配置页公开唯一 demo EAN-13、预期商品和未命中边界', async () => {
-    render(<ScannerShowcaseScreen onBack={jest.fn()} />);
+    render(<ScannerShowcaseScreen onBack={jest.fn()} />, {
+      wrapper: ThemeProvider,
+    });
 
     expect(screen.getByText('EAN-13：6925303773908')).toBeOnTheScreen();
     expect(screen.getByText(/阿萨姆原味奶茶 500ml/)).toBeOnTheScreen();
@@ -233,7 +237,9 @@ describe('ScannerShowcaseScreen', () => {
 
   it('配置页返回按钮调用上层路由', () => {
     const onBack = jest.fn();
-    render(<ScannerShowcaseScreen onBack={onBack} />);
+    render(<ScannerShowcaseScreen onBack={onBack} />, {
+      wrapper: ThemeProvider,
+    });
 
     fireEvent.press(screen.getByRole('button', { name: '返回' }));
 
