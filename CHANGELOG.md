@@ -1,5 +1,33 @@
 # Changelog
 
+# [0.6.0](https://github.com/unif-design/react-native-hms-scan/compare/v0.5.6...v0.6.0) (2026-08-14)
+
+
+* build!: 抬高 RN 与 design 的 public peer 下限 (#66) ([07d5d89](https://github.com/unif-design/react-native-hms-scan/commit/07d5d89e1e918e49a64b963ac900db276807bd58)), closes [#66](https://github.com/unif-design/react-native-hms-scan/issues/66)
+
+
+### BREAKING CHANGES
+
+* react-native peer 下限 >=0.80.0 → >=0.86.0,
+@unif/react-native-design peer 下限 >=0.8.0 → >=0.26.0。
+RN 0.80–0.85 的宿主需先升 RN 才能装本库。
+
+* build(deps): 开发基线 design 升到 0.26.0
+
+上一个 commit 把 public peer 下限抬到 design >=0.26.0,但开发基线还停在 0.24.0 ——
+等于发布一份自己从不验证的契约,yarn install 也一直警告 0.24.0 不满足 >=0.26.0。
+把开发基线一并升上去,该警告消失。
+
+design 装在三个 workspace,漏一个 yarn 就装两份:根 devDependencies、
+example/package.json、website/package.json。另有四处镜像同一版本号:
+verify-android-integration.mjs 的 sharedRuntimeDependencies 与 installedDesign
+版本断言、integration-contract 测试的 website fixture、AGENTS.md 与 example/README
+的基线说明。
+
+0.24.0 → 0.26.0 对本仓是 drop-in:两版 peerDependencies 内容一致(RNGH 仍为
+>=3.0.0 <4.0.0,verify 脚本那条例外断言不用动),typecheck 与 146 个测试全过,
+未因此改动 example 或测试代码。
+
 ## [0.5.6](https://github.com/unif-design/react-native-hms-scan/compare/v0.5.5...v0.5.6) (2026-08-07)
 
 ## [0.5.5](https://github.com/unif-design/react-native-hms-scan/compare/v0.5.4...v0.5.5) (2026-08-03)
