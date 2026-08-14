@@ -13,7 +13,7 @@
     "@sbaiahmed1/react-native-blur": "^4.6.2",
     "@unif/react-native-design": "0.26.0",
     "@unif/react-native-hms-scan": "workspace:*",
-    "react": "19.2.3",
+    "react": "19.2.8",
     "react-native": "0.86.2",
     "react-native-gesture-handler": "^3.1.0",
     "react-native-image-picker": "8.2.1",

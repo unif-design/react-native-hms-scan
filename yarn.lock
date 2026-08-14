@@ -5821,11 +5821,11 @@ __metadata:
   linkType: hard
 
 "@types/react@npm:*, @types/react@npm:^19.2.0":
-  version: 19.2.15
-  resolution: "@types/react@npm:19.2.15"
+  version: 19.2.18
+  resolution: "@types/react@npm:19.2.18"
   dependencies:
     csstype: "npm:^3.2.2"
-  checksum: 10c0/b554eab715bb14e581f0ae60e5cefe91e1a5e06c31022b543a9806cf224aa056f21e4fb46208e46eb934d86ca0b247ebc82377192a0dead303cb28b8764c6e67
+  checksum: 10c0/d04216172b4b4362b310017c210dfbe019fb4f4e7dffd0313e70b3acb3051d5c3e76e7e84e3cf4c6a3c824993ffadfe3949e589a6398a09d4200e7670e2962de
   languageName: node
   linkType: hard
 
@@ -6133,7 +6133,7 @@ __metadata:
     "@types/react": "npm:^19.2.0"
     "@unif/react-native-design": "npm:0.26.0"
     "@unif/react-native-hms-scan": "workspace:*"
-    react: "npm:19.2.3"
+    react: "npm:19.2.8"
     react-native: "npm:0.86.2"
     react-native-builder-bob: "npm:^0.41.0"
     react-native-gesture-handler: "npm:^3.1.0"
@@ -6166,7 +6166,7 @@ __metadata:
     "@unif/react-native-hms-scan": "workspace:*"
     clsx: "npm:^2.0.0"
     prism-react-renderer: "npm:^2.3.0"
-    react: "npm:19.2.3"
+    react: "npm:19.2.8"
     react-dom: "npm:19.2.3"
     react-native: "npm:0.86.2"
     react-native-gesture-handler: "npm:^3.1.0"
@@ -6205,7 +6205,7 @@ __metadata:
     eslint-plugin-prettier: "npm:^5.5.5"
     jest: "npm:^29.7.0"
     prettier: "npm:^3.8.1"
-    react: "npm:19.2.3"
+    react: "npm:19.2.8"
     react-native: "npm:0.86.2"
     react-native-builder-bob: "npm:^0.41.0"
     react-native-gesture-handler: "npm:^3.1.0"
@@ -17407,10 +17407,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@npm:19.2.3":
-  version: 19.2.3
-  resolution: "react@npm:19.2.3"
-  checksum: 10c0/094220b3ba3a76c1b668f972ace1dd15509b157aead1b40391d1c8e657e720c201d9719537375eff08f5e0514748c0319063392a6f000e31303aafc4471f1436
+"react@npm:19.2.8":
+  version: 19.2.8
+  resolution: "react@npm:19.2.8"
+  checksum: 10c0/5f86bdb56426652fd6d989d30a6f2e603c057272c47c9ca3a3fbe190a3a39ee9ccce937d63cfc039717abed1b8891d6a499134bc35311acc07eafdacd86537cd
   languageName: node
   linkType: hard
 
