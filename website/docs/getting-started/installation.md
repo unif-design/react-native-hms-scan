@@ -40,7 +40,7 @@ yarn add @unif/react-native-hms-scan \
 
 | 包 | 版本约束 | 作用 |
 | --- | --- | --- |
-| `@unif/react-native-design` | `>=0.8.0` | `<Scanner>` 的主题、取景框、工具栏、结果卡全用它绘制 |
+| `@unif/react-native-design` | `>=0.26.0` | `<Scanner>` 的主题、取景框、工具栏、结果卡全用它绘制 |
 | `react-native-svg` | `>=15` | `<Scanner>` 图标 |
 | `@sbaiahmed1/react-native-blur` | `>=4` | design 界面毛玻璃 |
 | `react-native-gesture-handler` | `>=2.21.0` | design / 手势 |
