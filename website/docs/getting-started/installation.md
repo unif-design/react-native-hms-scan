@@ -45,7 +45,7 @@ yarn add @unif/react-native-hms-scan \
 | `@sbaiahmed1/react-native-blur` | `>=4` | design 界面毛玻璃 |
 | `react-native-gesture-handler` | `>=2.21.0` | design / 手势 |
 | `react-native-reanimated` | `>=4.0.0` | design 动画 |
-| `react-native-reanimated-carousel` | `>=5.0.0-beta.0` | design 组件依赖 |
+| `react-native-reanimated-carousel` | `>=5.0.0 <6.0.0` | design 组件依赖 |
 | `react-native-safe-area-context` | `>=5.0.0` | 安全区适配 |
 | `react-native-worklets` | `*` | reanimated 4 的 worklet 运行时 |
 
