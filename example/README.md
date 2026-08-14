@@ -1,6 +1,6 @@
 # HMS Scan Example
 
-`example/` 是 `@unif/react-native-hms-scan` 的展示宿主。首页提供三个独立入口：成品 `<Scanner>`、headless `<HmsScanView>` 与 `decodeImage` 本地图片识别。它使用 RN 0.86.2、React 19.2.3、`@unif/react-native-design` 0.24.0 和 RNGH 3；这些是仓库开发基线，不会改变 library 在根 `package.json` 中的 public peer contract。
+`example/` 是 `@unif/react-native-hms-scan` 的展示宿主。首页提供三个独立入口：成品 `<Scanner>`、headless `<HmsScanView>` 与 `decodeImage` 本地图片识别。它使用 RN 0.86.2、React 19.2.3、`@unif/react-native-design` 0.26.0 和 RNGH 3；这些是仓库开发基线，不会改变 library 在根 `package.json` 中的 public peer contract。
 
 ## 安装
 
