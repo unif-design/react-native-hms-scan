@@ -63,7 +63,7 @@ yarn workspace @unif/react-native-hms-scan-website build:llms
 
 ## 当前依赖基线
 
-开发与 example 使用 `@unif/react-native-design@0.24.0`、React `19.2.3`、RN `0.86.2`、RNGH 3(`^3.1.0`)和 Carousel 5(`^5.0.0`)。发布包的 public peer contract **保持根 `package.json` 既有原值**（包括 Design `>=0.8.0`、RN `>=0.80.0`、RNGH `>=2.21.0` 等）；不得为了开发基线而收紧或改写 public peers。
+开发与 example 使用 `@unif/react-native-design@0.24.0`、React `19.2.3`、RN `0.86.2`、RNGH 3(`^3.1.0`)和 Carousel 5(`^5.0.0`)。发布包的 public peer contract 与开发基线是**两件事**,以根 `package.json` 的 `peerDependencies` 为准 —— 当前 Design `>=0.26.0`、RN `>=0.86.0`、RNGH `>=2.21.0` 等。不得为了开发基线而收紧或改写 public peers:example 或 devDependencies 用了哪个版本,都不构成抬高 peer 下限的理由。抬高下限会直接切断老版本消费者,属破坏性变更,只能由 owner 显式决策;真要改,四处必须同步 —— 根 `package.json`、`scripts/verify-android-integration.mjs` 的 `expectedPublicPeerDependencies`、`yarn.lock`、`website/docs/getting-started/installation.md`。
 
 ## 架构与约定
 
