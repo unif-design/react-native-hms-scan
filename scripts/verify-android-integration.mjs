@@ -48,7 +48,7 @@ const expectedPublicPeerDependencies = {
   'react-native': '>=0.80.0',
   'react-native-gesture-handler': '>=2.21.0',
   'react-native-reanimated': '>=4.0.0',
-  'react-native-reanimated-carousel': '>=5.0.0-beta.0',
+  'react-native-reanimated-carousel': '>=5.0.0 <6.0.0',
   'react-native-safe-area-context': '>=5.0.0',
   'react-native-svg': '>=15',
   'react-native-worklets': '*',
