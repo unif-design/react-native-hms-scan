@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/unif-design/react-native-hms-scan/compare/v0.6.0...v0.6.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* 兼容 RN 0.86.3 与新版动画依赖 ([#71](https://github.com/unif-design/react-native-hms-scan/issues/71)) ([1c8e97f](https://github.com/unif-design/react-native-hms-scan/commit/1c8e97fc28efae2cfee69db5094cb55a688a640c))
+
 # [0.6.0](https://github.com/unif-design/react-native-hms-scan/compare/v0.5.6...v0.6.0) (2026-08-14)
 
 
