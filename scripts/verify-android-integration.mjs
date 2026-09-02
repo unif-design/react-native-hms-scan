@@ -29,16 +29,16 @@ const androidGradleProperties = read(
 );
 
 const sharedRuntimeDependencies = {
-  '@sbaiahmed1/react-native-blur': '^4.6.2',
-  '@unif/react-native-design': '0.26.0',
+  '@sbaiahmed1/react-native-blur': '6.0.1',
+  '@unif/react-native-design': '0.30.1',
   react: '19.2.3',
-  'react-native': '0.86.2',
+  'react-native': '0.86.3',
   'react-native-gesture-handler': '^3.1.0',
-  'react-native-reanimated': '^4.5.3',
+  'react-native-reanimated': '^4.6.0',
   'react-native-reanimated-carousel': '^5.0.0',
   'react-native-safe-area-context': '^5.7.0',
   'react-native-svg': '^15.15.5',
-  'react-native-worklets': '^0.11.3',
+  'react-native-worklets': '^0.12.1',
 };
 
 const expectedPublicPeerDependencies = {
@@ -65,7 +65,7 @@ function assertExactDependencies(manifest, field, manifestPath, expected) {
 }
 
 function assertReactNativeLockfileResolution(contents) {
-  const expectedResolution = 'react-native@npm:0.86.2';
+  const expectedResolution = 'react-native@npm:0.86.3';
   const packageDescriptors = [
     ...contents.matchAll(/^"(react-native@npm:[^"]+)":$/gm),
   ].map(([, descriptor]) => descriptor);
@@ -91,10 +91,10 @@ assertExactDependencies(rootPackage, 'devDependencies', 'package.json', {
   ...sharedRuntimeDependencies,
   '@babel/core': '^7.25.2',
   '@eslint/js': '^8.57.1',
-  '@react-native/babel-preset': '0.86.2',
-  '@react-native/eslint-config': '0.86.2',
-  '@react-native/jest-preset': '0.86.2',
-  '@react-native/metro-config': '0.86.2',
+  '@react-native/babel-preset': '0.86.3',
+  '@react-native/eslint-config': '0.86.3',
+  '@react-native/jest-preset': '0.86.3',
+  '@react-native/metro-config': '0.86.3',
   eslint: '^8.57.1',
   'react-test-renderer': '19.2.3',
 });
@@ -124,7 +124,7 @@ assertExactDependencies(
   'website/package.json',
   {
     '@babel/core': '^7.25.2',
-    '@react-native/metro-config': '0.86.2',
+    '@react-native/metro-config': '0.86.3',
     '@types/react': '^19.2.0',
   }
 );
@@ -175,7 +175,7 @@ const installedCarousel = readPackageJson(
   'node_modules/react-native-reanimated-carousel/package.json'
 );
 
-assert.equal(installedDesign.version, '0.26.0');
+assert.equal(installedDesign.version, '0.30.1');
 assert.equal(
   installedDesign.peerDependencies['react-native-gesture-handler'],
   '>=3.0.0 <4.0.0'

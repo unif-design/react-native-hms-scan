@@ -6,7 +6,6 @@ import {
   mkdtemp,
   readFile,
   rm,
-  symlink,
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -116,10 +115,39 @@ test('Android integration matches React Native lock entries instead of unrelated
         copyRepositoryFile(fixtureRoot, relativePath)
       )
     );
-    await symlink(
-      join(repositoryRoot, 'node_modules'),
-      join(fixtureRoot, 'node_modules'),
-      'dir'
+    await Promise.all(
+      [
+        [
+          '@unif/react-native-design',
+          {
+            version: '0.30.1',
+            peerDependencies: {
+              'react-native-gesture-handler': '>=3.0.0 <4.0.0',
+            },
+          },
+        ],
+        ['react-native-gesture-handler', { version: '3.1.0' }],
+        [
+          'react-native-reanimated-carousel',
+          {
+            version: '5.0.0',
+            peerDependencies: {
+              'react-native-gesture-handler': '>=2.9.0 <3.0.0',
+            },
+          },
+        ],
+      ].map(async ([packageName, manifest]) => {
+        const packageDirectory = join(
+          fixtureRoot,
+          'node_modules',
+          packageName
+        );
+        await mkdir(packageDirectory, { recursive: true });
+        await writeFile(
+          join(packageDirectory, 'package.json'),
+          `${JSON.stringify(manifest, null, 2)}\n`
+        );
+      })
     );
 
     const rootPackage = JSON.parse(
@@ -128,7 +156,7 @@ test('Android integration matches React Native lock entries instead of unrelated
     Object.assign(rootPackage.devDependencies, {
       '@babel/core': '^7.25.2',
       '@eslint/js': '^8.57.1',
-      '@react-native/metro-config': '0.86.2',
+      '@react-native/metro-config': '0.86.3',
       eslint: '^8.57.1',
     });
     await writeFile(
@@ -138,22 +166,22 @@ test('Android integration matches React Native lock entries instead of unrelated
 
     const websitePackage = {
       dependencies: {
-        '@sbaiahmed1/react-native-blur': '^4.6.2',
-        '@unif/react-native-design': '0.26.0',
+        '@sbaiahmed1/react-native-blur': '6.0.1',
+        '@unif/react-native-design': '0.30.1',
         '@unif/react-native-hms-scan': 'workspace:*',
         react: '19.2.3',
         'react-dom': '19.2.3',
-        'react-native': '0.86.2',
+        'react-native': '0.86.3',
         'react-native-gesture-handler': '^3.1.0',
-        'react-native-reanimated': '^4.5.3',
+        'react-native-reanimated': '^4.6.0',
         'react-native-reanimated-carousel': '^5.0.0',
         'react-native-safe-area-context': '^5.7.0',
         'react-native-svg': '^15.15.5',
-        'react-native-worklets': '^0.11.3',
+        'react-native-worklets': '^0.12.1',
       },
       devDependencies: {
         '@babel/core': '^7.25.2',
-        '@react-native/metro-config': '0.86.2',
+        '@react-native/metro-config': '0.86.3',
         '@types/react': '^19.2.0',
       },
     };
@@ -163,9 +191,9 @@ test('Android integration matches React Native lock entries instead of unrelated
       `${JSON.stringify(websitePackage, null, 2)}\n`
     );
 
-    const safeLockfile = `"react-native@npm:0.86.2":
-  version: 0.86.2
-  resolution: "react-native@npm:0.86.2"
+    const safeLockfile = `"react-native@npm:0.86.3":
+  version: 0.86.3
+  resolution: "react-native@npm:0.86.3"
 
 "unrelated-tool@npm:0.85.3":
   version: 0.85.3
@@ -209,7 +237,7 @@ test('Android integration matches React Native lock entries instead of unrelated
       `${JSON.stringify(rootPackage, null, 2)}\n`
     );
     const mutatedLockfile = safeLockfile.replaceAll(
-      'react-native@npm:0.86.2',
+      'react-native@npm:0.86.3',
       'react-native@npm:0.85.3'
     );
     await writeFile(join(fixtureRoot, 'yarn.lock'), mutatedLockfile);
