@@ -28,7 +28,7 @@ npx skills add unif-design/skills --skill rn-library --skill hms-scan --global -
 
 ## 仓库定位
 
-`@unif/react-native-hms-scan` —— 华为 **HMS 统一扫码(Scan Kit)** 的 React Native 封装。提供三种用法:成品「扫一扫」页 `<Scanner>`、headless 相机组件 `<HmsScanView>`、从本地图片识别 `decodeImage`。当前开发与 example 基线为 **RN 0.86.2 新架构**(Fabric + TurboModule)、React 19.2.3、TypeScript 6。**仅支持新架构**。
+`@unif/react-native-hms-scan` —— 华为 **HMS 统一扫码(Scan Kit)** 的 React Native 封装。提供三种用法:成品「扫一扫」页 `<Scanner>`、headless 相机组件 `<HmsScanView>`、从本地图片识别 `decodeImage`。当前开发与 example 基线为 **RN 0.86.3 新架构**(Fabric + TurboModule)、React 19.2.3、TypeScript 6。**仅支持新架构**。
 
 Android 用 **Scan SDK-Plus**(`com.huawei.hms:scanplus`,**内置引擎,非华为机也能用,不依赖设备装 HMS Core APK**);iOS 通过 CocoaPods 安装官方 **ScanKitFrameWork 1.1.2.305**,仅支持真机。两端**都不需要 AppGallery Connect / agconnect / API Key**。
 
@@ -63,7 +63,7 @@ yarn workspace @unif/react-native-hms-scan-website build:llms
 
 ## 当前依赖基线
 
-开发与 example 使用 `@unif/react-native-design@0.26.0`、React `19.2.3`、RN `0.86.2`、RNGH 3(`^3.1.0`)和 Carousel 5(`^5.0.0`)。发布包的 public peer contract 与开发基线是**两件事**,以根 `package.json` 的 `peerDependencies` 为准 —— 当前 Design `>=0.26.0`、RN `>=0.86.0`、RNGH `>=2.21.0` 等。不得为了开发基线而收紧或改写 public peers:example 或 devDependencies 用了哪个版本,都不构成抬高 peer 下限的理由。抬高下限会直接切断老版本消费者,属破坏性变更,只能由 owner 显式决策;真要改,四处必须同步 —— 根 `package.json`、`scripts/verify-android-integration.mjs` 的 `expectedPublicPeerDependencies`、`yarn.lock`、`website/docs/getting-started/installation.md`。
+开发与 example 使用 `@unif/react-native-design@0.30.0`、React `19.2.3`、RN `0.86.3`、RNGH 3(`^3.1.0`)和 Carousel 5(`^5.0.0`)。发布包的 public peer contract 与开发基线是**两件事**,以根 `package.json` 的 `peerDependencies` 为准 —— 当前 Design `>=0.26.0`、RN `>=0.86.0`、RNGH `>=2.21.0` 等。不得为了开发基线而收紧或改写 public peers:example 或 devDependencies 用了哪个版本,都不构成抬高 peer 下限的理由。抬高下限会直接切断老版本消费者,属破坏性变更,只能由 owner 显式决策;真要改,四处必须同步 —— 根 `package.json`、`scripts/verify-android-integration.mjs` 的 `expectedPublicPeerDependencies`、`yarn.lock`、`website/docs/getting-started/installation.md`。
 
 ## 架构与约定
 

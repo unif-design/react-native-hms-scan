@@ -73,8 +73,8 @@ assert.equal(
 const examplePackageJson = readPackageJson('example/package.json');
 assert.equal(
   examplePackageJson.dependencies['react-native'],
-  '0.86.2',
-  'example 必须使用 RN 0.86.2'
+  '0.86.3',
+  'example 必须使用 RN 0.86.3'
 );
 for (const preset of [
   '@react-native/babel-preset',
@@ -84,8 +84,8 @@ for (const preset of [
 ]) {
   assert.equal(
     examplePackageJson.devDependencies[preset],
-    '0.86.2',
-    `example ${preset} 必须与 RN 0.86.2 对齐`
+    '0.86.3',
+    `example ${preset} 必须与 RN 0.86.3 对齐`
   );
 }
 for (const cliPackage of [

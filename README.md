@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/npm/l/@unif/react-native-hms-scan.svg?color=blue)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-unif--design.github.io-orange.svg)](https://unif-design.github.io/react-native-hms-scan/)
 
-华为 **HMS 统一扫码(HUAWEI Scan Kit)** 的 React Native 封装,面向 RN 0.86.2 新架构(Fabric + TurboModule):成品扫一扫页、headless 自定义扫码 UI、从图片识别条码 / 二维码。
+华为 **HMS 统一扫码(HUAWEI Scan Kit)** 的 React Native 封装,面向 RN 0.86.3 新架构(Fabric + TurboModule):成品扫一扫页、headless 自定义扫码 UI、从图片识别条码 / 二维码。
 
 ## 特性
 
@@ -81,7 +81,7 @@ headless `<HmsScanView>`(完全自定义 UI)、图片识别 `decodeImage`、权�
 
 | 平台 | 支持 |
 | --- | --- |
-| React Native | 新架构(Fabric + TurboModule)**必须开启**;在 RN 0.86.2 / React 19.2.3 上开发与验证 |
+| React Native | 新架构(Fabric + TurboModule)**必须开启**;在 RN 0.86.3 / React 19.2.3 上开发与验证 |
 | Android | ✅ minSdkVersion ≥ 24(Android 7.0) |
 | iOS | ✅ 官方 CocoaPod `ScanKitFrameWork 1.1.2.305` + 真机 |
 | iOS Simulator | ❌ 不支持;无硬件逻辑测试使用随包 Jest mock |
