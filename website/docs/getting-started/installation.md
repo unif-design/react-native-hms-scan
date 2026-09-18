@@ -1,21 +1,21 @@
 ---
 sidebar_position: 1
 title: 安装
-description: "安装 @unif/react-native-hms-scan 及全部必装 peerDependencies（含 @unif/react-native-design 与其 UI 依赖），Android 宿主添加 Huawei Maven（无需 agconnect、minSdk≥24），iOS 通过 CocoaPods 安装官方 ScanKitFrameWork 1.1.2.305 并配置 NSCameraUsageDescription。仅支持新架构。"
+description: '安装依赖，配置原生权限、构建环境与宿主接线。'
 ---
 
 # 安装
 
-装齐 `@unif/react-native-hms-scan` 的全部同伴包,配置原生权限,完成编译。**peerDeps 缺一即崩** —— 本页以 `package.json` 的 `peerDependencies` 为准逐项列出。
+装齐 `@unif/react-native-hms-scan` 的全部同伴包,配置原生权限,完成编译。**peer 依赖需要完整配置** —— 本页以 `package.json` 的 `peerDependencies` 为准逐项列出。
 
 ## 环境要求
 
-| 要求 | 版本 |
-| --- | --- |
-| React Native | **新架构(Fabric + TurboModules)必须开启** |
-| React | 19+ |
-| Android | **minSdkVersion ≥ 24**(Android 7.0) |
-| iOS | 随宿主 RN 工程最低版本;原生构建和运行**仅支持真机** |
+| 要求         | 版本                                                |
+| ------------ | --------------------------------------------------- |
+| React Native | **新架构(Fabric + TurboModules)必须开启**           |
+| React        | 19+                                                 |
+| Android      | **minSdkVersion ≥ 24**(Android 7.0)                 |
+| iOS          | 随宿主 RN 工程最低版本;原生构建和运行**仅支持真机** |
 
 :::danger 仅支持新架构
 本库是 Fabric 组件 + TurboModule 桥,**仅支持新架构**。旧架构(Bridge)不受支持。安装前确认宿主已启用新架构(`android/gradle.properties` 的 `newArchEnabled=true` 等)。
@@ -25,7 +25,7 @@ description: "安装 @unif/react-native-hms-scan 及全部必装 peerDependencie
 
 ## 1. 安装依赖 {#安装依赖}
 
-以下同伴包**全部必装,缺一即崩**(以 `package.json` 的 `peerDependencies` 为准):
+以下同伴包需要按清单安装(以 `package.json` 的 `peerDependencies` 为准):
 
 ```sh
 yarn add @unif/react-native-hms-scan \
@@ -38,16 +38,16 @@ yarn add @unif/react-native-hms-scan \
 
 各包的作用与版本约束:
 
-| 包 | 版本约束 | 作用 |
-| --- | --- | --- |
-| `@unif/react-native-design` | `>=0.26.0` | `<Scanner>` 的主题、取景框、工具栏、结果卡全用它绘制 |
-| `react-native-svg` | `>=15` | `<Scanner>` 图标 |
-| `@sbaiahmed1/react-native-blur` | `>=4` | design 界面毛玻璃 |
-| `react-native-gesture-handler` | `>=2.21.0` | design / 手势 |
-| `react-native-reanimated` | `>=4.0.0` | design 动画 |
-| `react-native-reanimated-carousel` | `>=5.0.0 <6.0.0` | design 组件依赖 |
-| `react-native-safe-area-context` | `>=5.0.0` | 安全区适配 |
-| `react-native-worklets` | `*` | reanimated 4 的 worklet 运行时 |
+| 包                                 | 版本约束         | 作用                                                 |
+| ---------------------------------- | ---------------- | ---------------------------------------------------- |
+| `@unif/react-native-design`        | `>=0.26.0`       | `<Scanner>` 的主题、取景框、工具栏、结果卡全用它绘制 |
+| `react-native-svg`                 | `>=15`           | `<Scanner>` 图标                                     |
+| `@sbaiahmed1/react-native-blur`    | `>=4`            | design 界面毛玻璃                                    |
+| `react-native-gesture-handler`     | `>=2.21.0`       | design / 手势                                        |
+| `react-native-reanimated`          | `>=4.0.0`        | design 动画                                          |
+| `react-native-reanimated-carousel` | `>=5.0.0 <6.0.0` | design 组件依赖                                      |
+| `react-native-safe-area-context`   | `>=5.0.0`        | 安全区适配                                           |
+| `react-native-worklets`            | `*`              | reanimated 4 的 worklet 运行时                       |
 
 :::note 为什么扫码库要装这么多 UI 包
 这些 peerDeps 几乎都是**成品 `<Scanner>`** 间接需要的:`<Scanner>` 的取景框 / 工具栏 / 结果卡全部复用 [`@unif/react-native-design`](https://www.npmjs.com/package/@unif/react-native-design),而 design 自身依赖 `react-native-reanimated` / `react-native-gesture-handler` 等。即便你只用 headless `<HmsScanView>` 或 `decodeImage`,这些仍是声明的 peer —— 装齐即可,通常项目里已有大半。宿主若需要 toast,可自行在 App 根部挂载 `ToastHost`。
@@ -93,10 +93,10 @@ buildscript {
 
 若宿主的清单合并策略覆盖了它们,或你想显式声明,可在 `android/app/src/main/AndroidManifest.xml` 的 `<manifest>` 节点下补:
 
-| 权限 | 说明 |
-| --- | --- |
-| `android.permission.CAMERA` | 相机扫码所需权限 |
-| 相册 / 文件读取 | 由宿主图片选择器和 URI 来源决定;优先使用 picker 返回的临时 `content://` grant 或复制到 App 自有目录 |
+| 权限                        | 说明                                                                                                |
+| --------------------------- | --------------------------------------------------------------------------------------------------- |
+| `android.permission.CAMERA` | 相机扫码所需权限                                                                                    |
+| 相册 / 文件读取             | 由宿主图片选择器和 URI 来源决定;优先使用 picker 返回的临时 `content://` grant 或复制到 App 自有目录 |
 
 ```xml title="android/app/src/main/AndroidManifest.xml"
 <uses-permission android:name="android.permission.CAMERA" />
@@ -117,16 +117,16 @@ cd ios && bundle exec pod install
 `pod install` 会通过 CocoaPods 自动安装华为官方 `ScanKitFrameWork 1.1.2.305`,**无需额外配置**,同样**不需要 AppGallery Connect / API Key**。安装过程不会在 `node_modules` 中生成 XCFramework。
 
 :::warning iOS Simulator 不支持
-iOS 相机扫码与 `decodeImage` 原生路径都只支持真机。Simulator 的架构 / 链接失败属于当前明确的 unsupported target;请切换物理设备,不要通过清理 cache、生成本地 framework 或修改宿主 Podfile 追求 Simulator 成功。无硬件逻辑测试使用随包 Jest mock。`pod install` 输出的 `ScanKitFrameWork` LICENSE warning 无害。详见[常见问题](/docs/troubleshooting)。
+iOS 相机扫码与 `decodeImage` 原生路径都只支持真机。Simulator 的架构 / 链接失败属于当前明确的 unsupported target;请切换物理设备,不要通过清理 cache、生成本地 framework 或修改宿主 Podfile 追求 Simulator 成功。无硬件逻辑测试使用随包 Jest mock。`pod install` 的 LICENSE 提示需与安装或编译错误分别判断。详见[常见问题](/docs/troubleshooting)。
 :::
 
 ### Info.plist 权限 {#ios-permissions}
 
 在宿主 `ios/<AppName>/Info.plist` 中添加:
 
-| Key | 说明 |
-| --- | --- |
-| `NSCameraUsageDescription` | 相机使用说明(**必须**,展示给用户的文案) |
+| Key                              | 说明                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| `NSCameraUsageDescription`       | 相机使用说明(**必须**,展示给用户的文案)                                        |
 | `NSPhotoLibraryUsageDescription` | **仅当**宿主自己的图片选择器需要读相册时(本库 `decodeImage` 不直接读相册,见下) |
 
 ```xml title="ios/<AppName>/Info.plist"
@@ -151,6 +151,6 @@ iOS 相机扫码与 `decodeImage` 原生路径都只支持真机。Simulator 的
 
 ## 下一步
 
-- [快速上手](/docs/getting-started/quick-start) —— 5 分钟跑通第一个扫码页
+- [快速上手](/docs/getting-started/quick-start) —— 完成第一个扫码页
 - [指南 → 成品扫一扫页](/docs/guides/scanner) —— `<Scanner>` 完整使用说明
 - [API 参考 → Scanner](/docs/api/scanner) —— Scanner 完整 props 文档

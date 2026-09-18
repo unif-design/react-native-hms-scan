@@ -1,12 +1,12 @@
 ---
 sidebar_position: 2
 title: 快速上手
-description: "用 <Scanner> 5 分钟跑通第一个扫码页：丢一个 <Scanner> 进路由，传 onClose / resolveProduct / onConfirm，扫到条码弹浮层确认卡，确认带回上一级。pickImage 可选（相册）。"
+description: '完成最小接入，调用公开接口并处理结果。'
 ---
 
 # 快速上手
 
-5 分钟跑通第一个扫码页:把成品 `<Scanner>` 丢进一个路由,传 `onClose` / `resolveProduct` / `onConfirm`,它自带取景 → 识别 → 确认的完整流程。
+完成第一个扫码页:把成品 `<Scanner>` 丢进一个路由,传 `onClose` / `resolveProduct` / `onConfirm`,它自带取景 → 识别 → 确认的完整流程。
 
 :::warning iOS 仅支持真机
 iOS Simulator 不支持。ScanKit 相机扫码与 `decodeImage` 原生路径都必须在真机上构建和验证;无硬件环境中的 JS 逻辑使用随包 Jest mock。Android 真实扫码同样请用真机验证。先完成[安装](/docs/getting-started/installation)(peerDeps + Android Huawei Maven + iOS `pod install` / `NSCameraUsageDescription`)再运行本例。
@@ -17,14 +17,17 @@ iOS Simulator 不支持。ScanKit 相机扫码与 `decodeImage` 原生路径都�
 ## 最小可跑示例
 
 ```tsx
-import { Scanner, type ScanResult, type ScanProduct } from '@unif/react-native-hms-scan';
+import {
+  Scanner,
+  type ScanResult,
+  type ScanProduct,
+} from '@unif/react-native-hms-scan';
 
 function ScanScreen({ navigation }) {
   return (
     <Scanner
-      title="扫一扫"                                    // ① 顶栏标题（默认 "扫一扫"）
-      onClose={() => navigation.goBack()}              // ② 返回（底部工具栏，与手电筒并排）
-
+      title="扫一扫" // ① 顶栏标题（默认 "扫一扫"）
+      onClose={() => navigation.goBack()} // ② 返回（底部工具栏，与手电筒并排）
       // ③ 扫到条码后由你解析商品（查接口 / 本地库）。返回 null = 未识别 → 重扫弹层
       resolveProduct={async (r: ScanResult): Promise<ScanProduct | null> => {
         const p = await api.lookupByBarcode(r.value);
@@ -32,12 +35,10 @@ function ScanScreen({ navigation }) {
           ? { name: p.name, brand: p.brand, price: `¥${p.price}`, spec: p.spec }
           : null;
       }}
-
       // ④ 用户点"确定"：把结果带回上一级（通常在此导航返回）
       onConfirm={(product, result) => {
         navigation.navigate('Order', { barcode: result.value, product });
       }}
-
       // ⑤ （可选）点"相册"：用你自己的图片选择器返回本地 uri，取消返回 null
       pickImage={async () => {
         const res = await launchImageLibrary({ mediaType: 'photo' });

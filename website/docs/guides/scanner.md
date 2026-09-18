@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: 成品扫一扫页
-description: "用 <Scanner> 快速接入完整扫码页：title / onClose / resolveProduct（返回 null=未识别）/ onConfirm / pickImage（传了才显示相册）/ showTorch / formats / 安全区 topInset·bottomInset。自带状态机 + 权限流 + 主题，一次扫一个。"
+description: '接入扫码页面，配置确认、相册、手电和码制。'
 ---
 
 # 成品扫一扫页
@@ -52,7 +52,7 @@ scan / detecting ─ E_NO_CAMERA_PERMISSION → denied
     const product = await api.lookupByBarcode(result.value);
     if (!product) return null; // null = 未识别 → 进入 fail 重扫弹层
     return {
-      name: product.name,        // 仅 name 必填
+      name: product.name, // 仅 name 必填
       brand: product.brand,
       price: `¥${product.price}`,
       spec: product.spec,
@@ -77,7 +77,7 @@ scan / detecting ─ E_NO_CAMERA_PERMISSION → denied
   onConfirm={(product, result) => {
     navigation.navigate('Order', {
       barcode: result.value, // 扫码原始内容
-      product,               // resolveProduct 返回的商品
+      product, // resolveProduct 返回的商品
     });
   }}
 />
@@ -99,7 +99,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
     const res = await launchImageLibrary({ mediaType: 'photo' });
     return res.assets?.[0]?.uri ?? null; // 取消返回 null
   }}
-/>
+/>;
 ```
 
 ```tsx
@@ -128,7 +128,7 @@ import { launchImageLibrary } from 'react-native-image-picker';
 ```tsx
 import { Platform } from 'react-native';
 
-<Scanner showTorch={Platform.OS === 'android'} />
+<Scanner showTorch={Platform.OS === 'android'} />;
 ```
 
 详见[平台差异 → 手电筒](/docs/platform-differences#torch)。

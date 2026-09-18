@@ -1,91 +1,42 @@
 # @unif/react-native-hms-scan
 
-[![npm](https://img.shields.io/npm/v/@unif/react-native-hms-scan.svg?color=cb3837&logo=npm)](https://www.npmjs.com/package/@unif/react-native-hms-scan)
-[![CI](https://github.com/unif-design/react-native-hms-scan/actions/workflows/ci.yml/badge.svg)](https://github.com/unif-design/react-native-hms-scan/actions/workflows/ci.yml)
-[![License](https://img.shields.io/npm/l/@unif/react-native-hms-scan.svg?color=blue)](LICENSE)
-[![Docs](https://img.shields.io/badge/docs-unif--design.github.io-orange.svg)](https://unif-design.github.io/react-native-hms-scan/)
+基于 HUAWEI Scan Kit 的 React Native 扫码库，支持实时扫码和本地图片识别。
 
-华为 **HMS 统一扫码(HUAWEI Scan Kit)** 的 React Native 封装,面向 RN 0.86.3 新架构(Fabric + TurboModule):成品扫一扫页、headless 自定义扫码 UI、从图片识别条码 / 二维码。
+[文档站](https://unif-design.github.io/react-native-hms-scan/) · [npm](https://www.npmjs.com/package/@unif/react-native-hms-scan) · [示例](example/README.md)
 
-## 特性
+## 提供什么
 
-- **三种用法** — 成品 `<Scanner>` 扫一扫页(自带权限流 / 状态机 / 主题)、headless `<HmsScanView>` 相机组件(自定义 UI)、`decodeImage(uri)` 从本地图片识别。
-- **Android 内置引擎** — 用 Scan SDK-Plus,**非华为机型可用**,不依赖设备装 HMS Core APK;`scanplus` 由本库声明,宿主需把 Huawei Maven 加到实际参与依赖解析的 `repositories`。
-- **iOS 官方 CocoaPod** — CocoaPods 安装官方 `ScanKitFrameWork 1.1.2.305`,当前只支持真机构建和运行。
-- **零云端配置** — 两端**都不需要 AppGallery Connect / agconnect / API Key**。
-- **14 种码制** — `QR_CODE` / `EAN_13` / `CODE_128` / `PDF417` / `DATA_MATRIX` 等,默认识别全部。
-- 仅支持 **RN 新架构**;`@unif/react-native-design` 风格统一。
+| 入口          | 用途                                   |
+| ------------- | -------------------------------------- |
+| `Scanner`     | 带权限流程、取景和结果确认的扫一扫页面 |
+| `HmsScanView` | 仅提供预览与事件，由应用组合界面       |
+| `decodeImage` | 识别本地图片中的二维码或条码           |
 
 ## 安装
 
 ```sh
-yarn add @unif/react-native-hms-scan react-native-svg
-cd ios && pod install
+yarn add @unif/react-native-hms-scan
 ```
 
-CocoaPods 会直接安装官方 `ScanKitFrameWork 1.1.2.305`;`pod install` 不会在 `node_modules` 中生成 XCFramework。iOS Simulator 不属于支持目标。
+按[安装指南](website/docs/getting-started/installation.md)补齐 peer 依赖、相机权限和原生配置：Android 需要 Huawei Maven；iOS 使用官方 ScanKit CocoaPod。
 
-Android 宿主还必须在实际参与依赖解析的仓库列表中加入 Huawei Maven;库模块自己的 `repositories` 不会传播给 consumer:
+Android 内置识别引擎，不要求华为手机或 HMS Core。两端均不需要 AppGallery Connect 或 API Key。当前 iOS SDK 仅支持真机，React Native 需开启新架构。
 
-```gradle
-allprojects {
-  repositories {
-    maven { url 'https://developer.huawei.com/repo/' }
-  }
-}
+## 最小用法
+
+```ts
+import { decodeImage } from '@unif/react-native-hms-scan';
+
+const results = await decodeImage('file:///path/to/photo.jpg', {
+  formats: ['QR_CODE'],
+});
 ```
 
-`react-native-svg` 是 peer 依赖(`<Scanner>` 图标用它绘制);`<Scanner>` 还依赖 peer `@unif/react-native-design`。宿主需开启新架构。完整 peer dependencies、Android 权限、iOS `NSCameraUsageDescription` 等见[文档站 · 安装](https://unif-design.github.io/react-native-hms-scan/docs/getting-started/installation)。
+正常识别但没有发现码时返回 `[]`；读取或解码失败抛出 `HmsScanError`。函数不下载网络图片，应用需先准备本地文件。
 
-## 快速开始
+## 文档与开发
 
-成品「扫一扫」页 —— 扫到条码后由宿主解析商品、确认带回:
-
-```tsx
-import { Scanner, type ScanResult, type ScanProduct } from '@unif/react-native-hms-scan';
-
-function ScanScreen({ navigation }) {
-  return (
-    <Scanner
-      title="扫一扫"
-      onClose={() => navigation.goBack()}
-      resolveProduct={async (r: ScanResult): Promise<ScanProduct | null> => {
-        const p = await api.lookupByBarcode(r.value); // 你来解析;返回 null = 未识别
-        return p ? { name: p.name, brand: p.brand, price: `¥${p.price}`, barcode: r.value } : null;
-      }}
-      onConfirm={(product, result) => navigation.navigate('Order', { product, barcode: result.value })}
-    />
-  );
-}
-```
-
-headless `<HmsScanView>`(完全自定义 UI)、图片识别 `decodeImage`、权限、平台差异 —— 见[文档站](https://unif-design.github.io/react-native-hms-scan/)。
-
-## Example 能力展厅
-
-仓库内的 [`example/`](example/) 是可直接运行的三能力展示应用，而非 library API 的一部分：
-
-- **Scanner 成品页** — 配置码制、`autoConfirm`、相册选图与商品确认流。
-- **HmsScanView 自定义页** — 展示由宿主管理的权限、`paused` / `continuous` / `torch`、结果和错误状态。
-- **decodeImage 图片识别** — 从设备上的本地图片选择并离线解码，展示成功、空数组和 `HmsScanError`。
-
-运行、原生配置、平台边界和测试矩阵见 [example/README.md](example/README.md)。示例的 image-picker 与本地商品表仅用于演示，接入应用应替换为自己的选择器和业务数据。
-
-## 文档
-
-- **完整文档**(安装 · 平台配置 · API · 平台差异 · 故障排查):https://unif-design.github.io/react-native-hms-scan/
-- **AI / Agent**(按需 fetch,别凭记忆猜 API):[llms.txt](https://unif-design.github.io/react-native-hms-scan/llms.txt) · [llms-full.txt](https://unif-design.github.io/react-native-hms-scan/llms-full.txt)
-- **Agent Skill** `hms-scan`(`unif` plugin):`/plugin marketplace add unif-design/skills` → `/plugin install unif@skills`
-
-## 兼容性
-
-| 平台 | 支持 |
-| --- | --- |
-| React Native | 新架构(Fabric + TurboModule)**必须开启**;在 RN 0.86.3 / React 19.2.3 上开发与验证 |
-| Android | ✅ minSdkVersion ≥ 24(Android 7.0) |
-| iOS | ✅ 官方 CocoaPod `ScanKitFrameWork 1.1.2.305` + 真机 |
-| iOS Simulator | ❌ 不支持;无硬件逻辑测试使用随包 Jest mock |
-
-## 许可
-
-MIT © unif-design
+- [Scanner](website/docs/api/scanner.md) · [HmsScanView](website/docs/api/hms-scan-view.md) · [函数 API](website/docs/api/functions.md)
+- [运行示例](example/README.md) · [开发资料与新版本契约](docs/DEVELOPMENT.md)
+- [AI 文档索引](https://unif-design.github.io/react-native-hms-scan/llms.txt)
+- [研发技能](https://github.com/unif-skill/unif-portal-dev-skills) · [MIT 许可](LICENSE)
