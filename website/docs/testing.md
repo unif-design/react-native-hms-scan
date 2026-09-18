@@ -1,7 +1,7 @@
 ---
 sidebar_position: 7
 title: 测试(Mock)
-description: "iOS 原生目标仅支持真机；无硬件环境用官方 mock 在 Jest 中替换 @unif/react-native-hms-scan，避免加载 TurboModule / Fabric 组件：require('@unif/react-native-hms-scan/mock') 后 decodeImage→[]、权限→granted、<HmsScanView>/<Scanner>→null。mock 不代表 Simulator 原生支持。"
+description: '在测试环境使用随包 mock 验证调用和结果处理。'
 ---
 
 # 测试(Mock)
@@ -18,15 +18,15 @@ jest.mock('@unif/react-native-hms-scan', () =>
 
 ## mock 后的行为 {#behavior}
 
-| 导出 | mock 行为 |
-| --- | --- |
-| `decodeImage` | `jest.fn`，默认 resolve **`[]`** |
-| `getCameraPermissionStatus` | `jest.fn`，默认 resolve **`'granted'`** |
-| `requestCameraPermission` | `jest.fn`，默认 resolve **`'granted'`** |
-| `<HmsScanView>` | 渲染为 **`null`**（不触碰原生） |
-| `<Scanner>` | 渲染为 **`null`**（不触碰原生） |
-| `coerceFormat` / `coerceContentType` / `formatsToCsv` | **保留真实实现**（纯函数，不碰原生） |
-| 类型 / 常量 / `HmsScanError` / `ALL_BARCODE_FORMATS` | **保留真实实现**（从 `./types` 原样导出） |
+| 导出                                                  | mock 行为                                 |
+| ----------------------------------------------------- | ----------------------------------------- |
+| `decodeImage`                                         | `jest.fn`，默认 resolve **`[]`**          |
+| `getCameraPermissionStatus`                           | `jest.fn`，默认 resolve **`'granted'`**   |
+| `requestCameraPermission`                             | `jest.fn`，默认 resolve **`'granted'`**   |
+| `<HmsScanView>`                                       | 渲染为 **`null`**（不触碰原生）           |
+| `<Scanner>`                                           | 渲染为 **`null`**（不触碰原生）           |
+| `coerceFormat` / `coerceContentType` / `formatsToCsv` | **保留真实实现**（纯函数，不碰原生）      |
+| 类型 / 常量 / `HmsScanError` / `ALL_BARCODE_FORMATS`  | **保留真实实现**（从 `./types` 原样导出） |
 
 :::note 纯函数与类型不被打桩
 码制工具（`coerceFormat` / `coerceContentType` / `formatsToCsv`）以及所有类型、`HmsScanError`、`ALL_BARCODE_FORMATS` 在 mock 中是**真实实现**——它们不触碰原生，可在测试里直接断言其真实行为。被打桩的只有触碰原生的部分（`decodeImage`、两个权限函数、两个组件）。
@@ -39,7 +39,10 @@ jest.mock('@unif/react-native-hms-scan', () =>
 默认值不够时，用 `jest.fn` 的 `mockResolvedValueOnce` 等覆盖：
 
 ```ts
-import { decodeImage, getCameraPermissionStatus } from '@unif/react-native-hms-scan';
+import {
+  decodeImage,
+  getCameraPermissionStatus,
+} from '@unif/react-native-hms-scan';
 
 jest.mock('@unif/react-native-hms-scan', () =>
   require('@unif/react-native-hms-scan/mock')
@@ -59,7 +62,10 @@ jest.mock('@unif/react-native-hms-scan', () =>
 ## 完整示例 {#example}
 
 ```ts
-import { decodeImage, requestCameraPermission } from '@unif/react-native-hms-scan';
+import {
+  decodeImage,
+  requestCameraPermission,
+} from '@unif/react-native-hms-scan';
 
 jest.mock('@unif/react-native-hms-scan', () =>
   require('@unif/react-native-hms-scan/mock')

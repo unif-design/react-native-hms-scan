@@ -1,7 +1,7 @@
 ---
 sidebar_position: 4
 title: 权限处理
-description: "相机权限：<Scanner> 自动处理；headless <HmsScanView> 用 requestCameraPermission / getCameraPermissionStatus 自管。decodeImage 不申请相册权限，文件访问由宿主 picker / URI grant 负责。"
+description: '查询和请求相机权限，处理拒绝与文件访问。'
 ---
 
 # 权限处理
@@ -18,9 +18,9 @@ description: "相机权限：<Scanner> 自动处理；headless <HmsScanView> 用
 
 运行时请求之前,先确保原生权限键已声明(详见[安装](/docs/getting-started/installation)):
 
-| 平台 | 权限 | 何时需要 |
-| --- | --- | --- |
-| iOS | `NSCameraUsageDescription` | 相机扫码(必须) |
+| 平台    | 权限                        | 何时需要                            |
+| ------- | --------------------------- | ----------------------------------- |
+| iOS     | `NSCameraUsageDescription`  | 相机扫码(必须)                      |
 | Android | `android.permission.CAMERA` | 相机扫码(库清单已声明,通常自动合并) |
 
 > Android 的 `CAMERA` 已在本库 `AndroidManifest.xml` 声明并通过清单合并进入宿主,运行时请求仍需处理。当前清单虽保留图片读取兼容声明,但 `decodeImage` 不请求 / 检查它们,也不会产生 `E_NO_READ_PERMISSION`。

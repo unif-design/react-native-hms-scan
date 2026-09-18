@@ -8,7 +8,7 @@ const navbarVersion = pkg.version.split('.').slice(0, 2).join('.');
 
 const config: Config = {
   title: 'Unif HMS Scan',
-  tagline: '@unif/react-native-hms-scan · 华为统一扫码(定制视图 + 图片识别)',
+  tagline: 'Unif React Native 扫码：实时预览、二维码、条码和本地图片识别',
   favicon: 'img/logo.png',
 
   // 部署到 GitHub Pages 默认域名:https://unif-design.github.io/react-native-hms-scan/
@@ -97,24 +97,37 @@ const config: Config = {
       links: [
         {
           title: '文档',
-          items: [
-            { label: '简介', to: '/docs/intro' },
-          ],
+          items: [{ label: '简介', to: '/docs/intro' }],
         },
         {
           title: '资源',
           items: [
-            { label: 'npm', href: 'https://www.npmjs.com/package/@unif/react-native-hms-scan' },
-            { label: 'GitHub', href: 'https://github.com/unif-design/react-native-hms-scan' },
+            {
+              label: 'npm',
+              href: 'https://www.npmjs.com/package/@unif/react-native-hms-scan',
+            },
+            {
+              label: 'GitHub',
+              href: 'https://github.com/unif-design/react-native-hms-scan',
+            },
           ],
         },
         {
           title: 'Unif 生态',
           items: [
             { label: '文档总站', href: 'https://unif.design' },
-            { label: '设计系统 design', href: 'https://unif-design.github.io/react-native-design/' },
-            { label: '相机 camera', href: 'https://unif-design.github.io/react-native-camera/' },
-            { label: '友盟分享 umeng', href: 'https://unif-design.github.io/react-native-umeng/' },
+            {
+              label: '设计系统 design',
+              href: 'https://unif-design.github.io/react-native-design/',
+            },
+            {
+              label: '相机 camera',
+              href: 'https://unif-design.github.io/react-native-camera/',
+            },
+            {
+              label: '友盟分享 umeng',
+              href: 'https://unif-design.github.io/react-native-umeng/',
+            },
           ],
         },
       ],

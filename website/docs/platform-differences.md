@@ -1,25 +1,25 @@
 ---
 sidebar_position: 5
 title: 平台差异
-description: "Android（Scan SDK-Plus / 宿主添加 Huawei Maven / 无 agconnect）与 iOS（官方 ScanKitFrameWork 1.1.2.305 CocoaPod / 仅支持真机 / 手电 best-effort）的逐项差异：码制、权限、手电、图片识别 URI。"
+description: '扫码在 Android 与 iOS 上的权限、手电和图片差异。'
 ---
 
 # 平台差异
 
 `@unif/react-native-hms-scan` 两端 API 接口统一，但底层是不同的华为原生实现，**部分能力存在差异，务必知悉**。
 
-| 维度 | Android | iOS |
-| --- | --- | --- |
-| 原生实现（相机） | 华为 `RemoteView`（Scan SDK-Plus） | `HmsCustomScanViewController`（ScanKitFrameWork） |
-| 原生实现（图片识别） | `ScanUtil.decodeWithBitmap` | `HmsBitMap` |
-| 接入配置 | 宿主必须把 Huawei Maven 加到实际依赖解析的 `repositories`;**无需 agconnect / API Key** | `pod install` 自动安装官方 `ScanKitFrameWork 1.1.2.305`;**无需 AppGallery Connect** |
-| 运行环境 | 相机扫码用真机验证 | 原生构建与运行**仅支持真机**;iOS Simulator 不支持 |
-| 最低版本 | minSdkVersion ≥ 24（Android 7.0） | 见 podspec `min_ios_version_supported` |
-| 码制 `MULTI_FUNCTIONAL` 作为过滤项 | ✅ 支持 | ❌ 无对应码制（见[码制差异](#formats)） |
-| 手电筒 `torch` | ✅ 可编程控制 | ⚠️ best-effort，不保证（见[手电筒](#torch)） |
-| 暗光提示 `onTorchStatus.available` | ✅ 据环境光上报 | ❌ 非暗光信号（见[手电筒](#torch)） |
-| 权限状态取值范围 | 查询只给 `granted` / `denied`，请求后才可能 `blocked` | 只有 `granted` / `undetermined` / `blocked`，**永不返回 `denied`**（见[相机权限](#permission)） |
-| `decodeImage` 接受的 URI | `file://` / 绝对路径 / `content://` / `android.resource://` | `file://` / 绝对路径 / `data:`（**不接受 `ph://` / `content://`**，见[图片识别 URI](#decode-image-uri)） |
+| 维度                               | Android                                                                                | iOS                                                                                                      |
+| ---------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| 原生实现（相机）                   | 华为 `RemoteView`（Scan SDK-Plus）                                                     | `HmsCustomScanViewController`（ScanKitFrameWork）                                                        |
+| 原生实现（图片识别）               | `ScanUtil.decodeWithBitmap`                                                            | `HmsBitMap`                                                                                              |
+| 接入配置                           | 宿主必须把 Huawei Maven 加到实际依赖解析的 `repositories`;**无需 agconnect / API Key** | `pod install` 自动安装官方 `ScanKitFrameWork 1.1.2.305`;**无需 AppGallery Connect**                      |
+| 运行环境                           | 相机扫码用真机验证                                                                     | 原生构建与运行**仅支持真机**;iOS Simulator 不支持                                                        |
+| 最低版本                           | minSdkVersion ≥ 24（Android 7.0）                                                      | 见 podspec `min_ios_version_supported`                                                                   |
+| 码制 `MULTI_FUNCTIONAL` 作为过滤项 | ✅ 支持                                                                                | ❌ 无对应码制（见[码制差异](#formats)）                                                                  |
+| 手电筒 `torch`                     | ✅ 可编程控制                                                                          | ⚠️ best-effort，不保证（见[手电筒](#torch)）                                                             |
+| 暗光提示 `onTorchStatus.available` | ✅ 据环境光上报                                                                        | ❌ 非暗光信号（见[手电筒](#torch)）                                                                      |
+| 权限状态取值范围                   | 查询只给 `granted` / `denied`，请求后才可能 `blocked`                                  | 只有 `granted` / `undetermined` / `blocked`，**永不返回 `denied`**（见[相机权限](#permission)）          |
+| `decodeImage` 接受的 URI           | `file://` / 绝对路径 / `content://` / `android.resource://`                            | `file://` / 绝对路径 / `data:`（**不接受 `ph://` / `content://`**，见[图片识别 URI](#decode-image-uri)） |
 
 :::warning iOS Simulator 不支持
 iOS 相机扫码与 `decodeImage` 原生路径都只支持真机。Simulator 架构 / 链接失败属于当前预期边界,正确处理是切换物理设备;不要生成本地 framework、修改宿主 Podfile 或清理 cache 来追求 Simulator 成功。无硬件逻辑测试使用随包 Jest mock。
@@ -43,10 +43,10 @@ iOS 相机扫码与 `decodeImage` 原生路径都只支持真机。Simulator 架
 
 [`CameraPermissionStatus`](/docs/api/types#camera-permission-status) 的四个值（`granted` / `denied` / `blocked` / `undetermined`）是**两端的并集**，单个平台只产出其中一部分：
 
-| | `getCameraPermissionStatus`（查询） | `requestCameraPermission`（请求后） |
-| --- | --- | --- |
-| iOS | `granted` / `undetermined` / `blocked` | 同左（**永不返回 `denied`**） |
-| Android | 仅 `granted` / `denied` | `granted` / `denied` / `blocked`（据请求后 rationale 区分） |
+|         | `getCameraPermissionStatus`（查询）    | `requestCameraPermission`（请求后）                         |
+| ------- | -------------------------------------- | ----------------------------------------------------------- |
+| iOS     | `granted` / `undetermined` / `blocked` | 同左（**永不返回 `denied`**）                               |
+| Android | 仅 `granted` / `denied`                | `granted` / `denied` / `blocked`（据请求后 rationale 区分） |
 
 iOS 原生把 `AVAuthorizationStatus` 映射为：`authorized → granted`、`notDetermined → undetermined`、**`denied` 与 `restricted` 都 → `blocked`**。所以 iOS 侧 `denied` 永远不会出现，别写「iOS 先 `denied` 再 `blocked`」的两级降级分支。
 
@@ -81,15 +81,15 @@ iOS 端华为 Scan Kit **未提供公开的手电控制接口**（`HmsCustomScan
 
 [`decodeImage`](/docs/api/functions#decode-image) 只接受**本地** URI，两端接受形式不同：
 
-| 形式 | Android | iOS |
-| --- | --- | --- |
-| `file:///...`（文件 URI） | ✅ | ✅ |
-| 绝对路径（无 scheme） | ✅ | ✅ |
-| `data:...`（base64 等） | ❌ | ✅ |
-| `content://...` | ✅ | ❌ |
-| `android.resource://...` | ✅ | ❌ |
-| `ph://...` / `assets-library://`（iOS 相册） | ❌ | ❌ |
-| `http(s)://...`（远程 URL） | ❌ | ❌ |
+| 形式                                         | Android | iOS |
+| -------------------------------------------- | ------- | --- |
+| `file:///...`（文件 URI）                    | ✅      | ✅  |
+| 绝对路径（无 scheme）                        | ✅      | ✅  |
+| `data:...`（base64 等）                      | ❌      | ✅  |
+| `content://...`                              | ✅      | ❌  |
+| `android.resource://...`                     | ✅      | ❌  |
+| `ph://...` / `assets-library://`（iOS 相册） | ❌      | ❌  |
+| `http(s)://...`（远程 URL）                  | ❌      | ❌  |
 
 - 不支持的 URI（含远程 URL、iOS 的 `ph://`）→ 抛 `E_IMAGE_LOAD_FAILED`（**不是**返回空数组）。
 - 跨平台最稳的输入是 **`file://` 或绝对路径**。

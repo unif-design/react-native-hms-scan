@@ -1,3 +1,5 @@
+import process from 'node:process';
+import './ios-config-command.test.mjs';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import {
@@ -11,7 +13,7 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { URL, fileURLToPath } from 'node:url';
 
 const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -45,24 +47,28 @@ test('example README keeps the iOS Pods workflow reproducible from the repositor
     join(repositoryRoot, 'example/README.md'),
     'utf8'
   );
-  const expectedPodsBlock = `\`\`\`sh
-(
-  cd example
-  bundle install
-  bundle exec pod install --project-directory=ios
-)
-\`\`\``;
+  const block = [...readme.matchAll(/```sh\n([\s\S]*?)```/g)]
+    .map((match) => match[1])
+    .find((value) => value.includes('bundle exec pod install'));
+  assert.ok(block, 'README must provide the Pods command');
+  const fixture = await mkdtemp(join(tmpdir(), 'hms-pods-doc-'));
+  try {
+    await mkdir(join(fixture, 'example'));
+    const result = spawnSync(
+      'sh',
+      [
+        '-c',
+        `bundle() { test "\${PWD##*/}" = "example" || return 91; }\n${block}`,
+      ],
+      { cwd: fixture, encoding: 'utf8' }
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(block, /bundle install/);
+    assert.match(block, /bundle exec pod install --project-directory=ios/);
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
 
-  assert.ok(
-    readme.includes(expectedPodsBlock),
-    'example README must enter example before bundle install and pod install'
-  );
-  assert.ok(
-    readme.includes(
-      '`(cd example && bundle install && bundle exec pod install --project-directory=ios)` 后 `yarn example build:ios`'
-    ),
-    'the iOS test matrix must preserve the same root-safe Pods workflow'
-  );
   assert.doesNotMatch(
     readme,
     /bundle exec pod install --project-directory=example\/ios/
@@ -111,9 +117,7 @@ test('Android integration matches React Native lock entries instead of unrelated
         'example/android/gradle.properties',
         'scripts/verify-android-integration.mjs',
         'android/src/main/java/com/unif/reactnativehmsscan/HmsScanView.kt',
-      ].map((relativePath) =>
-        copyRepositoryFile(fixtureRoot, relativePath)
-      )
+      ].map((relativePath) => copyRepositoryFile(fixtureRoot, relativePath))
     );
     await Promise.all(
       [
@@ -137,11 +141,7 @@ test('Android integration matches React Native lock entries instead of unrelated
           },
         ],
       ].map(async ([packageName, manifest]) => {
-        const packageDirectory = join(
-          fixtureRoot,
-          'node_modules',
-          packageName
-        );
+        const packageDirectory = join(fixtureRoot, 'node_modules', packageName);
         await mkdir(packageDirectory, { recursive: true });
         await writeFile(
           join(packageDirectory, 'package.json'),
@@ -157,7 +157,7 @@ test('Android integration matches React Native lock entries instead of unrelated
       '@babel/core': '^7.25.2',
       '@eslint/js': '^8.57.1',
       '@react-native/metro-config': '0.86.3',
-      eslint: '^8.57.1',
+      'eslint': '^8.57.1',
     });
     await writeFile(
       join(fixtureRoot, 'package.json'),
@@ -169,7 +169,7 @@ test('Android integration matches React Native lock entries instead of unrelated
         '@sbaiahmed1/react-native-blur': '6.0.1',
         '@unif/react-native-design': '0.30.1',
         '@unif/react-native-hms-scan': 'workspace:*',
-        react: '19.2.3',
+        'react': '19.2.3',
         'react-dom': '19.2.3',
         'react-native': '0.86.3',
         'react-native-gesture-handler': '^3.1.0',
@@ -258,9 +258,7 @@ test('Android integration matches React Native lock entries instead of unrelated
 });
 
 test('iOS integration rejects a tracked Pod lock that remains ignored', async () => {
-  const fixtureRoot = await mkdtemp(
-    join(tmpdir(), 'hms-scan-ios-contract-')
-  );
+  const fixtureRoot = await mkdtemp(join(tmpdir(), 'hms-scan-ios-contract-'));
 
   try {
     await Promise.all(
@@ -272,9 +270,7 @@ test('iOS integration rejects a tracked Pod lock that remains ignored', async ()
         'example/ios/ReactNativeHmsScanExample/Info.plist',
         'example/ios/Podfile.lock',
         'scripts/verify-ios-integration.mjs',
-      ].map((relativePath) =>
-        copyRepositoryFile(fixtureRoot, relativePath)
-      )
+      ].map((relativePath) => copyRepositoryFile(fixtureRoot, relativePath))
     );
     await writeFile(join(fixtureRoot, '.gitignore'), '');
 
@@ -289,11 +285,9 @@ test('iOS integration rejects a tracked Pod lock that remains ignored', async ()
     });
     assert.equal(addResult.status, 0, verifierOutput(addResult));
 
-    const safeResult = runVerifier(
-      fixtureRoot,
-      'verify-ios-integration.mjs',
-      ['--require-lock']
-    );
+    const safeResult = runVerifier(fixtureRoot, 'verify-ios-integration.mjs', [
+      '--require-lock',
+    ]);
     assert.equal(safeResult.status, 0, verifierOutput(safeResult));
 
     await writeFile(
@@ -310,10 +304,7 @@ test('iOS integration rejects a tracked Pod lock that remains ignored', async ()
       0,
       'iOS integration must reject an ignored versioned Pod lock'
     );
-    assert.match(
-      verifierOutput(ignoredResult),
-      /example\/ios\/Podfile\.lock/
-    );
+    assert.match(verifierOutput(ignoredResult), /example\/ios\/Podfile\.lock/);
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
   }

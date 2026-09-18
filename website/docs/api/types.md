@@ -1,7 +1,7 @@
 ---
 sidebar_position: 4
 title: 类型
-description: "@unif/react-native-hms-scan 所有公开类型定义：BarcodeFormat（14 种 + UNKNOWN）、BarcodeContentType、ScanResult、ScanProduct、ScanError、CameraPermissionStatus（granted/denied/blocked/undetermined）、HmsScanErrorCode、HmsScanError、ScanCornerPoint、DecodeImageOptions。"
+description: '本库公开参数、返回结果与错误类型。'
 ---
 
 # 类型
@@ -99,10 +99,10 @@ iOS 的 `sceneType` 没有公开枚举，本库只映射少数已知场景，其
 
 取景框 / 解码命中的角点（图像坐标系，单位 px）。
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `x` | `number` | 横坐标（px） |
-| `y` | `number` | 纵坐标（px） |
+| 字段 | 类型     | 说明         |
+| ---- | -------- | ------------ |
+| `x`  | `number` | 横坐标（px） |
+| `y`  | `number` | 纵坐标（px） |
 
 ---
 
@@ -110,12 +110,12 @@ iOS 的 `sceneType` 没有公开枚举，本库只映射少数已知场景，其
 
 一次扫码 / 解码命中的结果。`<HmsScanView>` 的 `onScanResult` 与 `decodeImage` 均返回 `ScanResult[]`。
 
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `value` | `string` | ✅ | 原始解码文本（Android `getOriginalValue` / iOS `text`） |
-| `format` | `BarcodeFormat` | ✅ | 码制 |
-| `contentType` | `BarcodeContentType` | — | 内容语义类型（可能缺省） |
-| `cornerPoints` | `ScanCornerPoint[]` | — | 条码四角点（可能缺省） |
+| 字段           | 类型                 | 必填 | 说明                                                    |
+| -------------- | -------------------- | ---- | ------------------------------------------------------- |
+| `value`        | `string`             | ✅   | 原始解码文本（Android `getOriginalValue` / iOS `text`） |
+| `format`       | `BarcodeFormat`      | ✅   | 码制                                                    |
+| `contentType`  | `BarcodeContentType` | —    | 内容语义类型（可能缺省）                                |
+| `cornerPoints` | `ScanCornerPoint[]`  | —    | 条码四角点（可能缺省）                                  |
 
 :::note 仅有 `value` 与 `format` 必有
 原生回传经 `parseResultsJson` / `coerceResult` 防御性收敛：无有效 `value` 的命中被丢弃；`contentType` / `cornerPoints` 缺省时不出现在结果对象上。
@@ -127,8 +127,8 @@ iOS 的 `sceneType` 没有公开枚举，本库只映射少数已知场景，其
 
 `decodeImage` 的可选配置。
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
+| 字段      | 类型                       | 说明                      |
+| --------- | -------------------------- | ------------------------- |
 | `formats` | `readonly BarcodeFormat[]` | 限定识别码制；不传 = 全部 |
 
 ---
@@ -152,12 +152,12 @@ interface ScanError {
 
 相机权限状态。`getCameraPermissionStatus` / `requestCameraPermission` 均返回此类型。
 
-| 值 | 说明 |
-| --- | --- |
-| `'granted'` | 已授权 |
-| `'denied'` | 用户拒绝（可再次请求） |
-| `'blocked'` | 永久拒绝（需引导去系统设置） |
-| `'undetermined'` | 尚未请求过权限 |
+| 值               | 说明                         |
+| ---------------- | ---------------------------- |
+| `'granted'`      | 已授权                       |
+| `'denied'`       | 用户拒绝（可再次请求）       |
+| `'blocked'`      | 永久拒绝（需引导去系统设置） |
+| `'undetermined'` | 尚未请求过权限               |
 
 :::note Android 查询时只给 granted / denied
 Android `getCameraPermissionStatus` 对任何未授权状态返回 `denied`,当前不会返回 `undetermined`;只有 `requestCameraPermission` 执行请求后才可能返回 `blocked`。iOS 只可能返回 `granted` / `undetermined` / `blocked` —— 原生把 `denied` 与 `restricted` 都映射为 `blocked`,永远不返回 `denied`。详见[平台差异](/docs/platform-differences#permission) 与[权限处理](/docs/guides/permissions#get-status)。
@@ -169,15 +169,15 @@ Android `getCameraPermissionStatus` 对任何未授权状态返回 `denied`,当�
 
 库统一错误码（`HmsScanError.code`）。
 
-| 值 | 说明 | 来源 |
-| --- | --- | --- |
-| `'E_IMAGE_LOAD_FAILED'` | 图片加载失败（路径无效 / 非本地 uri / 格式不支持） | `decodeImage`（两端） |
-| `'E_DECODE_FAILED'` | 解码过程异常 | `decodeImage`（两端） |
-| `'E_NO_READ_PERMISSION'` | 公共 union 的兼容保留值;当前 native 不产生 | 当前无 native 来源 |
-| `'E_CAMERA_INIT'` | 相机 / 预览初始化失败 | `<HmsScanView>` `onScanError`（Android） |
-| `'E_NO_RESULT'` | 解码结果为空或无法解析 | `<HmsScanView>` `onScanError`（iOS） |
-| `'E_NO_CAMERA_PERMISSION'` | 公共 union 的兼容保留值;当前 native 不产生 | 当前无 native 来源 |
-| `'E_UNKNOWN'` | 其他未知错误 | `decodeImage` 兜底 |
+| 值                         | 说明                                               | 来源                                     |
+| -------------------------- | -------------------------------------------------- | ---------------------------------------- |
+| `'E_IMAGE_LOAD_FAILED'`    | 图片加载失败（路径无效 / 非本地 uri / 格式不支持） | `decodeImage`（两端）                    |
+| `'E_DECODE_FAILED'`        | 解码过程异常                                       | `decodeImage`（两端）                    |
+| `'E_NO_READ_PERMISSION'`   | 公共 union 的兼容保留值;当前 native 不产生         | 当前无 native 来源                       |
+| `'E_CAMERA_INIT'`          | 相机 / 预览初始化失败                              | `<HmsScanView>` `onScanError`（Android） |
+| `'E_NO_RESULT'`            | 解码结果为空或无法解析                             | `<HmsScanView>` `onScanError`（iOS）     |
+| `'E_NO_CAMERA_PERMISSION'` | 公共 union 的兼容保留值;当前 native 不产生         | 当前无 native 来源                       |
+| `'E_UNKNOWN'`              | 其他未知错误                                       | `decodeImage` 兜底                       |
 
 :::note 错误码分布
 `decodeImage` 当前 native 明确产生 `E_IMAGE_LOAD_FAILED` / `E_DECODE_FAILED`;其他原生异常在 JS 收敛为 `E_UNKNOWN`。图片选择器 / URI grant 负责文件访问,当前 native 不产生 `E_NO_READ_PERMISSION`。`<HmsScanView>` 的相机 / 解码错误经 `onScanError` 回调以 `{ code, message }` 形式上报,**不是** `HmsScanError` 实例。Android `requestCameraPermission` 在没有 `PermissionAwareActivity` 时还可能 reject native integration code `E_NO_ACTIVITY`;它当前不属于该公共 union,也不是 `decodeImage` 的 `HmsScanError`。
@@ -189,11 +189,11 @@ Android `getCameraPermissionStatus` 对任何未授权状态返回 `denied`,当�
 
 `decodeImage` 失败时抛出的错误类，继承自内建 `Error`。
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `code` | `HmsScanErrorCode` | 错误码（只读） |
-| `message` | `string` | 错误描述（默认等于 `code`） |
-| `name` | `string` | 固定为 `'HmsScanError'` |
+| 字段      | 类型               | 说明                        |
+| --------- | ------------------ | --------------------------- |
+| `code`    | `HmsScanErrorCode` | 错误码（只读）              |
+| `message` | `string`           | 错误描述（默认等于 `code`） |
+| `name`    | `string`           | 固定为 `'HmsScanError'`     |
 
 ```ts
 import { decodeImage, HmsScanError } from '@unif/react-native-hms-scan';
@@ -213,16 +213,16 @@ try {
 
 业务层商品信息——`<Scanner>` 扫到条码后，由宿主通过 `resolveProduct` 解析返回，用于浮层确认卡展示。仅 `name` 必填，其余可缺省。
 
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `name` | `string` | ✅ | 商品名 |
-| `brand` | `string` | — | 品牌（如 "统一"） |
-| `brandChar` | `string` | — | 字母牌字符；缺省时取 `brand` 或 `name` 的首字 |
-| `barcode` | `string` | — | 条码；缺省时取扫到的 `value` |
-| `spec` | `string` | — | 规格（如 "500ml × 15 瓶/箱"） |
-| `stockShort` | `string` | — | 库存短描述（如 "充足"） |
-| `price` | `string` | — | 价格展示串（如 "¥5.50"） |
-| `priceCaption` | `string` | — | 价格下方副标题，默认 "建议零售" |
+| 字段           | 类型     | 必填 | 说明                                          |
+| -------------- | -------- | ---- | --------------------------------------------- |
+| `name`         | `string` | ✅   | 商品名                                        |
+| `brand`        | `string` | —    | 品牌（如 "统一"）                             |
+| `brandChar`    | `string` | —    | 字母牌字符；缺省时取 `brand` 或 `name` 的首字 |
+| `barcode`      | `string` | —    | 条码；缺省时取扫到的 `value`                  |
+| `spec`         | `string` | —    | 规格（如 "500ml × 15 瓶/箱"）                 |
+| `stockShort`   | `string` | —    | 库存短描述（如 "充足"）                       |
+| `price`        | `string` | —    | 价格展示串（如 "¥5.50"）                      |
+| `priceCaption` | `string` | —    | 价格下方副标题，默认 "建议零售"               |
 
 ---
 
@@ -230,11 +230,11 @@ try {
 
 类型定义本身（不含 `HmsScanError` 运行时行为）在所有平台均可引用。
 
-| 平台 | 支持 |
-| --- | --- |
-| iOS | ✅ |
-| Android | ✅ |
-| Web | ✅（仅类型，无运行时扫码能力） |
+| 平台    | 支持                           |
+| ------- | ------------------------------ |
+| iOS     | ✅                             |
+| Android | ✅                             |
+| Web     | ✅（仅类型，无运行时扫码能力） |
 
 ---
 

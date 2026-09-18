@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: Scanner
-description: "<Scanner> 成品扫一扫页完整 props 参考：title / formats / hintText / topInset / bottomInset / showTorch / onClose / onScanError / resolveProduct / onConfirm / autoConfirm / pickImage，以及回调用到的 ScanResult / ScanProduct / ScanError 类型。自带状态机 + 权限流 + 主题。"
+description: '成品扫码页面的属性、确认回调和使用边界。'
 ---
 
 # Scanner
@@ -19,27 +19,27 @@ import { Scanner } from '@unif/react-native-hms-scan';
 ## 签名
 
 ```tsx
-function Scanner(props: ScannerProps): JSX.Element
+function Scanner(props: ScannerProps): JSX.Element;
 ```
 
 ---
 
 ## Props {#props}
 
-| Prop | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `title` | `string` | `'扫一扫'` | 顶栏标题 |
-| `formats` | `readonly BarcodeFormat[]` | — | 限定识别码制；不传 = 全部（[14 种](/docs/api/types#barcode-format)） |
-| `hintText` | `string` | `'将条码 / 二维码放入框内，自动扫描'` | 取景态提示文案 |
-| `topInset` | `number` | `54` | 顶部安全区高度（px）。用 `react-native-safe-area-context` 时传 `insets.top` |
-| `bottomInset` | `number` | `34` | 底部安全区高度（px）。用 `react-native-safe-area-context` 时传 `insets.bottom` |
-| `showTorch` | `boolean` | `true` | 是否显示手电筒按钮。手电由库内自管，最终以 `onTorchStatus.on` 的真实点亮状态回写标签；Android 可编程控制，**iOS 为 best-effort**（见[平台差异](/docs/platform-differences#torch)），可在 iOS 传 `false` 隐藏 |
-| `onClose` | `() => void` | — | 返回按钮回调（退出扫码页；按钮在底部工具栏，与手电筒并排） |
-| `onScanError` | `(error: ScanError) => void` | — | 权限 helper 或相机扫码出错时上报普通 `{ code, message }`；不是 `HmsScanError`，见[错误回调](#scan-error) |
-| `resolveProduct` | `(result: ScanResult) => ScanProduct \| null \| undefined \| Promise<ScanProduct \| null \| undefined>` | — | 扫到条码后由宿主解析商品信息（用于浮层确认卡）。返回 `null` / `undefined` **或抛错** = 未识别 → 进入 fail 重扫层。不传则以 `result.value` 作为商品名 |
-| `onConfirm` | `(product: ScanProduct, result: ScanResult) => void` | — | 用户点"确定"时回调（宿主通常在此导航返回）。`autoConfirm` 为真时由库自动触发 |
-| `autoConfirm` | `boolean` | `false` | 传了 `onConfirm` 时，扫到并解析成功后**不显示结果卡**，直接触发 `onConfirm(product, result)`；只有 `onConfirm` 同步正常返回后才进入 `done`，相机保持暂停且不自动重扫。`onConfirm` 同步抛错则进入 fail 重扫。未传 `onConfirm` 时回退结果卡；未识别（`resolveProduct` 返回 `null` / 抛错）也进入 fail，不会误触发 |
-| `pickImage` | `() => Promise<string \| null>` | — | 点"相册"：宿主用自己的图片选择器选图并返回本地 uri（取消返回 `null`）。**库不内置图片选择器：传了才显示相册按钮，不传则隐藏** |
+| 参数             | 类型                                                                                                    | 默认值                                | 说明                                                                                                                                                                                                                                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`          | `string`                                                                                                | `'扫一扫'`                            | 顶栏标题                                                                                                                                                                                                                                                                                                        |
+| `formats`        | `readonly BarcodeFormat[]`                                                                              | —                                     | 限定识别码制；不传 = 全部（[14 种](/docs/api/types#barcode-format)）                                                                                                                                                                                                                                            |
+| `hintText`       | `string`                                                                                                | `'将条码 / 二维码放入框内，自动扫描'` | 取景态提示文案                                                                                                                                                                                                                                                                                                  |
+| `topInset`       | `number`                                                                                                | `54`                                  | 顶部安全区高度（px）。用 `react-native-safe-area-context` 时传 `insets.top`                                                                                                                                                                                                                                     |
+| `bottomInset`    | `number`                                                                                                | `34`                                  | 底部安全区高度（px）。用 `react-native-safe-area-context` 时传 `insets.bottom`                                                                                                                                                                                                                                  |
+| `showTorch`      | `boolean`                                                                                               | `true`                                | 是否显示手电筒按钮。手电由库内自管，最终以 `onTorchStatus.on` 的真实点亮状态回写标签；Android 可编程控制，**iOS 为 best-effort**（见[平台差异](/docs/platform-differences#torch)），可在 iOS 传 `false` 隐藏                                                                                                    |
+| `onClose`        | `() => void`                                                                                            | —                                     | 返回按钮回调（退出扫码页；按钮在底部工具栏，与手电筒并排）                                                                                                                                                                                                                                                      |
+| `onScanError`    | `(error: ScanError) => void`                                                                            | —                                     | 权限 helper 或相机扫码出错时上报普通 `{ code, message }`；不是 `HmsScanError`，见[错误回调](#scan-error)                                                                                                                                                                                                        |
+| `resolveProduct` | `(result: ScanResult) => ScanProduct \| null \| undefined \| Promise<ScanProduct \| null \| undefined>` | —                                     | 扫到条码后由宿主解析商品信息（用于浮层确认卡）。返回 `null` / `undefined` **或抛错** = 未识别 → 进入 fail 重扫层。不传则以 `result.value` 作为商品名                                                                                                                                                            |
+| `onConfirm`      | `(product: ScanProduct, result: ScanResult) => void`                                                    | —                                     | 用户点"确定"时回调（宿主通常在此导航返回）。`autoConfirm` 为真时由库自动触发                                                                                                                                                                                                                                    |
+| `autoConfirm`    | `boolean`                                                                                               | `false`                               | 传了 `onConfirm` 时，扫到并解析成功后**不显示结果卡**，直接触发 `onConfirm(product, result)`；只有 `onConfirm` 同步正常返回后才进入 `done`，相机保持暂停且不自动重扫。`onConfirm` 同步抛错则进入 fail 重扫。未传 `onConfirm` 时回退结果卡；未识别（`resolveProduct` 返回 `null` / 抛错）也进入 fail，不会误触发 |
+| `pickImage`      | `() => Promise<string \| null>`                                                                         | —                                     | 点"相册"：宿主用自己的图片选择器选图并返回本地 uri（取消返回 `null`）。**库不内置图片选择器：传了才显示相册按钮，不传则隐藏**                                                                                                                                                                                   |
 
 :::note 返回 / 手电 / 相册按钮的显隐
 工具栏在取景态显示，只要 `showTorch` 为真、传了 `pickImage`、**或**传了 `onClose` 任一即出现：返回按钮在传了 `onClose` 时显示，手电按钮受 `showTorch` 控制，相册按钮仅在传了 `pickImage` 时显示。`pickImage` 返回的本地 uri 会交给 `decodeImage` 识别（受同样的 [URI 规则](/docs/api/functions#accepted-uri) 约束）。
@@ -53,27 +53,27 @@ function Scanner(props: ScannerProps): JSX.Element
 
 `resolveProduct` / `onConfirm` 收到的扫码结果。完整定义见 [类型 → ScanResult](/docs/api/types#scan-result)。
 
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `value` | `string` | ✅ | 原始解码文本 |
-| `format` | `BarcodeFormat` | ✅ | 码制 |
-| `contentType` | `BarcodeContentType` | — | 内容语义类型（可能缺省） |
-| `cornerPoints` | `ScanCornerPoint[]` | — | 条码四角点（可能缺省） |
+| 字段           | 类型                 | 必填 | 说明                     |
+| -------------- | -------------------- | ---- | ------------------------ |
+| `value`        | `string`             | ✅   | 原始解码文本             |
+| `format`       | `BarcodeFormat`      | ✅   | 码制                     |
+| `contentType`  | `BarcodeContentType` | —    | 内容语义类型（可能缺省） |
+| `cornerPoints` | `ScanCornerPoint[]`  | —    | 条码四角点（可能缺省）   |
 
 ### ScanProduct {#scan-product}
 
 `resolveProduct` 返回、用于浮层确认卡展示的商品信息。仅 `name` 必填。完整定义见 [类型 → ScanProduct](/docs/api/types#scan-product)。
 
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `name` | `string` | ✅ | 商品名 |
-| `brand` | `string` | — | 品牌 |
-| `brandChar` | `string` | — | 字母牌字符；缺省取 `brand` / `name` 首字 |
-| `barcode` | `string` | — | 条码；缺省取扫到的 `value` |
-| `spec` | `string` | — | 规格 |
-| `stockShort` | `string` | — | 库存短描述 |
-| `price` | `string` | — | 价格展示串 |
-| `priceCaption` | `string` | — | 价格副标题，默认 "建议零售" |
+| 字段           | 类型     | 必填 | 说明                                     |
+| -------------- | -------- | ---- | ---------------------------------------- |
+| `name`         | `string` | ✅   | 商品名                                   |
+| `brand`        | `string` | —    | 品牌                                     |
+| `brandChar`    | `string` | —    | 字母牌字符；缺省取 `brand` / `name` 首字 |
+| `barcode`      | `string` | —    | 条码；缺省取扫到的 `value`               |
+| `spec`         | `string` | —    | 规格                                     |
+| `stockShort`   | `string` | —    | 库存短描述                               |
+| `price`        | `string` | —    | 价格展示串                               |
+| `priceCaption` | `string` | —    | 价格副标题，默认 "建议零售"              |
 
 ### ScanError {#scan-error}
 
@@ -91,7 +91,11 @@ onScanError?: (error: ScanError) => void;
 ## 示例
 
 ```tsx
-import { Scanner, type ScanResult, type ScanProduct } from '@unif/react-native-hms-scan';
+import {
+  Scanner,
+  type ScanResult,
+  type ScanProduct,
+} from '@unif/react-native-hms-scan';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function ScanScreen({ navigation }) {
@@ -135,12 +139,12 @@ function ScanScreen({ navigation }) {
 
 ## 平台兼容性
 
-| 平台 | 支持 | 备注 |
-| --- | --- | --- |
-| iOS（真机） | ✅ | 官方 `ScanKitFrameWork 1.1.2.305` CocoaPod；手电 best-effort |
-| iOS Simulator | ❌ | 原生目标不支持；无硬件 JS 逻辑使用随包 Jest mock（见[平台差异](/docs/platform-differences)） |
-| Android | ✅ | 全功能支持 |
-| Web | ❌ | — |
+| 平台          | 支持 | 备注                                                                                         |
+| ------------- | ---- | -------------------------------------------------------------------------------------------- |
+| iOS（真机）   | ✅   | 官方 `ScanKitFrameWork 1.1.2.305` CocoaPod；手电 best-effort                                 |
+| iOS Simulator | ❌   | 原生目标不支持；无硬件 JS 逻辑使用随包 Jest mock（见[平台差异](/docs/platform-differences)） |
+| Android       | ✅   | 全功能支持                                                                                   |
+| Web           | ❌   | —                                                                                            |
 
 ---
 

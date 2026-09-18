@@ -1,7 +1,7 @@
 ---
 sidebar_position: 2
 title: HmsScanView
-description: "<HmsScanView> 底层 headless 扫码相机组件完整 props 参考：formats / continuous / paused / torch / onScanResult / onScanError / onTorchStatus，以及 TorchStatus 类型与 onScanError 的 code（E_CAMERA_INIT / E_NO_RESULT）。"
+description: '扫码预览的属性、事件和平台说明。'
 ---
 
 # HmsScanView
@@ -30,16 +30,16 @@ const HmsScanView: ForwardRefExoticComponent<
 
 ## Props {#props}
 
-| Prop | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `style` | `StyleProp<ViewStyle>` | — | 布局样式，通常设 `StyleSheet.absoluteFill` 或 `{ flex: 1 }`（继承自 `ViewProps`） |
-| `formats` | `readonly BarcodeFormat[]` | — | 限定识别码制；不传 = 全部（[14 种](/docs/api/types#barcode-format)） |
-| `continuous` | `boolean` | `true` | 连续扫码模式；`false` 命中后停止 |
-| `paused` | `boolean` | `false` | 暂停 / 恢复扫码；命中后置 `true` 可停在结果画面 |
-| `torch` | `boolean` | `false` | 手电筒开关（**iOS 为 best-effort**，见[平台差异](/docs/platform-differences#torch)） |
-| `onScanResult` | `(results: ScanResult[]) => void` | — | 命中一个或多个码时回调（原生 JSON 已解析为强类型） |
-| `onScanError` | `(error: ScanError) => void` | — | 相机 / 解码出错时回调的普通 `{ code, message }`，不是 `HmsScanError`；见 [error.code](#error-codes) |
-| `onTorchStatus` | `(status: TorchStatus) => void` | — | 手电状态回调;Android 还承载暗光提示,见 [TorchStatus](#torch-status) |
+| 参数            | 类型                              | 默认值  | 说明                                                                                                |
+| --------------- | --------------------------------- | ------- | --------------------------------------------------------------------------------------------------- |
+| `style`         | `StyleProp<ViewStyle>`            | —       | 布局样式，通常设 `StyleSheet.absoluteFill` 或 `{ flex: 1 }`（继承自 `ViewProps`）                   |
+| `formats`       | `readonly BarcodeFormat[]`        | —       | 限定识别码制；不传 = 全部（[14 种](/docs/api/types#barcode-format)）                                |
+| `continuous`    | `boolean`                         | `true`  | 连续扫码模式；`false` 命中后停止                                                                    |
+| `paused`        | `boolean`                         | `false` | 暂停 / 恢复扫码；命中后置 `true` 可停在结果画面                                                     |
+| `torch`         | `boolean`                         | `false` | 手电筒开关（**iOS 为 best-effort**，见[平台差异](/docs/platform-differences#torch)）                |
+| `onScanResult`  | `(results: ScanResult[]) => void` | —       | 命中一个或多个码时回调（原生 JSON 已解析为强类型）                                                  |
+| `onScanError`   | `(error: ScanError) => void`      | —       | 相机 / 解码出错时回调的普通 `{ code, message }`，不是 `HmsScanError`；见 [error.code](#error-codes) |
+| `onTorchStatus` | `(status: TorchStatus) => void`   | —       | 手电状态回调;Android 还承载暗光提示,见 [TorchStatus](#torch-status)                                 |
 
 :::note formats 变更会重建相机
 两端都在初始化时按 `formats` 创建扫码器，运行中改变 `formats`（或 `continuous`）会**重建**底层相机视图。若需频繁切换码制，建议传一个稳定的全集而非频繁变更。
@@ -51,10 +51,10 @@ const HmsScanView: ForwardRefExoticComponent<
 
 `onTorchStatus` 回调参数类型。
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
+| 字段        | 类型      | 说明                                                    |
+| ----------- | --------- | ------------------------------------------------------- |
 | `available` | `boolean` | Android:环境暗到建议显示手电按钮;iOS:设备是否有手电硬件 |
-| `on` | `boolean` | 手电当前是否点亮 |
+| `on`        | `boolean` | 手电当前是否点亮                                        |
 
 :::warning available 的暗光语义仅 Android
 `available` 作为「**环境暗、建议显示手电**」的提示只有 Android 会据环境光上报（来自华为 `OnLightVisibleCallBack`）。iOS 会在 `torch` **初次应用和后续 prop 变更**时触发 `onTorchStatus`;`available` 表示设备是否有手电硬件,`on` 表示真实点亮状态,二者都不是环境光信号。详见[平台差异](/docs/platform-differences#torch)。
@@ -66,10 +66,10 @@ const HmsScanView: ForwardRefExoticComponent<
 
 `onScanError` 回调的 `error.code`（字符串；**不是** `HmsScanError` 实例）：
 
-| `code` | 平台 | 含义 |
-| --- | --- | --- |
+| `code`          | 平台    | 含义                                       |
+| --------------- | ------- | ------------------------------------------ |
 | `E_CAMERA_INIT` | Android | 相机 / 预览初始化失败（如无宿主 Activity） |
-| `E_NO_RESULT` | iOS | 解码结果为空或无法解析（软错误） |
+| `E_NO_RESULT`   | iOS     | 解码结果为空或无法解析（软错误）           |
 
 > `<HmsScanView>` **不含权限请求逻辑**——渲染前需先确认已获得相机权限（见[指南 → 权限处理](/docs/guides/permissions)）。`<Scanner>` 会自动处理权限。
 
@@ -124,12 +124,12 @@ function CustomScan() {
 
 ## 平台兼容性
 
-| 平台 | 支持 | 备注 |
-| --- | --- | --- |
-| iOS（真机） | ✅ | 官方 `ScanKitFrameWork 1.1.2.305` CocoaPod；`torch` best-effort；`onTorchStatus.available` 非暗光信号 |
-| iOS Simulator | ❌ | 原生目标不支持；无硬件 JS 逻辑使用随包 Jest mock |
-| Android | ✅ | 全功能支持 |
-| Web | ❌ | — |
+| 平台          | 支持 | 备注                                                                                                  |
+| ------------- | ---- | ----------------------------------------------------------------------------------------------------- |
+| iOS（真机）   | ✅   | 官方 `ScanKitFrameWork 1.1.2.305` CocoaPod；`torch` best-effort；`onTorchStatus.available` 非暗光信号 |
+| iOS Simulator | ❌   | 原生目标不支持；无硬件 JS 逻辑使用随包 Jest mock                                                      |
+| Android       | ✅   | 全功能支持                                                                                            |
+| Web           | ❌   | —                                                                                                     |
 
 ---
 

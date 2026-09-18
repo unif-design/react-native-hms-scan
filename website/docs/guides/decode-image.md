@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: 图片识别
-description: "decodeImage(localUri) 从本地图片解码条码/二维码：file:// / 绝对路径两端通用，content:// / android.resource:// 仅 Android，data: 仅 iOS；空数组是正常结果。"
+description: '从本地图片识别码，处理空结果和失败。'
 ---
 
 # 图片识别
@@ -38,15 +38,15 @@ const results = await decodeImage('file:///path/photo.jpg', {
 
 `decodeImage` 只接受**本地** uri。两端接受的形式略有差异(源自各自原生实现):
 
-| 形式 | Android | iOS |
-| --- | --- | --- |
-| `file:///...`(文件 URI) | ✅ | ✅ |
-| 绝对路径(无 scheme,如 `/data/.../a.jpg`) | ✅ | ✅ |
-| `content://...`(Android Content URI) | ✅ | ❌ |
-| `android.resource://...` | ✅ | ❌ |
-| `data:...`(base64 等) | ❌ | ✅ |
-| `ph://...`(iOS Photos)/ `assets-library://` | ❌ | ❌ |
-| `http(s)://...`(远程 URL) | ❌ | ❌ |
+| 形式                                        | Android | iOS |
+| ------------------------------------------- | ------- | --- |
+| `file:///...`(文件 URI)                     | ✅      | ✅  |
+| 绝对路径(无 scheme,如 `/data/.../a.jpg`)    | ✅      | ✅  |
+| `content://...`(Android Content URI)        | ✅      | ❌  |
+| `android.resource://...`                    | ✅      | ❌  |
+| `data:...`(base64 等)                       | ❌      | ✅  |
+| `ph://...`(iOS Photos)/ `assets-library://` | ❌      | ❌  |
+| `http(s)://...`(远程 URL)                   | ❌      | ❌  |
 
 :::tip 跨平台安全输入:`file://` 或绝对路径
 要两端都稳的输入,用 **`file://` 或绝对路径**。`content://` **仅 Android**;iOS **不接受 `ph://`**(相册 URI)。从相册选图时,让你的图片选择器(如 `react-native-image-picker`)返回**本地文件路径**(它通常已落地为 `file://` / 路径)再传给 `decodeImage`,跨平台最省心。
@@ -100,20 +100,23 @@ try {
 } catch (e) {
   if (e instanceof HmsScanError) {
     switch (e.code) {
-      case 'E_IMAGE_LOAD_FAILED':   /* 路径无效 / 非本地 uri / 格式不支持 */ break;
-      case 'E_DECODE_FAILED':       /* 解码过程异常 */ break;
-      default: /* E_UNKNOWN 等 */ break;
+      case 'E_IMAGE_LOAD_FAILED':
+        /* 路径无效 / 非本地 uri / 格式不支持 */ break;
+      case 'E_DECODE_FAILED':
+        /* 解码过程异常 */ break;
+      default:
+        /* E_UNKNOWN 等 */ break;
     }
   }
 }
 ```
 
-| 场景 | 结果 |
-| --- | --- |
-| 图里没码 | resolve `[]`(**不抛错**) |
+| 场景                                 | 结果                     |
+| ------------------------------------ | ------------------------ |
+| 图里没码                             | resolve `[]`(**不抛错**) |
 | 传了远程 URL / 非本地 uri / 路径无效 | 抛 `E_IMAGE_LOAD_FAILED` |
-| 解码过程异常 | 抛 `E_DECODE_FAILED` |
-| 其他原生异常 | 抛 `E_UNKNOWN` |
+| 解码过程异常                         | 抛 `E_DECODE_FAILED`     |
+| 其他原生异常                         | 抛 `E_UNKNOWN`           |
 
 :::note 相册权限由宿主 picker / URI grant 负责
 当前 Android / iOS native 都不会产生 `E_NO_READ_PERMISSION`。Android `content://` 是否可读取决于宿主 picker 提供的临时 / 持久 URI grant;iOS 图片选择器需导出本库支持的 `file://` / 绝对路径 / `data:`。加载不到统一抛 `E_IMAGE_LOAD_FAILED`。

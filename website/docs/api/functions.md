@@ -1,7 +1,7 @@
 ---
 sidebar_position: 3
 title: 函数
-description: "decodeImage(uri, options?)（本地图片解码，URI 规则两端有别、空数组非错误）、getCameraPermissionStatus / requestCameraPermission（granted/denied/blocked/undetermined）、码制工具 coerceFormat / coerceContentType / formatsToCsv 完整签名。"
+description: '图片识别、相机权限和码制工具函数。'
 ---
 
 # 函数
@@ -19,14 +19,14 @@ import {
 } from '@unif/react-native-hms-scan';
 ```
 
-| 函数 | 作用 | 触碰原生 |
-| --- | --- | --- |
-| [`decodeImage`](#decode-image) | 从本地图片解码条码 / 二维码 | ✅ |
-| [`getCameraPermissionStatus`](#get-status) | 查询相机权限状态（不弹窗） | ✅ |
-| [`requestCameraPermission`](#request) | 请求相机权限（必要时弹窗） | ✅ |
-| [`coerceFormat`](#coerce-format) | 字符串安全收敛为 `BarcodeFormat` | ❌ 纯函数 |
-| [`coerceContentType`](#coerce-content-type) | 字符串安全收敛为 `BarcodeContentType` | ❌ 纯函数 |
-| [`formatsToCsv`](#formats-to-csv) | `readonly BarcodeFormat[]` → 逗号分隔 CSV | ❌ 纯函数 |
+| 函数                                        | 作用                                      | 触碰原生  |
+| ------------------------------------------- | ----------------------------------------- | --------- |
+| [`decodeImage`](#decode-image)              | 从本地图片解码条码 / 二维码               | ✅        |
+| [`getCameraPermissionStatus`](#get-status)  | 查询相机权限状态（不弹窗）                | ✅        |
+| [`requestCameraPermission`](#request)       | 请求相机权限（必要时弹窗）                | ✅        |
+| [`coerceFormat`](#coerce-format)            | 字符串安全收敛为 `BarcodeFormat`          | ❌ 纯函数 |
+| [`coerceContentType`](#coerce-content-type) | 字符串安全收敛为 `BarcodeContentType`     | ❌ 纯函数 |
+| [`formatsToCsv`](#formats-to-csv)           | `readonly BarcodeFormat[]` → 逗号分隔 CSV | ❌ 纯函数 |
 
 ---
 
@@ -40,30 +40,30 @@ import {
 function decodeImage(
   uri: string,
   options?: DecodeImageOptions
-): Promise<ScanResult[]>
+): Promise<ScanResult[]>;
 ```
 
 ### 参数
 
-| 参数 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `uri` | `string` | ✅ | 本地图片 URI / 路径，见下方[接受的 URI](#accepted-uri)。**不下载远程 URL** |
-| `options` | `DecodeImageOptions` | — | 可选配置 |
-| `options.formats` | `readonly BarcodeFormat[]` | — | 限定识别码制；不传 = 全部 |
+| 参数              | 类型                       | 必填 | 说明                                                                       |
+| ----------------- | -------------------------- | ---- | -------------------------------------------------------------------------- |
+| `uri`             | `string`                   | ✅   | 本地图片 URI / 路径，见下方[接受的 URI](#accepted-uri)。**不下载远程 URL** |
+| `options`         | `DecodeImageOptions`       | —    | 可选配置                                                                   |
+| `options.formats` | `readonly BarcodeFormat[]` | —    | 限定识别码制；不传 = 全部                                                  |
 
 ### 接受的 URI {#accepted-uri}
 
 只接受**本地** URI；两端接受的形式略有差异（源自各自原生实现）：
 
-| 形式 | Android | iOS |
-| --- | --- | --- |
-| `file:///...`（文件 URI） | ✅ | ✅ |
-| 绝对路径（无 scheme，如 `/data/.../a.jpg`） | ✅ | ✅ |
-| `data:...`（base64 等） | ❌ | ✅ |
-| `content://...`（Android Content URI） | ✅ | ❌ |
-| `android.resource://...` | ✅ | ❌ |
-| `ph://...`（iOS 相册）/ `assets-library://` | ❌ | ❌ |
-| `http(s)://...`（远程 URL） | ❌ | ❌ |
+| 形式                                        | Android | iOS |
+| ------------------------------------------- | ------- | --- |
+| `file:///...`（文件 URI）                   | ✅      | ✅  |
+| 绝对路径（无 scheme，如 `/data/.../a.jpg`） | ✅      | ✅  |
+| `data:...`（base64 等）                     | ❌      | ✅  |
+| `content://...`（Android Content URI）      | ✅      | ❌  |
+| `android.resource://...`                    | ✅      | ❌  |
+| `ph://...`（iOS 相册）/ `assets-library://` | ❌      | ❌  |
+| `http(s)://...`（远程 URL）                 | ❌      | ❌  |
 
 :::tip 跨平台最稳的输入：`file://` 或绝对路径
 两端都稳的输入是 **`file://` 或绝对路径**。`content://` **仅 Android**；iOS **不接受 `ph://`**（相册 URI）。从相册选图时，让图片选择器（如 `react-native-image-picker`）返回**本地文件路径**再传入，最省心。
@@ -77,20 +77,20 @@ function decodeImage(
 
 真正的失败才抛 `HmsScanError`（带 `code`）：
 
-| `code` | 触发场景 |
-| --- | --- |
-| `E_IMAGE_LOAD_FAILED` | 路径无效 / 非本地 uri（如远程 URL、iOS 的 `ph://`）/ 格式不支持 |
-| `E_DECODE_FAILED` | 解码过程异常 |
-| `E_NO_READ_PERMISSION` | 公共类型中的兼容保留值;当前两端 native 不产生 |
-| `E_UNKNOWN` | 其他未知错误（非上述 code 的原生异常统一收敛于此） |
+| `code`                 | 触发场景                                                        |
+| ---------------------- | --------------------------------------------------------------- |
+| `E_IMAGE_LOAD_FAILED`  | 路径无效 / 非本地 uri（如远程 URL、iOS 的 `ph://`）/ 格式不支持 |
+| `E_DECODE_FAILED`      | 解码过程异常                                                    |
+| `E_NO_READ_PERMISSION` | 公共类型中的兼容保留值;当前两端 native 不产生                   |
+| `E_UNKNOWN`            | 其他未知错误（非上述 code 的原生异常统一收敛于此）              |
 
 图片选择器和 URI grant 负责让所选文件可读;`decodeImage` 自身不申请相册权限。Android `content://` grant 失效或 URI 不可读时,当前表现为 `E_IMAGE_LOAD_FAILED`。
 
-| 场景 | 结果 |
-| --- | --- |
-| 图里没码 | resolve `[]`（**不抛错**） |
-| 传了远程 URL / 非本地 uri / 路径无效 | 抛 `E_IMAGE_LOAD_FAILED` |
-| 解码过程异常 | 抛 `E_DECODE_FAILED` |
+| 场景                                 | 结果                       |
+| ------------------------------------ | -------------------------- |
+| 图里没码                             | resolve `[]`（**不抛错**） |
+| 传了远程 URL / 非本地 uri / 路径无效 | 抛 `E_IMAGE_LOAD_FAILED`   |
+| 解码过程异常                         | 抛 `E_DECODE_FAILED`       |
 
 ### 示例
 
@@ -125,19 +125,19 @@ try {
 ### 签名
 
 ```ts
-function getCameraPermissionStatus(): Promise<CameraPermissionStatus>
+function getCameraPermissionStatus(): Promise<CameraPermissionStatus>;
 ```
 
 ### 返回值
 
 `Promise<CameraPermissionStatus>`：
 
-| 值 | 说明 |
-| --- | --- |
-| `'granted'` | 已授权 |
-| `'denied'` | 用户拒绝（可再次请求） |
-| `'blocked'` | 永久拒绝（需引导去系统设置） |
-| `'undetermined'` | 尚未请求过权限 |
+| 值               | 说明                         |
+| ---------------- | ---------------------------- |
+| `'granted'`      | 已授权                       |
+| `'denied'`       | 用户拒绝（可再次请求）       |
+| `'blocked'`      | 永久拒绝（需引导去系统设置） |
+| `'undetermined'` | 尚未请求过权限               |
 
 :::note Android 查询时只给 granted / denied
 Android 查询对任何未授权状态都返回 `denied`,当前不会返回 `undetermined`;只有 `requestCameraPermission` 执行请求后才可能返回 `blocked`。iOS 只可能返回 `granted` / `undetermined` / `blocked` —— 原生把 `denied` 与 `restricted` 都映射为 `blocked`,永远不返回 `denied`。Android 判断 `blocked` 时以请求后的返回为准。
@@ -161,7 +161,7 @@ if (status === 'granted') {
 ### 签名
 
 ```ts
-function requestCameraPermission(): Promise<CameraPermissionStatus>
+function requestCameraPermission(): Promise<CameraPermissionStatus>;
 ```
 
 ### 返回值
@@ -197,11 +197,11 @@ if (status === 'granted') {
 把任意值安全收敛为 `BarcodeFormat`；不是已知码制（含 `UNKNOWN`）则返回 `'UNKNOWN'`。
 
 ```ts
-function coerceFormat(value: unknown): BarcodeFormat
+function coerceFormat(value: unknown): BarcodeFormat;
 
 coerceFormat('EAN_13'); // 'EAN_13'
-coerceFormat('FOO');    // 'UNKNOWN'
-coerceFormat(123);      // 'UNKNOWN'
+coerceFormat('FOO'); // 'UNKNOWN'
+coerceFormat(123); // 'UNKNOWN'
 ```
 
 ### coerceContentType {#coerce-content-type}
@@ -209,7 +209,7 @@ coerceFormat(123);      // 'UNKNOWN'
 把任意值安全收敛为 `BarcodeContentType`；未知 / 缺省返回 `undefined`。
 
 ```ts
-function coerceContentType(value: unknown): BarcodeContentType | undefined
+function coerceContentType(value: unknown): BarcodeContentType | undefined;
 
 coerceContentType('URL'); // 'URL'
 coerceContentType('FOO'); // undefined
@@ -220,23 +220,23 @@ coerceContentType('FOO'); // undefined
 把 `readonly BarcodeFormat[]` 转成传给原生的逗号分隔 CSV；空数组 / 未传 → `''`（= 识别全部码制）。
 
 ```ts
-function formatsToCsv(formats?: readonly BarcodeFormat[]): string
+function formatsToCsv(formats?: readonly BarcodeFormat[]): string;
 
 formatsToCsv(['QR_CODE', 'EAN_13']); // 'QR_CODE,EAN_13'
-formatsToCsv([]);                    // ''
-formatsToCsv();                      // ''
+formatsToCsv([]); // ''
+formatsToCsv(); // ''
 ```
 
 ---
 
 ## 平台兼容性
 
-| 函数 | iOS | Android | Web |
-| --- | --- | --- | --- |
-| `decodeImage` | ✅ | ✅ | ❌ |
-| `getCameraPermissionStatus` | ✅ | ✅ | ❌ |
-| `requestCameraPermission` | ✅ | ✅ | ❌ |
-| `coerceFormat` / `coerceContentType` / `formatsToCsv` | ✅ | ✅ | ✅（纯函数） |
+| 函数                                                  | iOS | Android | Web          |
+| ----------------------------------------------------- | --- | ------- | ------------ |
+| `decodeImage`                                         | ✅  | ✅      | ❌           |
+| `getCameraPermissionStatus`                           | ✅  | ✅      | ❌           |
+| `requestCameraPermission`                             | ✅  | ✅      | ❌           |
+| `coerceFormat` / `coerceContentType` / `formatsToCsv` | ✅  | ✅      | ✅（纯函数） |
 
 ---
 

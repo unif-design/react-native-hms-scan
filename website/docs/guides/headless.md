@@ -1,7 +1,7 @@
 ---
 sidebar_position: 2
 title: 底层 headless 组件
-description: "用 <HmsScanView> 完全自定义扫码 UI：只出相机预览 + 抛事件。Android onTorchStatus.available 是暗光提示；iOS available 是手电硬件能力，on 是真实状态。"
+description: '使用 HmsScanView 组合自定义扫码界面。'
 ---
 
 # 底层 headless 组件
@@ -38,8 +38,8 @@ function CustomScanScreen() {
   return (
     <View style={styles.container}>
       <HmsScanView
-        style={StyleSheet.absoluteFill}        // 铺满容器
-        formats={['QR_CODE', 'EAN_13']}        // 省略 = 全部 14 种码制
+        style={StyleSheet.absoluteFill} // 铺满容器
+        formats={['QR_CODE', 'EAN_13']} // 省略 = 全部 14 种码制
         torch={torchOn}
         paused={paused}
         onScanResult={handleResult}
@@ -106,7 +106,7 @@ const [paused, setPaused] = useState(false);
     setPaused(true);
     handleCode(results[0]?.value);
   }}
-/>
+/>;
 ```
 
 ---
@@ -122,10 +122,11 @@ const [torch, setTorch] = useState(false);
     // Android: available 是暗光提示
     // iOS: available 是硬件能力；on 是真实点亮状态
   }}
-/>
+/>;
 ```
 
 :::warning 手电筒平台差异
+
 - **Android** —— `torch` 可编程控制;`onTorchStatus.available` 会在暗光时上报 `true`,可据此决定是否显示手电按钮。
 - **iOS** —— HMS 无公开手电 API,本库走 `AVCaptureDevice` **尽力而为**,不保证点亮;`onTorchStatus` 会在 `torch` 初次应用和后续 prop 变更时上报,其中 `available` 表示硬件能力、`on` 表示真实状态。
 

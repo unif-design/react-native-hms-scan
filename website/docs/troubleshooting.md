@@ -1,7 +1,7 @@
 ---
 sidebar_position: 8
 title: 常见问题
-description: "@unif/react-native-hms-scan 排障决策树：iOS 真机 / Simulator 支持边界、官方 ScanKitFrameWork CocoaPod、Huawei Maven / minSdk / CAMERA、decodeImage URI grant 与空数组、iOS 手电 best-effort。"
+description: '按使用场景排查接入、平台和结果处理问题。'
 ---
 
 # 常见问题
@@ -37,7 +37,7 @@ ld: building for 'iOS-simulator', but linking in object file built for 'iOS'
 [!] The `ScanKitFrameWork` pod ... has a license ... which doesn't provide any official binaries...
 ```
 
-✅ **无害,可忽略。** 这是 CocoaPods 对部分非标准 / 私有 LICENSE 的提示,不影响编译和运行。
+先区分 LICENSE 提示与安装错误；结合 `pod install` 的退出状态、实际依赖和后续编译结果判断。此提示本身不代表扫码或设备行为已通过验证。
 
 ---
 
@@ -142,4 +142,4 @@ Linking.openSettings();
 
 ## 症状:打包 / 运行报 `Unable to resolve module ...`
 
-✅ 缺同伴包。`peerDependencies` **缺一即崩**,逐项核对[安装 → 安装依赖](/docs/getting-started/installation#安装依赖)是否装齐 —— 尤其 `@unif/react-native-design` 及其链上的 `react-native-reanimated` / `react-native-gesture-handler` 等(`<Scanner>` 的 UI 依赖它们)。补齐后 iOS 重新 `cd ios && bundle exec pod install`。
+✅ 缺同伴包。缺少必要的 peer 依赖会导致模块解析或运行失败,逐项核对[安装 → 安装依赖](/docs/getting-started/installation#安装依赖)是否装齐 —— 尤其 `@unif/react-native-design` 及其链上的 `react-native-reanimated` / `react-native-gesture-handler` 等(`<Scanner>` 的 UI 依赖它们)。补齐后 iOS 重新 `cd ios && bundle exec pod install`。
