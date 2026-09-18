@@ -11,7 +11,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { matchesGlob, dirname, join } from 'node:path';
 import test from 'node:test';
 import { URL, fileURLToPath } from 'node:url';
 
@@ -91,15 +91,28 @@ test('CI code filter treats ESLint and Jest setup changes as executable code', a
     join(repositoryRoot, '.github/workflows/ci.yml'),
     'utf8'
   );
-  const codeStart = workflow.indexOf('\n            code:\n');
-  const codeEnd = workflow.indexOf('\n  lint:\n', codeStart);
-
-  assert.notEqual(codeStart, -1, 'CI workflow must define the code filter');
-  assert.notEqual(codeEnd, -1, 'CI workflow code filter must precede lint');
-  const codeFilter = workflow.slice(codeStart, codeEnd);
-
-  assert.match(codeFilter, /^\s+- 'eslint\.config\.mjs'$/m);
-  assert.match(codeFilter, /^\s+- 'jest\.setup\.ts'$/m);
+  assert.match(workflow, /id: scope\n\s+uses: \.\/\.github\/actions\/changes/);
+  assert.ok(workflow.includes('code: ${{ steps.scope.outputs.code }}'));
+  const action = await readFile(
+    join(repositoryRoot, '.github/actions/changes/action.yml'),
+    'utf8'
+  );
+  const block = action.match(/\n {10}code:\n((?: {12}- .*\n)+)/)?.[1];
+  assert.ok(block, 'Shared action must define the code filter');
+  const patterns = [...block.matchAll(/- '([^']+)'/g)].map((match) => match[1]);
+  for (const file of ['eslint.config.mjs', 'jest.setup.ts']) {
+    const included = patterns
+      .filter((pattern) => !pattern.startsWith('!'))
+      .some((pattern) => matchesGlob(file, pattern));
+    const excluded = patterns
+      .filter((pattern) => pattern.startsWith('!'))
+      .some((pattern) => matchesGlob(file, pattern.slice(1)));
+    assert.equal(
+      included && !excluded,
+      true,
+      `${file} must select code validation`
+    );
+  }
 });
 
 test('Android integration matches React Native lock entries instead of unrelated 0.85.3 values', async () => {
