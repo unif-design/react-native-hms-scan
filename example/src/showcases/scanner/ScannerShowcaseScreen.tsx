@@ -2,14 +2,19 @@ import {
   useCallback,
   useEffect,
   useReducer,
+  useState,
   type ComponentType,
 } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets, type EdgeInsets } from 'react-native-safe-area-context';
+import {
+  useSafeAreaInsets,
+  type EdgeInsets,
+} from 'react-native-safe-area-context';
 import {
   Button,
   Card,
   Switch,
+  ThemeProvider,
   fontMono,
   fw,
   space,
@@ -40,11 +45,7 @@ import {
 export type ScannerCallbacks = Required<
   Pick<
     ScannerProps,
-    | 'onClose'
-    | 'onScanError'
-    | 'resolveProduct'
-    | 'onConfirm'
-    | 'pickImage'
+    'onClose' | 'onScanError' | 'resolveProduct' | 'onConfirm' | 'pickImage'
   >
 >;
 
@@ -82,6 +83,8 @@ export function ScannerShowcaseScreen({
     scannerDemoReducer,
     initialScannerDemoState
   );
+  const [darkTheme, setDarkTheme] = useState(false);
+  const [largeText, setLargeText] = useState(false);
   const insets = useSafeAreaInsets();
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
@@ -102,13 +105,10 @@ export function ScannerShowcaseScreen({
     return () => onActiveBackHandlerChange?.(null);
   }, [handleActiveBack, onActiveBackHandlerChange, state.active]);
 
-  const onConfirm = useCallback(
-    (product: ScanProduct, result: ScanResult) => {
-      dispatch({ type: 'confirmed', product, result });
-      toast.success('已保存扫码结果');
-    },
-    []
-  );
+  const onConfirm = useCallback((product: ScanProduct, result: ScanResult) => {
+    dispatch({ type: 'confirmed', product, result });
+    toast.success('已保存扫码结果');
+  }, []);
 
   const onScanError = useCallback((error: ScanError) => {
     dispatch({ type: 'error', error });
@@ -117,15 +117,20 @@ export function ScannerShowcaseScreen({
 
   if (state.active) {
     return (
-      <ScannerComponent
-        {...buildScannerProps(state, insets, {
-          onClose,
-          onConfirm,
-          onScanError,
-          pickImage: pickLocalImage,
-          resolveProduct: lookupDemoProduct,
-        })}
-      />
+      <ThemeProvider
+        forceScheme={darkTheme ? 'dark' : 'light'}
+        fontScale={largeText ? 1.5 : 1}
+      >
+        <ScannerComponent
+          {...buildScannerProps(state, insets, {
+            onClose,
+            onConfirm,
+            onScanError,
+            pickImage: pickLocalImage,
+            resolveProduct: lookupDemoProduct,
+          })}
+        />
+      </ThemeProvider>
     );
   }
 
@@ -170,6 +175,22 @@ export function ScannerShowcaseScreen({
               accessibilityLabel="自动确认"
             />
           </View>
+          <View style={styles.switchRow}>
+            <Text style={styles.rowTitle}>深色主题</Text>
+            <Switch
+              value={darkTheme}
+              onChange={setDarkTheme}
+              accessibilityLabel="深色主题"
+            />
+          </View>
+          <View style={styles.switchRow}>
+            <Text style={styles.rowTitle}>大字号</Text>
+            <Switch
+              value={largeText}
+              onChange={setLargeText}
+              accessibilityLabel="大字号"
+            />
+          </View>
           <Button
             label="进入全屏 Scanner"
             leftIcon="scanner"
@@ -194,9 +215,7 @@ export function ScannerShowcaseScreen({
         <Card borderColor={colors.error}>
           <View style={styles.cardContent}>
             <Text style={styles.errorTitle}>{state.lastError.code}</Text>
-            <Text style={styles.rowDescription}>
-              {state.lastError.message}
-            </Text>
+            <Text style={styles.rowDescription}>{state.lastError.message}</Text>
           </View>
         </Card>
       ) : null}

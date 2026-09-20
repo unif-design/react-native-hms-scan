@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking, StyleSheet, View } from 'react-native';
-import { ThemeProvider } from '@unif/react-native-design';
 import { HmsScanView } from '../HmsScanView';
 import { decodeImage } from '../decodeImage';
 import {
@@ -92,15 +91,11 @@ export interface ScannerProps {
 
 /**
  * 成品「扫一扫」界面（聚焦款）。底层 <HmsScanView> 出相机画面，取景框 / 工具栏 / 结果卡
- * 全用 @unif/react-native-design 的主题令牌与组件绘制（统一风格）。自带 ThemeProvider，
- * 可直接整屏接入；放进宿主已有的 ThemeProvider 里也兼容。
+ * 全用 @unif/react-native-design 的主题令牌与组件绘制（统一风格），继承宿主主题与字号。
+ * 无外层 ThemeProvider 时采用 Design 默认主题。
  */
 export function Scanner(props: ScannerProps) {
-  return (
-    <ThemeProvider>
-      <ScannerInner {...props} />
-    </ThemeProvider>
-  );
+  return <ScannerInner {...props} />;
 }
 
 function ScannerInner({
