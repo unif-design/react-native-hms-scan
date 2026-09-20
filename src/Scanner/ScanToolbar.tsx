@@ -1,5 +1,13 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Icon, useColors, r, rf, fw, type IconName } from '@unif/react-native-design';
+import {
+  Icon,
+  useColors,
+  r,
+  rf,
+  useThemedStyles,
+  fw,
+  type IconName,
+} from '@unif/react-native-design';
 import { scanChrome } from './scanChrome';
 
 interface ScanToolbarProps {
@@ -23,7 +31,10 @@ export function ScanToolbar({
 }: ScanToolbarProps) {
   const c = useColors();
   return (
-    <View style={[styles.bar, { bottom: bottomInset + r(50) }]} pointerEvents="box-none">
+    <View
+      style={[styles.bar, { bottom: bottomInset + r(50) }]}
+      pointerEvents="box-none"
+    >
       {onClose && <ToolbarItem icon="undo" label="返回" onPress={onClose} />}
       {onFlash && (
         <ToolbarItem
@@ -49,6 +60,7 @@ function ToolbarItem({
   activeColor?: string;
   onPress: () => void;
 }) {
+  const s = useThemedStyles(makeTextStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -62,14 +74,20 @@ function ToolbarItem({
             style={[
               styles.circle,
               activeColor
-                ? { backgroundColor: activeColor, borderColor: scanChrome.glassBorderActive }
-                : { backgroundColor: scanChrome.glassDisc2, borderColor: scanChrome.glassBorder },
+                ? {
+                    backgroundColor: activeColor,
+                    borderColor: scanChrome.glassBorderActive,
+                  }
+                : {
+                    backgroundColor: scanChrome.glassDisc2,
+                    borderColor: scanChrome.glassBorder,
+                  },
               pressed && { opacity: 0.7 },
             ]}
           >
             <Icon name={icon} size={r(23)} color={scanChrome.white} />
           </View>
-          <Text style={styles.label}>{label}</Text>
+          <Text style={s.label}>{label}</Text>
         </>
       )}
     </Pressable>
@@ -95,12 +113,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
   },
-  label: {
-    fontSize: rf(12),
-    fontWeight: fw.medium,
-    color: scanChrome.toolbarLabel,
-    textShadowColor: 'rgba(0,0,0,0.4)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
-  },
 });
+
+const makeTextStyles = () =>
+  StyleSheet.create({
+    label: {
+      fontSize: rf(12),
+      fontWeight: fw.medium,
+      color: scanChrome.toolbarLabel,
+      textShadowColor: 'rgba(0,0,0,0.4)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 4,
+    },
+  });

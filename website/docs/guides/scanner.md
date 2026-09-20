@@ -6,9 +6,20 @@ description: '接入扫码页面，配置确认、相册、手电和码制。'
 
 # 成品扫一扫页
 
-`<Scanner>` 是开箱即用的成品扫码界面(聚焦款,浅色)。底层用 `<HmsScanView>` 出相机画面,取景框 / 工具栏 / 结果卡全用 [`@unif/react-native-design`](https://www.npmjs.com/package/@unif/react-native-design) 的主题令牌与组件绘制。
+`<Scanner>` 是开箱即用的成品扫码界面（聚焦款）。底层用 `<HmsScanView>` 出相机画面，取景框 / 工具栏 / 结果卡使用 [`@unif/react-native-design`](https://www.npmjs.com/package/@unif/react-native-design) 的主题令牌与组件绘制。
 
-它自带 `ThemeProvider`、权限流和状态机,可直接作为一个路由整屏接入;放进宿主已有的 `ThemeProvider` 里也兼容。
+它继承宿主 `ThemeProvider` 的主题和字号，权限流和状态机由 Scanner 维护，可直接作为一个路由整屏接入。没有外层 Provider 时采用 Design 自身默认值。
+
+```tsx
+import { ThemeProvider } from '@unif/react-native-design';
+import { Scanner } from '@unif/react-native-hms-scan';
+
+<ThemeProvider forceScheme="dark" fontScale={1.5}>
+  <Scanner onConfirm={onConfirm} onClose={onClose} />
+</ThemeProvider>;
+```
+
+宿主更新主题或字号时保留同一个 Scanner 实例。取景文字使用有效字号，结果卡随主题更新；相机预览、手电和当前待确认结果继续保留。example 的 Scanner 配置页提供深色主题和大字号选项，便于核对实际设备上的显示。
 
 `ToastHost` 由宿主按需在 App 根部挂载。
 

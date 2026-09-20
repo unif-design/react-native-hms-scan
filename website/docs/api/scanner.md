@@ -6,7 +6,7 @@ description: '成品扫码页面的属性、确认回调和使用边界。'
 
 # Scanner
 
-成品「扫一扫」界面（聚焦款，浅色）。底层使用 [`<HmsScanView>`](/docs/api/hms-scan-view) 出相机画面，取景框 / 工具栏 / 结果卡全用 `@unif/react-native-design` 的主题令牌与组件绘制。自带 `ThemeProvider`、权限流和状态机，可直接整屏接入。
+成品「扫一扫」界面（聚焦款）。底层使用 [`<HmsScanView>`](/docs/api/hms-scan-view) 出相机画面，取景框 / 工具栏 / 结果卡使用 `@unif/react-native-design` 的主题令牌与组件绘制。继承宿主 `ThemeProvider` 的有效主题与字号，权限流和状态机由 Scanner 维护，可直接整屏接入。
 
 `ToastHost` 由宿主按需在 App 根部挂载。
 
@@ -132,7 +132,7 @@ function ScanScreen({ navigation }) {
 - `autoConfirm` 进 `done` 的前提是 **`onConfirm` 正常返回**:它与 `resolveProduct` 在同一个 `try` 里调用,`onConfirm` 同步抛错会被收成 fail 重扫层,不会到达 `done`。宿主导航可能抛错时，请在 `onConfirm` 内部自行 try/catch。
 - view error 分三路:`E_NO_RESULT` 只通过 `onScanError` soft 上报;`E_NO_CAMERA_PERMISSION` 进入 `denied` 并卸载相机 view;其余 fatal view error 进入可重试的 `error`。权限 helper reject 与打开系统设置失败也进入 `error`。
 - `resolveProduct` **抛错与返回 `null` / `undefined` 效果相同**，均进入 fail 重扫层。
-- 自带 `ThemeProvider`；放进宿主已有的 `ThemeProvider` 里也兼容（嵌套不报错）。
+- 继承最近的 Design `ThemeProvider`；没有外层 Provider 时采用 Design 默认主题和字号。标题、取景提示及工具栏文字通过 `useThemedStyles` 缩放一次，取景暗色装饰和白色文字保持原有对比。更新主题、字号、标题或提示不重新请求权限或挂载相机，也不清除当前结果或手电状态。
 - `@unif/react-native-design` 是 peer 依赖，`<Scanner>` 的 UI 依赖它（及其链上的 `react-native-reanimated` / `react-native-gesture-handler`）。
 
 ---

@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { View } from 'react-native';
-import { ThemeProvider } from '@unif/react-native-design';
+import { Text, View } from 'react-native';
+import { ThemeProvider, useTheme } from '@unif/react-native-design';
 import type {
   ScanError,
   ScannerProps,
@@ -55,11 +55,7 @@ const scanError: ScanError = {
 function createCallbacks(): Required<
   Pick<
     ScannerProps,
-    | 'onClose'
-    | 'onScanError'
-    | 'resolveProduct'
-    | 'onConfirm'
-    | 'pickImage'
+    'onClose' | 'onScanError' | 'resolveProduct' | 'onConfirm' | 'pickImage'
   >
 > {
   return {
@@ -134,6 +130,24 @@ describe('buildScannerProps', () => {
 describe('ScannerShowcaseScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('外观选项通过真实父 ThemeProvider 交给 Scanner', () => {
+    function ScannerAppearance() {
+      const { scheme, fontScale } = useTheme();
+      return <Text>{`${scheme}:${fontScale}`}</Text>;
+    }
+    render(
+      <ScannerShowcaseScreen
+        onBack={jest.fn()}
+        ScannerComponent={ScannerAppearance}
+      />,
+      { wrapper: ThemeProvider }
+    );
+    fireEvent.press(screen.getByRole('switch', { name: '深色主题' }));
+    fireEvent.press(screen.getByRole('switch', { name: '大字号' }));
+    fireEvent.press(screen.getByRole('button', { name: '进入全屏 Scanner' }));
+    expect(screen.getByText('dark:1.5')).toBeOnTheScreen();
   });
 
   it('active 时只渲染 Scanner 边界并复用共享 adapter', () => {
@@ -212,28 +226,31 @@ describe('ScannerShowcaseScreen', () => {
   it.each([
     ['关闭', false],
     ['开启', true],
-  ] as const)('autoConfirm %s 路径都同步保存完整确认结果', (_label, enabled) => {
-    const { getScannerProps } = renderWithScanner();
+  ] as const)(
+    'autoConfirm %s 路径都同步保存完整确认结果',
+    (_label, enabled) => {
+      const { getScannerProps } = renderWithScanner();
 
-    if (enabled) {
-      fireEvent.press(screen.getByRole('switch', { name: '自动确认' }));
+      if (enabled) {
+        fireEvent.press(screen.getByRole('switch', { name: '自动确认' }));
+      }
+      fireEvent.press(screen.getByRole('button', { name: '进入全屏 Scanner' }));
+
+      expect(getScannerProps()?.autoConfirm).toBe(enabled);
+      act(() => {
+        getScannerProps()?.onConfirm?.(milkTeaProduct, milkTeaResult);
+      });
+
+      expect(screen.getByText('Scanner 配置')).toBeOnTheScreen();
+      expect(screen.getByTestId('last-confirmed-json')).toHaveTextContent(
+        JSON.stringify(
+          { product: milkTeaProduct, result: milkTeaResult },
+          null,
+          2
+        )
+      );
     }
-    fireEvent.press(screen.getByRole('button', { name: '进入全屏 Scanner' }));
-
-    expect(getScannerProps()?.autoConfirm).toBe(enabled);
-    act(() => {
-      getScannerProps()?.onConfirm?.(milkTeaProduct, milkTeaResult);
-    });
-
-    expect(screen.getByText('Scanner 配置')).toBeOnTheScreen();
-    expect(screen.getByTestId('last-confirmed-json')).toHaveTextContent(
-      JSON.stringify(
-        { product: milkTeaProduct, result: milkTeaResult },
-        null,
-        2
-      )
-    );
-  });
+  );
 
   it('配置页返回按钮调用上层路由', () => {
     const onBack = jest.fn();
