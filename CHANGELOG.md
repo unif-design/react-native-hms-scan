@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/unif-design/react-native-hms-scan/compare/v0.6.1...v0.6.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* **scanner:** 继承宿主主题与字号 ([#75](https://github.com/unif-design/react-native-hms-scan/issues/75)) ([19be15d](https://github.com/unif-design/react-native-hms-scan/commit/19be15db415d8a8f3ac2162e61240b2d3853d248))
+
 ## [0.6.1](https://github.com/unif-design/react-native-hms-scan/compare/v0.6.0...v0.6.1) (2026-09-02)
 
 
