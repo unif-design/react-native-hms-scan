@@ -1,109 +1,37 @@
 ---
 sidebar_position: 7
 title: 测试(Mock)
-description: '在测试环境使用随包 mock 验证调用和结果处理。'
 ---
 
-# 测试(Mock)
+# 测试
 
-本库依赖 `HmsScan` TurboModule 与 `HmsScanView` Fabric 组件，Jest 环境无法直接加载原生模块。库内置一份官方 mock，消费者在测试里用它替换本库：
+消费者可使用包提供的 mock，公共类型和错误类与正式入口一致。
 
 ```ts
 jest.mock('@unif/react-native-hms-scan', () =>
   require('@unif/react-native-hms-scan/mock')
 );
-```
 
----
+import { decodeImage, ScanError } from '@unif/react-native-hms-scan';
 
-## mock 后的行为 {#behavior}
-
-| 导出                                                  | mock 行为                                 |
-| ----------------------------------------------------- | ----------------------------------------- |
-| `decodeImage`                                         | `jest.fn`，默认 resolve **`[]`**          |
-| `getCameraPermissionStatus`                           | `jest.fn`，默认 resolve **`'granted'`**   |
-| `requestCameraPermission`                             | `jest.fn`，默认 resolve **`'granted'`**   |
-| `<HmsScanView>`                                       | 渲染为 **`null`**（不触碰原生）           |
-| `<Scanner>`                                           | 渲染为 **`null`**（不触碰原生）           |
-| `coerceFormat` / `coerceContentType` / `formatsToCsv` | **保留真实实现**（纯函数，不碰原生）      |
-| 类型 / 常量 / `HmsScanError` / `ALL_BARCODE_FORMATS`  | **保留真实实现**（从 `./types` 原样导出） |
-
-:::note 纯函数与类型不被打桩
-码制工具（`coerceFormat` / `coerceContentType` / `formatsToCsv`）以及所有类型、`HmsScanError`、`ALL_BARCODE_FORMATS` 在 mock 中是**真实实现**——它们不触碰原生，可在测试里直接断言其真实行为。被打桩的只有触碰原生的部分（`decodeImage`、两个权限函数、两个组件）。
-:::
-
----
-
-## 覆盖单次返回 {#override}
-
-默认值不够时，用 `jest.fn` 的 `mockResolvedValueOnce` 等覆盖：
-
-```ts
-import {
-  decodeImage,
-  getCameraPermissionStatus,
-} from '@unif/react-native-hms-scan';
-
-jest.mock('@unif/react-native-hms-scan', () =>
-  require('@unif/react-native-hms-scan/mock')
-);
-
-// 让 decodeImage 返回一个模拟命中
-(decodeImage as jest.Mock).mockResolvedValueOnce([
-  { value: '6901028018999', format: 'EAN_13' },
+jest.mocked(decodeImage).mockResolvedValueOnce([
+  { value: '00123', format: 'EAN_13' },
 ]);
+await decodeImage({ uri: 'file:///tmp/photo.jpg' });
 
-// 让权限查询返回 blocked
-(getCameraPermissionStatus as jest.Mock).mockResolvedValueOnce('blocked');
-```
-
----
-
-## 完整示例 {#example}
-
-```ts
-import {
-  decodeImage,
-  requestCameraPermission,
-} from '@unif/react-native-hms-scan';
-
-jest.mock('@unif/react-native-hms-scan', () =>
-  require('@unif/react-native-hms-scan/mock')
+jest.mocked(decodeImage).mockRejectedValueOnce(
+  new ScanError({ reason: 'image_unavailable', message: '文件不可读' })
 );
-
-describe('扫码流程', () => {
-  it('图片识别返回结果', async () => {
-    (decodeImage as jest.Mock).mockResolvedValueOnce([
-      { value: 'https://example.com', format: 'QR_CODE' },
-    ]);
-
-    const results = await decodeImage('file:///photo.jpg');
-    expect(results).toHaveLength(1);
-    expect(results[0].value).toBe('https://example.com');
-  });
-
-  it('图里没码（默认空数组）', async () => {
-    const results = await decodeImage('file:///blank.jpg');
-    expect(results).toEqual([]); // mock 默认 resolve []
-  });
-
-  it('权限被永久拒绝', async () => {
-    (requestCameraPermission as jest.Mock).mockResolvedValueOnce('blocked');
-
-    const status = await requestCameraPermission();
-    expect(status).toBe('blocked');
-  });
-});
 ```
 
-:::tip iOS 原生目标只支持真机
-iOS 相机扫码与 `decodeImage` 原生路径都必须在真机验证。逻辑层（识图 / 权限分支 / 结果处理）可用本页的 `jest.mock` 方案在无硬件环境跑通;mock 不加载 iOS 原生实现,不能表述成 Simulator 原生支持。详见[常见问题](/docs/troubleshooting)。
-:::
+decodeImage 默认返回 []，两个权限函数默认 granted，组件返回 null。Mock 不模拟相机硬件、真实权限或文件可读性。结果转换和格式映射是库内部实现，不通过 mock 导出。
 
----
+## 本库验证
 
-## 相关
+```sh
+yarn jest src/__tests__/capabilities.test.tsx src/__tests__/Scanner.test.tsx --runInBand --watchman=false
+yarn typecheck
+yarn lint
+```
 
-- [API 参考 → 函数](/docs/api/functions) — `decodeImage` / 权限函数 / 码制工具签名
-- [API 参考 → 类型](/docs/api/types) — `ScanResult` / `CameraPermissionStatus` / `HmsScanError`
-- [常见问题](/docs/troubleshooting) — iOS 真机限制与排障
+修改公共结果、异步采用和原生协议时覆盖实际 Scanner、example、mock、Web 入口与 Fabric Codegen。完整 CI 包含集成检查、库打包和原生 example 构建。真机上的扫码、图库读取、手电和生命周期分别验收；Jest 不能代替设备证据。

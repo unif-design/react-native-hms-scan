@@ -1,8 +1,14 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react-native';
 import { ThemeProvider } from '@unif/react-native-design';
 import {
   decodeImage,
-  HmsScanError,
+  ScanError,
   type ScanResult,
 } from '@unif/react-native-hms-scan';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -54,7 +60,8 @@ beforeEach(() => {
 });
 
 it('picking 与 decoding 期间禁用开始按钮和 format preset', async () => {
-  const pendingPick = deferred<Awaited<ReturnType<typeof launchImageLibrary>>>();
+  const pendingPick =
+    deferred<Awaited<ReturnType<typeof launchImageLibrary>>>();
   const pendingDecode = deferred<ScanResult[]>();
   mockLaunchImageLibrary.mockReturnValueOnce(pendingPick.promise);
   mockDecodeImage.mockReturnValueOnce(pendingDecode.promise);
@@ -98,17 +105,19 @@ it('success 完整列出每条 value、format 与 contentType', async () => {
   for (const result of results) {
     expect(await screen.findByText(result.value)).toBeOnTheScreen();
     expect(screen.getByText(`码制：${result.format}`)).toBeOnTheScreen();
-    expect(screen.getByText(`内容类型：${result.contentType}`)).toBeOnTheScreen();
+    expect(
+      screen.getByText(`内容类型：${result.contentType}`)
+    ).toBeOnTheScreen();
   }
 });
 
-it('HmsScanError 显示真实 code/message，普通 Error 只显示通用错误', async () => {
+it('ScanError 显示真实 code/message，普通 Error 只显示通用错误', async () => {
   mockDecodeImage.mockRejectedValueOnce(
-    new HmsScanError('E_IMAGE_LOAD_FAILED', 'load failed')
+    new ScanError({ reason: 'image_unavailable', message: 'load failed' })
   );
   renderScreen();
   fireEvent.press(screen.getByRole('button', { name: '选择图片并识别' }));
-  expect(await screen.findByText('E_IMAGE_LOAD_FAILED')).toBeOnTheScreen();
+  expect(await screen.findByText('image_unavailable')).toBeOnTheScreen();
   expect(screen.getByText('load failed')).toBeOnTheScreen();
 
   mockLaunchImageLibrary.mockRejectedValueOnce(new Error('picker internals'));

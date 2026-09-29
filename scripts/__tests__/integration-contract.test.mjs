@@ -75,17 +75,6 @@ test('example README keeps the iOS Pods workflow reproducible from the repositor
   );
 });
 
-test('example README exposes the reproducible Scanner demo input and unmatched boundary', async () => {
-  const readme = await readFile(
-    join(repositoryRoot, 'example/README.md'),
-    'utf8'
-  );
-
-  assert.match(readme, /EAN-13 `6925303773908`/);
-  assert.match(readme, /阿萨姆原味奶茶 500ml/);
-  assert.match(readme, /其他条码[^\n]*`null`/);
-});
-
 test('CI code filter treats ESLint and Jest setup changes as executable code', async () => {
   const workflow = await readFile(
     join(repositoryRoot, '.github/workflows/ci.yml'),

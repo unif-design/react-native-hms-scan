@@ -15,7 +15,7 @@
 当前可定位的源码与验证入口：
 
 - [公共源码入口](../src/index.tsx)
-- [实时扫码](../src/HmsScanView.tsx)
+- [实时扫码](../src/HmsScanView/HmsScanView.tsx)
 - [图片解码](../src/decodeImage.ts)
 - [权限](../src/permissions.ts)
 - [成品交互](../src/Scanner/Scanner.tsx)

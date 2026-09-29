@@ -16,7 +16,6 @@ import com.huawei.hms.hmsscankit.ScanUtil
 import com.huawei.hms.ml.scan.HmsScan
 import com.huawei.hms.ml.scan.HmsScanAnalyzerOptions
 import java.io.File
-import java.io.InputStream
 
 /**
  * TurboModule "HmsScan". Implements the codegen-generated [NativeHmsScanSpec]:
@@ -32,7 +31,7 @@ class HmsScanModule(
 
   /**
    * Decode barcodes/QR codes from a local image. Loads the bitmap from a
-   * file:// / content:// URI or an absolute path, runs ScanUtil.decodeWithBitmap
+   * readable file URI, runs ScanUtil.decodeWithBitmap
    * (photo mode), and resolves the ScanResult[] JSON. Never rejects on "no code
    * found" — it resolves an empty array, matching the JS contract.
    */
@@ -61,6 +60,8 @@ class HmsScanModule(
 
       val scans = ScanUtil.decodeWithBitmap(reactApplicationContext, bitmap, options)
       promise.resolve(HmsScanResultMapper.toJson(scans))
+    } catch (e: InvalidScanResponse) {
+      promise.reject("E_INVALID_RESPONSE", e.message, e)
     } catch (e: Throwable) {
       promise.reject(E_DECODE_FAILED, e.message ?: "Failed to decode image", e)
     } finally {
@@ -70,34 +71,12 @@ class HmsScanModule(
     }
   }
 
-  /** Resolve a uri/path to a decoded [Bitmap], or null on any failure. */
+  /** Read the caller's file into a [Bitmap], or return null on failure. */
   private fun loadBitmap(uri: String): Bitmap? =
     try {
       val parsed = Uri.parse(uri)
-      val scheme = parsed.scheme?.lowercase()
-      when (scheme) {
-        "content", "file", "android.resource" -> {
-          val resolver = reactApplicationContext.contentResolver
-          var stream: InputStream? = null
-          try {
-            stream = resolver.openInputStream(parsed)
-            if (stream == null) null else BitmapFactory.decodeStream(stream)
-          } finally {
-            stream?.close()
-          }
-        }
-
-        null -> {
-          // No scheme -> treat as an absolute filesystem path.
-          val path = parsed.path ?: uri
-          decodeFile(path)
-        }
-
-        else -> {
-          // Unsupported scheme (e.g. http/https): JS contract forbids remote URLs.
-          null
-        }
-      }
+      val path = parsed.path
+      if (parsed.scheme.equals("file", ignoreCase = true) && !path.isNullOrEmpty()) decodeFile(path) else null
     } catch (e: Throwable) {
       null
     }

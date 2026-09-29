@@ -1,10 +1,5 @@
-import type {
-  ScanError,
-  ScanProduct,
-  ScanResult,
-} from '@unif/react-native-hms-scan';
+import type { ScanFailure, ScanResult } from '@unif/react-native-hms-scan';
 import { formatsForPreset } from '../shared/formatPresets';
-import { lookupDemoProduct } from '../showcases/scanner/products';
 import {
   initialScannerDemoState,
   scannerDemoReducer,
@@ -20,15 +15,6 @@ const milkTeaResult: ScanResult = {
     { x: 212, y: 88 },
     { x: 12, y: 88 },
   ],
-};
-
-const milkTeaProduct: ScanProduct = {
-  name: '阿萨姆原味奶茶 500ml',
-  brand: '统一',
-  barcode: '6925303773908',
-  spec: '500ml × 15 瓶/箱',
-  stockShort: '充足',
-  price: '¥5.50',
 };
 
 describe('format presets', () => {
@@ -48,32 +34,6 @@ describe('format presets', () => {
       'UPC_E',
       'CODE_128',
     ]);
-  });
-});
-
-describe('lookupDemoProduct', () => {
-  it('命中演示条码时返回可确认的商品', async () => {
-    await expect(lookupDemoProduct(milkTeaResult)).resolves.toEqual(
-      milkTeaProduct
-    );
-  });
-
-  it('未命中时返回 null 而不伪造未知商品', async () => {
-    const unknownResult: ScanResult = {
-      ...milkTeaResult,
-      value: '0000000000000',
-    };
-
-    await expect(lookupDemoProduct(unknownResult)).resolves.toBeNull();
-  });
-
-  it('每次命中都返回新对象以隔离调用方修改', async () => {
-    const first = await lookupDemoProduct(milkTeaResult);
-    const second = await lookupDemoProduct(milkTeaResult);
-
-    expect(first).toEqual(milkTeaProduct);
-    expect(second).toEqual(milkTeaProduct);
-    expect(first).not.toBe(second);
   });
 });
 
@@ -129,21 +89,17 @@ describe('scannerDemoReducer', () => {
     expect(
       scannerDemoReducer(activeState, {
         type: 'confirmed',
-        product: milkTeaProduct,
         result: milkTeaResult,
       })
     ).toMatchObject({
       active: false,
-      lastConfirmed: {
-        product: milkTeaProduct,
-        result: milkTeaResult,
-      },
+      lastConfirmed: milkTeaResult,
     });
   });
 
-  it('保存 Scanner 回调提供的普通 ScanError', () => {
-    const error: ScanError = {
-      code: 'E_CAMERA_INIT',
+  it('保存 Scanner 回调提供的普通 ScanFailure', () => {
+    const error: ScanFailure = {
+      reason: 'unavailable',
       message: '相机初始化失败',
     };
 
@@ -163,8 +119,8 @@ describe('scannerDemoReducer', () => {
       ...initialScannerDemoState,
       active: true,
     };
-    const error: ScanError = {
-      code: 'E_NO_RESULT',
+    const error: ScanFailure = {
+      reason: 'invalid_response',
       message: '未识别到条码',
     };
 

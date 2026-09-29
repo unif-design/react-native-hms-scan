@@ -67,6 +67,11 @@ using namespace facebook::react;
   // change requires rebuilding the controller.
   [self teardownScanViewController];
 
+  _appliedFormatsCsv = csv ?: @"";
+  if ([HmsScanResultMapper unsupportedFormatInCsv:csv] != nil) {
+    [self emitScanErrorWithCode:@"E_UNSUPPORTED_FORMAT" message:@"iOS ScanKit 不支持请求的码制"];
+    return;
+  }
   unsigned int formatType = [HmsScanResultMapper scanFormatTypeFromCsv:csv];
   HmsScanOptions *options = [[HmsScanOptions alloc] initWithScanFormatType:formatType Photo:NO];
 
@@ -135,8 +140,12 @@ using namespace facebook::react;
 - (void)didMoveToWindow {
   [super didMoveToWindow];
   if (self.window != nil) {
+    if ([HmsScanResultMapper unsupportedFormatInCsv:_appliedFormatsCsv] != nil) {
+      [self emitScanErrorWithCode:@"E_UNSUPPORTED_FORMAT" message:@"iOS ScanKit 不支持请求的码制"];
+    }
     [self attachChildViewController];
   } else {
+    [self setTorchHardwareOn:NO available:NULL];
     [self detachChildViewController];
   }
 }
@@ -199,7 +208,7 @@ using namespace facebook::react;
 - (void)applyTorch:(BOOL)on {
   BOOL available = NO;
   BOOL torchOn = [self setTorchHardwareOn:on available:&available];
-  [self emitTorchStatusAvailable:available on:torchOn];
+  [self emitTorchStateAvailable:available on:torchOn];
 }
 
 // 优先取「带手电的后置广角相机」(这通常就是华为扫码用的那颗);取不到再退回
@@ -219,7 +228,7 @@ using namespace facebook::react;
 
 // Mutates the capture device's torch. Returns the resulting on-state and writes
 // hardware availability into `available`. Does NOT emit any event (so it can be
-// reused on teardown/recycle without firing onTorchStatus on a stale emitter).
+// reused on teardown/recycle without firing onTorchState on a stale emitter).
 //
 // best-effort:华为独占相机会话且无手电 API,这里直接操作设备硬件。可能因华为
 // 持有配置锁(lockForConfiguration 失败)或用了别的设备而不生效。DEBUG 日志会
@@ -237,7 +246,7 @@ using namespace facebook::react;
     return NO;
   }
 
-  BOOL torchOn = NO;
+  BOOL torchOn = device.isTorchActive;
   NSError *error = nil;
   if ([device lockForConfiguration:&error]) {
     if (on && device.isTorchAvailable && [device isTorchModeSupported:AVCaptureTorchModeOn]) {
@@ -264,14 +273,18 @@ using namespace facebook::react;
 // Called by HUAWEI on every decode (repeatedly in continuous mode). `resultDic`
 // is a single result dictionary; we wrap it into the contract's top-level array.
 - (void)customizedScanDelegateForResult:(NSDictionary *)resultDic {
-  NSDictionary *mapped = [HmsScanResultMapper scanResultFromHuaweiDict:resultDic];
-  if (mapped == nil) {
-    // Decoded payload had no usable value; surface as a soft error event.
-    [self emitScanErrorWithCode:@"E_NO_RESULT" message:@"扫码结果为空或无法解析"];
+  if (_appliedPaused || self.window == nil)
     return;
+  @try {
+    NSDictionary *mapped = [HmsScanResultMapper scanResultFromHuaweiDict:resultDic];
+    if (mapped == nil) {
+      [self emitScanErrorWithCode:@"E_INVALID_RESPONSE" message:@"扫码结果无法解析"];
+      return;
+    }
+    [self emitScanResultJson:[HmsScanResultMapper jsonStringFromScanResults:@[ mapped ]]];
+  } @catch (NSException *exception) {
+    [self emitScanErrorWithCode:@"E_INVALID_RESPONSE" message:exception.reason ?: @"扫码结果无法解析"];
   }
-  NSString *json = [HmsScanResultMapper jsonStringFromScanResults:@[ mapped ]];
-  [self emitScanResultJson:json];
 }
 
 #pragma mark - Event emitters
@@ -298,13 +311,16 @@ using namespace facebook::react;
       });
 }
 
-- (void)emitTorchStatusAvailable:(BOOL)available on:(BOOL)on {
+- (void)emitTorchStateAvailable:(BOOL)available on:(BOOL)on {
   if (!_eventEmitter) {
     return;
   }
   std::static_pointer_cast<const HmsScanViewEventEmitter>(_eventEmitter)
-      ->onTorchStatus(HmsScanViewEventEmitter::OnTorchStatus{
+      ->onTorchState(HmsScanViewEventEmitter::OnTorchState{
           .available = available ? true : false,
+          .hasAvailable = true,
+          .lowLight = false,
+          .hasLowLight = false,
           .on = on ? true : false,
       });
 }

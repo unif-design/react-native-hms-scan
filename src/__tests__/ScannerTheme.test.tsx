@@ -66,7 +66,12 @@ test('公开 Scanner 跟随父主题和字号一次，更新外观保留原生�
   const onClose = jest.fn();
   const page = render(
     <ThemeProvider forceScheme="dark" fontScale={1.5}>
-      <Scanner title="扫码标题" hintText="扫码提示" onClose={onClose} />
+      <Scanner
+        title="扫码标题"
+        hintText="扫码提示"
+        onClose={onClose}
+        onConfirm={jest.fn()}
+      />
     </ThemeProvider>
   );
   const camera = await screen.findByTestId('native-scan-boundary');
@@ -79,9 +84,23 @@ test('公开 Scanner 跟随父主题和字号一次，更新外观保留原生�
   const titleColor = textStyle('扫码标题').color;
   fireEvent.press(screen.getByRole('button', { name: '手电筒' }));
   expect(camera.props.torch).toBe(true);
+  fireEvent(camera, 'torchState', {
+    nativeEvent: {
+      on: true,
+      available: true,
+      hasAvailable: true,
+      hasLowLight: false,
+      lowLight: false,
+    },
+  });
   page.rerender(
     <ThemeProvider forceScheme="light" fontScale={1.25}>
-      <Scanner title="新标题" hintText="新提示" onClose={onClose} />
+      <Scanner
+        title="新标题"
+        hintText="新提示"
+        onClose={onClose}
+        onConfirm={jest.fn()}
+      />
     </ThemeProvider>
   );
   expect(textStyle('新标题').fontSize).toBeCloseTo(rf(16) * 1.25);
@@ -92,18 +111,17 @@ test('公开 Scanner 跟随父主题和字号一次，更新外观保留原生�
   expect(camera.props.torch).toBe(true);
   expect(mockMounted).toHaveBeenCalledTimes(1);
   expect(mockUnmounted).not.toHaveBeenCalled();
-  expect(NativeHmsScan.getCameraPermissionStatus).toHaveBeenCalledTimes(1);
-  expect(NativeHmsScan.requestCameraPermission).not.toHaveBeenCalled();
+  expect(NativeHmsScan!.getCameraPermissionStatus).toHaveBeenCalledTimes(1);
+  expect(NativeHmsScan!.requestCameraPermission).not.toHaveBeenCalled();
   fireEvent.press(screen.getByRole('button', { name: '返回' }));
   expect(onClose).toHaveBeenCalledTimes(1);
 });
 
 test('结果卡继承父主题和字号，更新外观保留待确认结果', async () => {
   const onConfirm = jest.fn();
-  const resolveProduct = jest.fn(async () => ({ name: '测试商品' }));
   const page = render(
     <ThemeProvider forceScheme="dark" fontScale={1.5}>
-      <Scanner onConfirm={onConfirm} resolveProduct={resolveProduct} />
+      <Scanner onConfirm={onConfirm} />
     </ThemeProvider>
   );
   await screen.findByTestId('native-scan-boundary');
@@ -114,32 +132,54 @@ test('结果卡继承父主题和字号，更新外观保留待确认结果', as
     return StyleSheet.flatten(frame.props.style);
   };
   expect(cardStyle().backgroundColor).toBe(darkColors.surface);
-  expect(textStyle('测试商品')).toMatchObject({
+  expect(textStyle('6901234')).toMatchObject({
     color: darkColors.foreground,
     fontSize: rf(16) * 1.5,
     lineHeight: rf(21) * 1.5,
   });
   page.rerender(
     <ThemeProvider forceScheme="light" fontScale={1.25}>
-      <Scanner onConfirm={onConfirm} resolveProduct={resolveProduct} />
+      <Scanner onConfirm={onConfirm} />
     </ThemeProvider>
   );
   expect(cardStyle().backgroundColor).toBe(lightColors.surface);
-  expect(textStyle('测试商品').fontSize).toBeCloseTo(rf(16) * 1.25);
+  expect(textStyle('6901234').fontSize).toBeCloseTo(rf(16) * 1.25);
   expect(screen.getByTestId('native-scan-boundary').props.paused).toBe(true);
-  expect(resolveProduct).toHaveBeenCalledTimes(1);
   expect(onConfirm).not.toHaveBeenCalled();
-  expect(NativeHmsScan.getCameraPermissionStatus).toHaveBeenCalledTimes(1);
+  expect(NativeHmsScan!.getCameraPermissionStatus).toHaveBeenCalledTimes(1);
   expect(mockMounted).toHaveBeenCalledTimes(1);
-  fireEvent.press(screen.getByRole('button', { name: '确定' }));
+  fireEvent.press(screen.getByRole('button', { name: '选用' }));
   expect(onConfirm).toHaveBeenCalledTimes(1);
 });
 
 test('没有父 Provider 时使用 Design 默认主题和字号', async () => {
-  render(<Scanner resolveProduct={async () => ({ name: '默认商品' })} />);
+  render(<Scanner onConfirm={jest.fn()} />);
   await screen.findByTestId('native-scan-boundary');
   expect(textStyle('扫一扫').fontSize).toBe(rf(16));
   await detect();
-  expect(textStyle('默认商品').fontSize).toBe(rf(16));
-  expect(textStyle('默认商品').color).toBe(lightColors.foreground);
+  expect(textStyle('6901234').fontSize).toBe(rf(16));
+  expect(textStyle('6901234').color).toBe(lightColors.foreground);
+});
+
+test('Scanner reads real parent safe-area values and allows explicit overrides', async () => {
+  const { SafeAreaProvider } = require('react-native-safe-area-context');
+  const { ScanTopBar } = require('../Scanner/ScanTopBar');
+  const { ScanToolbar } = require('../Scanner/ScanToolbar');
+  const wrap = (topInset?: number) => (
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 320, height: 640 },
+        insets: { top: 19, bottom: 11, left: 0, right: 0 },
+      }}
+    >
+      <Scanner topInset={topInset} onConfirm={jest.fn()} />
+    </SafeAreaProvider>
+  );
+  const page = render(wrap());
+  await screen.findByTestId('native-scan-boundary');
+  expect(screen.UNSAFE_getByType(ScanTopBar).props.topInset).toBe(19);
+  expect(screen.UNSAFE_getByType(ScanToolbar).props.bottomInset).toBe(11);
+  page.rerender(wrap(7));
+  expect(screen.UNSAFE_getByType(ScanTopBar).props.topInset).toBe(7);
+  expect(mockMounted).toHaveBeenCalledTimes(1);
 });

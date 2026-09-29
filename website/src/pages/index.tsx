@@ -208,7 +208,7 @@ const FEATURES: Feature[] = [
   {
     Icon: IconImage,
     title: '图片识别',
-    desc: 'decodeImage(uri) 从本地图片解码条码 / 二维码，支持限定码制，适合相册扫码场景。',
+    desc: 'decodeImage({ uri }) 从本地图片解码条码 / 二维码，支持限定码制，适合相册扫码场景。',
   },
 ];
 

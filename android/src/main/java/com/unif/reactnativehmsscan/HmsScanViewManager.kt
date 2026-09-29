@@ -66,7 +66,7 @@ class HmsScanViewManager :
     mapOf(
       "topScanResult" to mapOf("registrationName" to "onScanResult"),
       "topScanError" to mapOf("registrationName" to "onScanError"),
-      "topTorchStatus" to mapOf("registrationName" to "onTorchStatus"),
+      "topTorchState" to mapOf("registrationName" to "onTorchState"),
     )
 
   companion object {

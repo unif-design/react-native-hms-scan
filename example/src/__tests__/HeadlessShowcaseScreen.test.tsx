@@ -35,11 +35,7 @@ const qrResult: ScanResult = {
   ],
 };
 
-function renderScreen({
-  platform = 'android',
-}: {
-  platform?: 'android' | 'ios';
-} = {}) {
+function renderScreen() {
   let viewProps: HmsScanViewProps | null = null;
   let nextInstanceId = 0;
   const mountedInstances: number[] = [];
@@ -66,7 +62,6 @@ function renderScreen({
   render(
     <HeadlessShowcaseScreen
       onBack={jest.fn()}
-      platform={platform}
       HmsScanViewComponent={HmsScanViewProbe}
     />,
     { wrapper: ThemeProvider }
@@ -148,7 +143,7 @@ it('iOS 初次 query blocked 只提供打开设置，不提供或调用 request'
   const openSettings = jest.spyOn(Linking, 'openSettings').mockResolvedValue();
   mockGetStatus.mockResolvedValueOnce('blocked');
 
-  renderScreen({ platform: 'ios' });
+  renderScreen();
 
   const settingsButton = await screen.findByRole('button', {
     name: '打开系统设置',
@@ -172,7 +167,7 @@ it('权限 helper error fail-closed，重试查询后才挂载预览', async () 
 
   renderScreen();
 
-  await screen.findByText('E_NO_ACTIVITY');
+  await screen.findByText('unavailable');
   expect(screen.queryByTestId('headless-preview')).toBeNull();
   fireEvent.press(screen.getByRole('button', { name: '重新检查权限' }));
 
@@ -204,7 +199,7 @@ it('把 paused、continuous、torch 请求值与 native 实际状态分开受控
   expect(screen.getByText('手电实际：关闭')).toBeOnTheScreen();
 
   act(() => {
-    getViewProps()?.onTorchStatus?.({ available: true, on: true });
+    getViewProps()?.onTorchState?.({ available: true, on: true });
   });
   expect(screen.getByText('手电实际：开启')).toBeOnTheScreen();
 });
@@ -222,16 +217,13 @@ it('非连续命中后暂停并可继续', async () => {
   expect(getViewProps()?.paused).toBe(false);
 });
 
-it('soft E_NO_RESULT 保持同一个 native view instance', async () => {
+it('空识别结果保持同一个 native view instance', async () => {
   const { getViewProps, getMountedInstances, getUnmountedInstances } =
     renderScreen();
   await screen.findByTestId('headless-preview');
 
   act(() => {
-    getViewProps()?.onScanError?.({
-      code: 'E_NO_RESULT',
-      message: '未识别到条码',
-    });
+    getViewProps()?.onScanResult?.([]);
   });
   expect(screen.getByTestId('headless-preview')).toBeOnTheScreen();
   expect(getViewProps()?.paused).toBe(false);
@@ -246,7 +238,7 @@ it('fatal E_CAMERA_INIT 重试会卸载旧 probe 并挂载新 probe', async () =
 
   act(() => {
     getViewProps()?.onScanError?.({
-      code: 'E_CAMERA_INIT',
+      reason: 'unavailable',
       message: '相机初始化失败',
     });
   });
@@ -254,7 +246,9 @@ it('fatal E_CAMERA_INIT 重试会卸载旧 probe 并挂载新 probe', async () =
   expect(getMountedInstances()).toEqual([1]);
   expect(getUnmountedInstances()).toEqual([]);
 
-  fireEvent.press(screen.getByRole('button', { name: '重试扫描' }));
+  await act(async () => {
+    fireEvent.press(screen.getByRole('button', { name: '重试扫描' }));
+  });
 
   expect(getViewProps()?.paused).toBe(false);
   expect(getMountedInstances()).toEqual([1, 2]);
@@ -272,7 +266,7 @@ it('permission view error 立即卸载 probe 且复查失败前保持 fail-close
 
   act(() => {
     getViewProps()?.onScanError?.({
-      code: 'E_NO_CAMERA_PERMISSION',
+      reason: 'permission_denied',
       message: '相机权限已失效',
     });
   });
@@ -281,7 +275,7 @@ it('permission view error 立即卸载 probe 且复查失败前保持 fail-close
   expect(getMountedInstances()).toEqual([1]);
   expect(getUnmountedInstances()).toEqual([1]);
   fireEvent.press(screen.getByRole('button', { name: '重新检查权限' }));
-  await screen.findByText('E_UNKNOWN');
+  await screen.findByText('unavailable');
   expect(screen.queryByTestId('headless-preview')).not.toBeOnTheScreen();
   expect(getMountedInstances()).toEqual([1]);
 });

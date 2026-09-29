@@ -24,14 +24,12 @@ const androidManifest = read(
   'example/android/app/src/main/AndroidManifest.xml'
 );
 const androidBuild = read('example/android/build.gradle');
-const androidGradleProperties = read(
-  'example/android/gradle.properties'
-);
+const androidGradleProperties = read('example/android/gradle.properties');
 
 const sharedRuntimeDependencies = {
   '@sbaiahmed1/react-native-blur': '6.0.1',
   '@unif/react-native-design': '0.30.1',
-  react: '19.2.3',
+  'react': '19.2.3',
   'react-native': '0.86.3',
   'react-native-gesture-handler': '^3.1.0',
   'react-native-reanimated': '^4.6.0',
@@ -44,7 +42,7 @@ const sharedRuntimeDependencies = {
 const expectedPublicPeerDependencies = {
   '@sbaiahmed1/react-native-blur': '>=4',
   '@unif/react-native-design': '>=0.26.0',
-  react: '>=19.0.0',
+  'react': '>=19.0.0',
   'react-native': '>=0.86.0',
   'react-native-gesture-handler': '>=2.21.0',
   'react-native-reanimated': '>=4.0.0',
@@ -70,9 +68,7 @@ function assertReactNativeLockfileResolution(contents) {
     ...contents.matchAll(/^"(react-native@npm:[^"]+)":$/gm),
   ].map(([, descriptor]) => descriptor);
   const packageResolutions = [
-    ...contents.matchAll(
-      /^  resolution: "(react-native@npm:[^"]+)"$/gm
-    ),
+    ...contents.matchAll(/^  resolution: "(react-native@npm:[^"]+)"$/gm),
   ].map(([, resolution]) => resolution);
 
   assert.deepEqual(
@@ -95,7 +91,7 @@ assertExactDependencies(rootPackage, 'devDependencies', 'package.json', {
   '@react-native/eslint-config': '0.86.3',
   '@react-native/jest-preset': '0.86.3',
   '@react-native/metro-config': '0.86.3',
-  eslint: '^8.57.1',
+  'eslint': '^8.57.1',
   'react-test-renderer': '19.2.3',
 });
 assertExactDependencies(
@@ -131,9 +127,7 @@ assertExactDependencies(
 assertReactNativeLockfileResolution(lockfile);
 
 const examplePermissions = [
-  ...androidManifest.matchAll(
-    /<uses-permission\s+android:name="([^"]+)"/g
-  ),
+  ...androidManifest.matchAll(/<uses-permission\s+android:name="([^"]+)"/g),
 ].map(([, permission]) => permission);
 assert.deepEqual(
   examplePermissions,
@@ -222,26 +216,29 @@ assert.match(
 );
 assertOrdered(
   applyTorch,
-  ['catch (_: Throwable)', 'emitTorchStatus(view)'],
+  ['catch (_: Throwable)', 'emitTorchState(view)'],
   'torch 切换成功或抛错后都必须回读并 emit 实际状态'
 );
 
-const emitTorchStatus = methodBody('private fun emitTorchStatus(');
+const emitTorchState = methodBody('private fun emitTorchState(');
 assertOrdered(
-  emitTorchStatus,
+  emitTorchState,
   [
     'view.lightStatus',
-    'putBoolean("available", torchAvailable)',
+    'PackageManager.FEATURE_CAMERA_FLASH',
+    'putBoolean("hasAvailable", true)',
+    'putBoolean("lowLight", lowLight ?: false)',
+    'putBoolean("hasLowLight", lowLight != null)',
     'putBoolean("on", on)',
   ],
-  'torch status 必须从 RemoteView 回读 on，并保留最近环境光 available'
+  'torch state 必须分别上报实际点亮、硬件能力和已取得的暗光信息'
 );
 
 const onTorchVisible = methodBody('private fun onTorchVisible(');
 assertOrdered(
   onTorchVisible,
-  ['torchAvailable = visible', 'emitTorchStatus(view)'],
-  '环境光 callback 必须先保存 available，再用 RemoteView 实际状态 emit'
+  ['lowLight = visible', 'emitTorchState(view)'],
+  '环境光 callback 必须先保存 lowLight，再用 RemoteView 实际状态 emit'
 );
 
 const startRemoteView = methodBody('private fun startRemoteView()');

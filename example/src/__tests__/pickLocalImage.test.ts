@@ -13,7 +13,7 @@ const mockLaunch = launchImageLibrary as jest.MockedFunction<
 >;
 
 const selectedAsset: NonNullable<ImagePickerResponse['assets']>[number] = {
-  uri: 'content://media/external/images/1',
+  uri: 'file:///tmp/photo.jpg',
   fileName: 'qr.png',
   type: 'image/png',
   width: 512,
@@ -32,18 +32,16 @@ describe('pickLocalImage', () => {
       assets: [selectedAsset],
     });
 
-    await expect(pickLocalImage()).resolves.toBe(
-      'content://media/external/images/1'
-    );
+    await expect(pickLocalImage()).resolves.toEqual({
+      uri: 'file:///tmp/photo.jpg',
+    });
 
     expect(mockLaunch).toHaveBeenCalledTimes(1);
     expect(mockLaunch).toHaveBeenCalledWith({
       mediaType: 'photo',
       selectionLimit: 1,
     });
-    expect(mockLaunch.mock.calls[0]?.[0]).not.toHaveProperty(
-      'includeBase64'
-    );
+    expect(mockLaunch.mock.calls[0]?.[0]).not.toHaveProperty('includeBase64');
   });
 
   it('用户取消时返回 null，即使响应里仍带 asset', async () => {

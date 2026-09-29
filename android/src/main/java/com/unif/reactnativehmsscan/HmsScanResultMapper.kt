@@ -15,6 +15,10 @@ import org.json.JSONObject
  *   "cornerPoints":[{"x":10,"y":20}]}]
  * ```
  */
+internal class InvalidScanResponse(
+  message: String,
+) : IllegalArgumentException(message)
+
 internal object HmsScanResultMapper {
   /**
    * Serialize an array of [HmsScan] into the ScanResult[] JSON string. The element
@@ -27,9 +31,7 @@ internal object HmsScanResultMapper {
       for (scan in scans) {
         if (scan == null) continue
         val value = scan.getOriginalValue()
-        // A hit with no value is meaningless to the JS layer (it would be dropped
-        // by coerceResult anyway); skip it to keep the payload clean.
-        if (value.isNullOrEmpty()) continue
+        if (value == null) throw InvalidScanResponse("ScanKit returned a result without text")
         array.put(toJsonObject(scan, value))
       }
     }
@@ -66,7 +68,7 @@ internal object HmsScanResultMapper {
     return obj
   }
 
-  /** HmsScan.getScanType() (barcode symbology) -> unified BarcodeFormat string. */
+  /** HmsScan.getScanType() (barcode symbology) -> unified ScanFormat string. */
   fun mapScanType(scanType: Int): String =
     when (scanType) {
       HmsScan.QRCODE_SCAN_TYPE -> "QR_CODE"
@@ -105,7 +107,7 @@ internal object HmsScanResultMapper {
     return if (types.isEmpty()) null else types.toIntArray()
   }
 
-  /** Unified BarcodeFormat string -> HmsScan.*_SCAN_TYPE (null when unknown). */
+  /** Unified ScanFormat string -> HmsScan.*_SCAN_TYPE (null when unknown). */
   private fun mapFormatString(format: String): Int? =
     when (format) {
       "QR_CODE" -> HmsScan.QRCODE_SCAN_TYPE

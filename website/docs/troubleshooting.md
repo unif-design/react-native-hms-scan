@@ -83,7 +83,7 @@ maven { url 'https://developer.huawei.com/repo/' }
 
 ✅ `CAMERA` 是运行时权限,声明之外还要在运行时请求。用 `<Scanner>` 会自动处理;用 `<HmsScanView>` 时自己先调 `requestCameraPermission`。见[权限处理](/docs/guides/permissions)。
 
-若 `requestCameraPermission()` 直接 reject `E_NO_ACTIVITY`,当前前台 Activity 不存在或不是 `PermissionAwareActivity`;先确认在可见 RN Activity 中调用。不要把该 reject 当作某个权限 status。`<Scanner>` 会将这类权限 helper reject 切到可重试的 `error` 并通过 `onScanError` 上报；headless 场景仍应自行 `try/catch`。
+若 `requestCameraPermission()` 抛出 `ScanError` 且 `sourceCode` 为 `E_NO_ACTIVITY`,当前前台 Activity 不存在或不是 `PermissionAwareActivity`;先确认在可见 RN Activity 中调用。不要把该 reject 当作某个权限 status。`<Scanner>` 会将这类权限 helper reject 切到可重试的 `error` 并通过 `onError` 上报；headless 场景仍应自行 `try/catch`。
 
 :::note 无需 agconnect / API Key
 宿主必须添加 Huawei Maven,但**不需要** `agconnect-services.json`、AppGallery Connect 插件或 API Key。若你在为「漏配 agconnect」排查 —— 不必,本库不依赖它。
@@ -96,23 +96,23 @@ maven { url 'https://developer.huawei.com/repo/' }
 ✅ **空数组是正常结果,不是错误,也不会抛异常。** 可能原因:
 
 1. **图里确实没码** —— 图片内容不含有效条码 / 二维码,返回 `[]` 完全正常。**别把 `!results.length` 当失败抛异常。**
-2. **传了远程 URL** —— `decodeImage` **不下载网络图**;远程 URL 实际会抛 `E_IMAGE_LOAD_FAILED`,而非返回空数组。请宿主先下到本地再传。
-3. **传了不支持的 uri** —— iOS 不接受 `ph://`(相册 URI)、`content://`;两端都不接受 `http(s)://`。用 `file://` / 绝对路径最稳。
+2. **传了远程 URL** —— `decodeImage` **不下载网络图**;远程 URL 会抛 `reason: "invalid_input"`,而非返回空数组。请宿主先下到本地再传。
+3. **传了不支持的 uri** —— 公共入口只接受可读的 `file:///...` URI。相册资源、绝对路径和网络地址先由调用方准备为 file URI。
 4. **码制被 `formats` 限掉** —— 若传了 `formats`,确认目标码制在列表里。
 
 详见[图片识别](/docs/guides/decode-image)。
 
 ---
 
-## 症状:从相册选图后 `decodeImage` 抛 `E_IMAGE_LOAD_FAILED`
+## 症状:从相册选图后 `decodeImage` 抛 `image_unavailable`
 
-✅ 先确认 picker 返回的 URI 形式受当前平台支持,并确认 URI grant 仍有效:
+先确认调用方提供的 file URI 可读，文件仍然存在且包含可解码的图片。
 
-- Android 支持 `content://` 临时授权;若要延迟读取,由宿主持久化 grant 或复制到 App 自有目录。
-- iOS 不支持 `ph://`;让 picker 导出 `file://` / 绝对路径,或由宿主读取后转成 `data:`。
-- 当前 native **不会产生 `E_NO_READ_PERMISSION`**;加载不到图片统一是 `E_IMAGE_LOAD_FAILED`,相册授权与 URI 可读性由宿主 picker / URI grant 负责。
+- Android 的 `content://` 和 iOS 的 `ph://` 资源先由图片选择能力导出或复制为本地文件。
+- 直接调用 `decodeImage` 时，等待 Promise 结束后再删除临时文件。
+- `Scanner.pickImage` 返回 `onSourceReleased`，由原提供者在该回调中释放文件；关闭页面不会提前释放仍在读取的文件。
 
-见[权限处理 → decodeImage 的文件访问边界](/docs/guides/permissions#decode-image-permission)。
+见[权限处理 → decodeImage 的文件访问边界](/docs/guides/permissions)。
 
 ---
 
@@ -121,7 +121,7 @@ maven { url 'https://developer.huawei.com/repo/' }
 ✅ **这是已知限制,不是 bug。** iOS 端 HMS 无公开手电 API,本库走 `AVCaptureDevice` **尽力而为**:
 
 - `torch={true}` **不保证**点亮(设备 / 系统差异)。
-- iOS 会在 `torch` 初次应用和后续 prop 变更时上报 `onTorchStatus`;`available` 表示硬件是否有手电,`on` 表示真实点亮状态,**不是暗光提示**。只有 Android 的 `available` 来自暗光回调。
+- iOS 会在 `torch` 初次应用和后续 prop 变更时上报 `onTorchState`;`available` 表示硬件是否有手电,`on` 表示真实点亮状态,**不是暗光提示**。Android 的暗光回报使用独立 `lowLight` 字段。
 
 建议 iOS 上把手电按钮以「提示」而非「保证」呈现,或在 `<Scanner>` 上用 `showTorch={false}` 直接隐藏。详见[平台差异 → 手电筒](/docs/platform-differences#torch)。
 
@@ -136,7 +136,7 @@ import { Linking } from 'react-native';
 Linking.openSettings();
 ```
 
-`<Scanner>` 在无权限时会自动展示引导去设置的遮罩。Android 上 `blocked` 的精确判断发生在 `requestCameraPermission` 之后,见[权限处理](/docs/guides/permissions#get-status)。
+`<Scanner>` 在无权限时会自动展示引导去设置的遮罩。Android 上 `blocked` 的精确判断发生在 `requestCameraPermission` 之后,见[权限处理](/docs/api/functions#get-status)。
 
 ---
 

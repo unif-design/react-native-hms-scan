@@ -27,12 +27,13 @@ Android 内置识别引擎，不要求华为手机或 HMS Core。两端均不需
 ```ts
 import { decodeImage } from '@unif/react-native-hms-scan';
 
-const results = await decodeImage('file:///path/to/photo.jpg', {
+const results = await decodeImage({
+  uri: 'file:///path/to/photo.jpg',
   formats: ['QR_CODE'],
 });
 ```
 
-正常识别但没有发现码时返回 `[]`；读取或解码失败抛出 `HmsScanError`。函数不下载网络图片，应用需先准备本地文件。
+正常识别但没有发现码时返回 `[]`；读取或解码失败抛出 `ScanError`。函数不下载网络图片，应用需先准备本地文件。
 
 ## 文档与开发
 

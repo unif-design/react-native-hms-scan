@@ -1,107 +1,34 @@
 ---
 sidebar_position: 5
 title: 平台差异
-description: '扫码在 Android 与 iOS 上的权限、手电和图片差异。'
 ---
 
 # 平台差异
 
-`@unif/react-native-hms-scan` 两端 API 接口统一，但底层是不同的华为原生实现，**部分能力存在差异，务必知悉**。
+| 能力 | Android | iOS |
+| --- | --- | --- |
+| 原生 SDK | Huawei Scan Kit Plus / RemoteView | ScanKitFrameWork 1.1.2.305 |
+| 本地图片公共输入 | file URI | file URI |
+| MULTI_FUNCTIONAL 过滤 | 支持 | unsupported |
+| torch 请求 | RemoteView 控制 | AVFoundation 尽力控制 |
+| 手电 available | 硬件能力 | 硬件能力 |
+| lowLight | 厂商暗光回报后提供 | 无可用报告时省略 |
+| 原生平台 | 以实际 Gradle/SDK 接线为准 | 官方二进制为 iOS 真机，不包含模拟器切片 |
 
-| 维度                               | Android                                                                                | iOS                                                                                                      |
-| ---------------------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| 原生实现（相机）                   | 华为 `RemoteView`（Scan SDK-Plus）                                                     | `HmsCustomScanViewController`（ScanKitFrameWork）                                                        |
-| 原生实现（图片识别）               | `ScanUtil.decodeWithBitmap`                                                            | `HmsBitMap`                                                                                              |
-| 接入配置                           | 宿主必须把 Huawei Maven 加到实际依赖解析的 `repositories`;**无需 agconnect / API Key** | `pod install` 自动安装官方 `ScanKitFrameWork 1.1.2.305`;**无需 AppGallery Connect**                      |
-| 运行环境                           | 相机扫码用真机验证                                                                     | 原生构建与运行**仅支持真机**;iOS Simulator 不支持                                                        |
-| 最低版本                           | minSdkVersion ≥ 24（Android 7.0）                                                      | 见 podspec `min_ios_version_supported`                                                                   |
-| 码制 `MULTI_FUNCTIONAL` 作为过滤项 | ✅ 支持                                                                                | ❌ 无对应码制（见[码制差异](#formats)）                                                                  |
-| 手电筒 `torch`                     | ✅ 可编程控制                                                                          | ⚠️ best-effort，不保证（见[手电筒](#torch)）                                                             |
-| 暗光提示 `onTorchStatus.available` | ✅ 据环境光上报                                                                        | ❌ 非暗光信号（见[手电筒](#torch)）                                                                      |
-| 权限状态取值范围                   | 查询只给 `granted` / `denied`，请求后才可能 `blocked`                                  | 只有 `granted` / `undetermined` / `blocked`，**永不返回 `denied`**（见[相机权限](#permission)）          |
-| `decodeImage` 接受的 URI           | `file://` / 绝对路径 / `content://` / `android.resource://`                            | `file://` / 绝对路径 / `data:`（**不接受 `ph://` / `content://`**，见[图片识别 URI](#decode-image-uri)） |
+## 格式 {#formats}
 
-:::warning iOS Simulator 不支持
-iOS 相机扫码与 `decodeImage` 原生路径都只支持真机。Simulator 架构 / 链接失败属于当前预期边界,正确处理是切换物理设备;不要生成本地 framework、修改宿主 Podfile 或清理 cache 来追求 Simulator 成功。无硬件逻辑测试使用随包 Jest mock。
-:::
+统一 ScanFormat 描述识别结果，不表示两端支持所有输入过滤。iOS 的 ITF 映射为 ITF14；请求不支持的 MULTI_FUNCTIONAL 会明确报 unsupported，不扩成所有码制。
 
----
+## 手电 {#torch}
 
-## 码制差异 {#formats}
+torch prop 是请求，onTorchState.on 是实际状态。available 始终表示硬件；lowLight 单独表示环境。iOS 厂商可能占用设备配置锁，不保证请求点亮，显示必须采用实际回报。
 
-[`BarcodeFormat`](/docs/api/types#barcode-format) 共 **14 种**（不含 `UNKNOWN`），两端枚举值统一。差异在于把它作为 `formats` **过滤项**时：
+## 权限 {#permissions}
 
-- `MULTI_FUNCTIONAL` 在 HUAWEI iOS Scan Kit **无对应码制**，作为过滤项在 iOS 上不生效。
-- 若传入的 `formats` 只含 iOS 无法识别的项（`MULTI_FUNCTIONAL` / `UNKNOWN`），iOS 会**回退为识别全部码制**而非"什么都不扫"。
-- `ITF14` 在 iOS 底层映射到华为的 `ITF` 码制（对外仍是 `ITF14`，无需关心）。
+Android 查询返回 granted/denied，请求后才可判 blocked；iOS 返回 granted/undetermined/blocked。调用异常抛 ScanError，无法解释的值为 invalid_response。
 
-> 不传 `formats`（= 全部码制）时两端行为一致，是最省心的做法。
+## Web
 
----
+browser 条件入口隔离原生模块。组件安全加载并上报 unsupported，图片与权限 Promise 拒绝为 ScanError(reason: unsupported)。Mock 或文档页面不证明设备扫码能力。
 
-## 相机权限 {#permission}
-
-[`CameraPermissionStatus`](/docs/api/types#camera-permission-status) 的四个值（`granted` / `denied` / `blocked` / `undetermined`）是**两端的并集**，单个平台只产出其中一部分：
-
-|         | `getCameraPermissionStatus`（查询）    | `requestCameraPermission`（请求后）                         |
-| ------- | -------------------------------------- | ----------------------------------------------------------- |
-| iOS     | `granted` / `undetermined` / `blocked` | 同左（**永不返回 `denied`**）                               |
-| Android | 仅 `granted` / `denied`                | `granted` / `denied` / `blocked`（据请求后 rationale 区分） |
-
-iOS 原生把 `AVAuthorizationStatus` 映射为：`authorized → granted`、`notDetermined → undetermined`、**`denied` 与 `restricted` 都 → `blocked`**。所以 iOS 侧 `denied` 永远不会出现，别写「iOS 先 `denied` 再 `blocked`」的两级降级分支。
-
-Android 在**查询时**无法可靠区分「永久拒绝」与「从未请求」（两种情况 `shouldShowRequestPermissionRationale` 都是 `false`），故对任何未授权状态返回 `denied`；当前 Android native 不会在查询时返回 `undetermined`，只有执行请求后才可能得到 `blocked`。
-
-:::tip 判断流程以请求后结果为准
-Android 要判断是否 `blocked`（永久拒绝、不再弹框）,**以 `requestCameraPermission` 的请求后返回为准**,不要从查询结果推断。`<Scanner>` 内部已用这个流程,用它时无需自己写。详见[指南 → 权限处理](/docs/guides/permissions#get-status)。
-:::
-
----
-
-## 手电筒 {#torch}
-
-### Android
-
-`torch` prop 直接映射到 Scan SDK-Plus 的手电控制接口，**行为稳定、可编程**。`onTorchStatus` 的 `available` 字段会在**环境光线暗**时上报 `true`（来自华为 `OnLightVisibleCallBack`），可据此决定是否显示手电按钮。
-
-### iOS
-
-iOS 端华为 Scan Kit **未提供公开的手电控制接口**（`HmsCustomScanViewController` 自带手电按钮与暗光自检）。本库通过 `AVCaptureDevice` 直接操作手电，属 **best-effort** 实现：
-
-- `torch={true}` **不保证**点亮——华为可能独占相机会话 / 持有配置锁导致操作无效，或设备无手电。
-- `onTorchStatus` 会在 `torch` **初次应用及后续 prop 变更**时触发（不据环境光）;`available` 反映「设备是否有手电硬件」,`on` 反映真实点亮状态。**不要**把它当跨平台的暗光提示。
-
-:::tip iOS 上把手电当"提示"而非"保证"
-建议 iOS 上手电按钮以「提示」呈现；或在成品 [`<Scanner>`](/docs/api/scanner#props) 上用 `showTorch={false}` 直接隐藏。
-:::
-
----
-
-## 图片识别 URI {#decode-image-uri}
-
-[`decodeImage`](/docs/api/functions#decode-image) 只接受**本地** URI，两端接受形式不同：
-
-| 形式                                         | Android | iOS |
-| -------------------------------------------- | ------- | --- |
-| `file:///...`（文件 URI）                    | ✅      | ✅  |
-| 绝对路径（无 scheme）                        | ✅      | ✅  |
-| `data:...`（base64 等）                      | ❌      | ✅  |
-| `content://...`                              | ✅      | ❌  |
-| `android.resource://...`                     | ✅      | ❌  |
-| `ph://...` / `assets-library://`（iOS 相册） | ❌      | ❌  |
-| `http(s)://...`（远程 URL）                  | ❌      | ❌  |
-
-- 不支持的 URI（含远程 URL、iOS 的 `ph://`）→ 抛 `E_IMAGE_LOAD_FAILED`（**不是**返回空数组）。
-- 跨平台最稳的输入是 **`file://` 或绝对路径**。
-- `decodeImage` 不负责申请相册权限;宿主图片选择器 / URI grant 负责让所选 URI 可读。当前两端 native 都不会产生 `E_NO_READ_PERMISSION`。
-
-> 完整 URI 规则与错误码见[函数 → decodeImage](/docs/api/functions#accepted-uri) 与[指南 → 图片识别](/docs/guides/decode-image#accepted-uri)。
-
----
-
-## 相关
-
-- [指南 → 底层 headless 组件](/docs/guides/headless) — `<HmsScanView>` 使用说明
-- [API 参考 → HmsScanView](/docs/api/hms-scan-view) — 完整 props 表，含 `torch` / `onTorchStatus`
-- [API 参考 → 函数](/docs/api/functions) — `decodeImage` URI 规则、权限函数
-- [常见问题](/docs/troubleshooting) — iOS 真机 / 手电 / 权限相关排障
+安装、Maven、Pods 与最低平台要求见 [安装](/docs/getting-started/installation)。

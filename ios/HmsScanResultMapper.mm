@@ -6,6 +6,7 @@
 #import "HmsScanResultMapper.h"
 
 #import <ScanKitFrameWork/ScanKitFrameWork.h>
+#include <cmath>
 
 // NOTE on naming collisions: HMSScanFormatTypeCode (in HmsScanFormat.h) declares
 // *global, unscoped* enum constants named QR_CODE, EAN_13, DATA_MATRIX, etc.
@@ -17,7 +18,7 @@
 
 #pragma mark - CSV -> scanFormatType bitmask
 
-// Maps one of our BarcodeFormat tokens to the matching HMSScanFormatTypeCode bit.
+// Maps one of our ScanFormat tokens to the matching HMSScanFormatTypeCode bit.
 // Returns 0 for tokens HUAWEI iOS does not support (e.g. MULTI_FUNCTIONAL) or
 // UNKNOWN, so they contribute nothing to the OR-ed mask.
 + (unsigned int)bitForFormatToken:(NSString *)token {
@@ -53,6 +54,16 @@
   return bit ? (unsigned int)bit.unsignedIntValue : 0u;
 }
 
++ (nullable NSString *)unsupportedFormatInCsv:(NSString *)csv {
+  if (csv.length == 0)
+    return nil;
+  for (NSString *token in [csv componentsSeparatedByString:@","]) {
+    if ([self bitForFormatToken:token] == 0u)
+      return token;
+  }
+  return nil;
+}
+
 + (unsigned int)scanFormatTypeFromCsv:(NSString *)csv {
   NSString *trimmed = [csv stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
   if (trimmed.length == 0) {
@@ -63,12 +74,10 @@
   for (NSString *token in [trimmed componentsSeparatedByString:@","]) {
     mask |= [self bitForFormatToken:token];
   }
-  // If nothing resolved (e.g. only MULTI_FUNCTIONAL/UNKNOWN was requested),
-  // fall back to ALL so we still attempt a decode rather than scanning nothing.
-  return mask == 0u ? (unsigned int)ALL : mask;
+  return mask; // Unsupported tokens are rejected by the capability boundary.
 }
 
-#pragma mark - formatValue -> our BarcodeFormat string
+#pragma mark - formatValue -> our ScanFormat string
 
 // HUAWEI's `formatValue` is documented as the HMSScanFormatTypeCode integer.
 // We tolerate it being delivered as an NSNumber (bit value) OR an NSString
@@ -207,9 +216,6 @@
     if ([v isKindOfClass:[NSNumber class]]) {
       return (NSNumber *)v;
     }
-    if ([v isKindOfClass:[NSString class]]) {
-      return @([(NSString *)v doubleValue]);
-    }
   }
   return nil;
 }
@@ -228,7 +234,7 @@
     NSDictionary *p = (NSDictionary *)element;
     NSNumber *x = [self numberFromPointDict:p keys:@[ @"posX", @"x", @"X" ]];
     NSNumber *y = [self numberFromPointDict:p keys:@[ @"posY", @"y", @"Y" ]];
-    if (x != nil && y != nil) {
+    if (x != nil && y != nil && std::isfinite(x.doubleValue) && std::isfinite(y.doubleValue)) {
       [points addObject:@{@"x" : x, @"y" : y}];
     }
   }
@@ -241,7 +247,7 @@
   // Primary key is `text`; tolerate a couple of alternates defensively.
   for (NSString *key in @[ @"text", @"originalValue", @"showText", @"value" ]) {
     id v = dict[key];
-    if ([v isKindOfClass:[NSString class]] && ((NSString *)v).length > 0) {
+    if ([v isKindOfClass:[NSString class]] && v != nil) {
       return (NSString *)v;
     }
   }
@@ -255,7 +261,7 @@
 
   NSString *value = [self valueFromHuaweiDict:dict];
   if (value == nil) {
-    return nil; // no usable decoded text -> drop
+    return nil;
   }
 
   NSMutableDictionary *out = [NSMutableDictionary dictionary];
@@ -277,12 +283,16 @@
 
 + (NSArray<NSDictionary *> *)scanResultsFromHuaweiArray:(NSArray *)array {
   NSMutableArray<NSDictionary *> *results = [NSMutableArray array];
+  if (array != nil && ![array isKindOfClass:[NSArray class]]) {
+    [NSException raise:@"HmsInvalidResponse" format:@"ScanKit returned a non-array result"];
+  }
   if ([array isKindOfClass:[NSArray class]]) {
     for (id element in array) {
       NSDictionary *mapped = [self scanResultFromHuaweiDict:element];
-      if (mapped != nil) {
-        [results addObject:mapped];
+      if (mapped == nil) {
+        [NSException raise:@"HmsInvalidResponse" format:@"ScanKit returned an invalid result"];
       }
+      [results addObject:mapped];
     }
   }
   return [results copy];
@@ -291,17 +301,19 @@
 #pragma mark - JSON
 
 + (NSString *)jsonStringFromScanResults:(NSArray<NSDictionary *> *)results {
-  NSArray *safe = [results isKindOfClass:[NSArray class]] ? results : @[];
-  if (![NSJSONSerialization isValidJSONObject:safe]) {
-    return @"[]";
+  if (![results isKindOfClass:[NSArray class]] || ![NSJSONSerialization isValidJSONObject:results]) {
+    [NSException raise:@"HmsInvalidResponse" format:@"ScanKit result cannot be serialized"];
   }
   NSError *error = nil;
-  NSData *data = [NSJSONSerialization dataWithJSONObject:safe options:0 error:&error];
+  NSData *data = [NSJSONSerialization dataWithJSONObject:results options:0 error:&error];
   if (data == nil || error != nil) {
-    return @"[]";
+    [NSException raise:@"HmsInvalidResponse" format:@"ScanKit result cannot be serialized"];
   }
   NSString *json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-  return json ?: @"[]";
+  if (json == nil) {
+    [NSException raise:@"HmsInvalidResponse" format:@"ScanKit result cannot be encoded as UTF-8"];
+  }
+  return json;
 }
 
 + (NSString *)jsonStringFromHuaweiArray:(NSArray *)array {

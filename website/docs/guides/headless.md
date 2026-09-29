@@ -1,166 +1,35 @@
 ---
 sidebar_position: 2
 title: 底层 headless 组件
-description: '使用 HmsScanView 组合自定义扫码界面。'
 ---
 
-# 底层 headless 组件
+# 自定义扫码预览
 
-`<HmsScanView>` 是底层 headless 扫码相机组件:**只渲染相机预览并抛出扫码事件**,取景框 / 扫描线 / 手电按钮等 UI 完全由你用普通 RN 视图叠加绘制。
-
-需要完全自定义扫码界面时用它;如果只想要现成的扫一扫页,直接用 [`<Scanner>`](/docs/guides/scanner)。
-
-:::tip 它只负责相机 + 事件
-`<HmsScanView>` 不画任何覆盖层(没有取景框、没有手电按钮)。你把它铺满容器,然后在它上面叠自己的 UI。`<Scanner>` 正是这样在它之上叠了一整套界面。
-:::
-
----
-
-## 基本用法 {#basic}
+先读取或申请相机权限，仅在 granted 时挂载 HmsScanView。设备事件只交付识别结果，业务选择由你的页面处理。
 
 ```tsx
-import { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
-import { HmsScanView, type ScanResult } from '@unif/react-native-hms-scan';
+import { HmsScanView, getCameraPermissionStatus, requestCameraPermission } from '@unif/react-native-hms-scan';
 
-function CustomScanScreen() {
-  const [paused, setPaused] = useState(false);
-  const [torchOn, setTorchOn] = useState(false);
-
-  const handleResult = (results: ScanResult[]) => {
-    const code = results[0]?.value;
-    if (code) {
-      setPaused(true); // 命中后暂停继续扫
-      // 处理扫码结果 ...
-    }
-  };
-
-  return (
-    <View style={styles.container}>
-      <HmsScanView
-        style={StyleSheet.absoluteFill} // 铺满容器
-        formats={['QR_CODE', 'EAN_13']} // 省略 = 全部 14 种码制
-        torch={torchOn}
-        paused={paused}
-        onScanResult={handleResult}
-        onScanError={(e) => {
-          // e.code / e.message
-        }}
-      />
-      {/* 在这里叠加取景框、按钮等自定义 UI */}
-    </View>
-  );
+let permission = await getCameraPermissionStatus();
+if (permission === 'denied' || permission === 'undetermined') {
+  permission = await requestCameraPermission();
 }
+// 将 permission 保存到页面状态。
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-});
+// 页面中：
+{permission === 'granted' && (
+  <HmsScanView
+    style={{ flex: 1 }}
+    continuous={false}
+    onScanResult={(results) => setResults(results)}
+    onScanError={(error) => showError(error)}
+    onTorchState={(state) => setTorchState(state)}
+  />
+)}
 ```
 
-`<HmsScanView>` 继承 `ViewProps`,`style` 等标准视图属性可直接传。务必给它一个有尺寸的容器(如 `flex: 1` + `StyleSheet.absoluteFill`),否则相机预览不可见。
+每次事件包含完整批次。value 不做业务解析，可选角点是图像坐标。paused 控制本轮接受；continuous 默认 true。格式省略/空数组不增加过滤，iOS 请求 MULTI_FUNCTIONAL 返回 unsupported。
 
----
+相机技术错误后应停止预览，让用户明确重试并重新读取权限。从系统设置返回时读取实际状态，不重放旧结果。
 
-## 限定码制 `formats` {#formats}
-
-`formats` 限定识别哪些码制,**不传 = 识别全部 14 种**:
-
-```tsx
-<HmsScanView formats={['QR_CODE', 'EAN_13']} onScanResult={...} />
-```
-
-> 内部把 `formats[]` 转成 CSV 传给原生(`formatsToCsv`),空 / 未传 → 识别全部。全部码制清单见 [API → BarcodeFormat](/docs/api/types)。
-
----
-
-## 扫码结果 `onScanResult` {#on-scan-result}
-
-命中一个或多个码时回调,参数是**已解析为强类型**的 `ScanResult[]`(原生回传的 JSON 在组件内已解析、并对脏数据做了防御性过滤):
-
-```tsx
-<HmsScanView
-  onScanResult={(results) => {
-    const first = results[0];
-    if (!first) return;
-    console.log(first.value, first.format); // 码内容、码制
-  }}
-/>
-```
-
-每个 `ScanResult` 含 `value`(原始文本)、`format`(码制)、可选 `contentType`(内容语义)、可选 `cornerPoints`(四角点)。详见 [API → ScanResult](/docs/api/types)。
-
----
-
-## 连续扫码与暂停 `continuous` / `paused` {#continuous-paused}
-
-- **`continuous`**(默认 `true`)—— 连续扫码,每次命中都触发 `onScanResult`。
-- **`paused`**(默认 `false`)—— 暂停扫码。命中后把 `paused` 设为 `true` 可停在结果画面,处理完再置 `false` 恢复。
-
-```tsx
-// 扫到后暂停，展示结果，用户确认后恢复
-const [paused, setPaused] = useState(false);
-
-<HmsScanView
-  paused={paused}
-  onScanResult={(results) => {
-    setPaused(true);
-    handleCode(results[0]?.value);
-  }}
-/>;
-```
-
----
-
-## 手电筒 `torch` / `onTorchStatus` {#torch}
-
-```tsx
-const [torch, setTorch] = useState(false);
-
-<HmsScanView
-  torch={torch}
-  onTorchStatus={(status) => {
-    // Android: available 是暗光提示
-    // iOS: available 是硬件能力；on 是真实点亮状态
-  }}
-/>;
-```
-
-:::warning 手电筒平台差异
-
-- **Android** —— `torch` 可编程控制;`onTorchStatus.available` 会在暗光时上报 `true`,可据此决定是否显示手电按钮。
-- **iOS** —— HMS 无公开手电 API,本库走 `AVCaptureDevice` **尽力而为**,不保证点亮;`onTorchStatus` 会在 `torch` 初次应用和后续 prop 变更时上报,其中 `available` 表示硬件能力、`on` 表示真实状态。
-
-所以**别把 `onTorchStatus.available` 当作跨平台的暗光信号** —— iOS 的同名字段语义不同。详见[平台差异 → 手电筒](/docs/platform-differences#torch)。
-:::
-
----
-
-## 出错回调 `onScanError` {#on-scan-error}
-
-相机 / 解码出错时回调,参数为 `{ code, message }`:
-
-```tsx
-<HmsScanView
-  onScanError={(e) => {
-    if (e.code === 'E_CAMERA_INIT') {
-      // Android：相机 / 预览初始化失败（未授权、被占用、设备异常都归到这里）
-    }
-    // 其它（含 iOS 的 E_NO_RESULT）：查 e.message
-  }}
-/>
-```
-
-:::warning 别用 `E_NO_CAMERA_PERMISSION` 判权限
-`E_NO_CAMERA_PERMISSION` 是 union 里的**兼容保留值,当前 native 不产生**。`<HmsScanView>` 实际发出的是 Android `E_CAMERA_INIT` / iOS `E_NO_RESULT`,所以监听 `E_NO_CAMERA_PERMISSION` 的分支永远不会命中。
-:::
-
-> headless 模式下相机权限**由你自己管**(不像 `<Scanner>` 自动处理):进入扫码页前先用 `requestCameraPermission` 确保已授权,别指望从 `onScanError` 反推权限状态。见[权限处理](/docs/guides/permissions)。
-
----
-
-## 相关
-
-- [API 参考 → HmsScanView](/docs/api/hms-scan-view) —— 完整 props 表
-- [平台差异](/docs/platform-differences) —— 手电筒、暗光提示的平台行为对比
-- [指南 → 权限处理](/docs/guides/permissions) —— headless 模式自行请求相机权限
-- [指南 → 成品扫一扫页](/docs/guides/scanner) —— 需要开箱即用的完整页面
+`torch` 请求和实际点亮状态分开保存；`available` 是硬件，`lowLight` 是可选暗光提示。完整属性见 [HmsScanView API](/docs/api/hms-scan-view)。

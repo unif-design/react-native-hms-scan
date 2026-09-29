@@ -5,14 +5,7 @@ import {
   useSyncExternalStore,
   type ComponentType,
 } from 'react';
-import {
-  AppState,
-  Linking,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { AppState, Linking, StyleSheet, Text, View } from 'react-native';
 import {
   Button,
   Card,
@@ -39,11 +32,9 @@ import {
   createHeadlessController,
   type HeadlessController,
 } from './headlessController';
-import type { HeadlessPlatform } from './headlessState';
 
 type HeadlessShowcaseScreenProps = {
   onBack: () => void;
-  platform?: HeadlessPlatform;
   HmsScanViewComponent?: ComponentType<HmsScanViewProps>;
 };
 
@@ -59,13 +50,8 @@ function useHeadlessController(): HeadlessController {
   );
 }
 
-function resolvePlatform(): HeadlessPlatform {
-  return Platform.OS === 'ios' ? 'ios' : 'android';
-}
-
 export function HeadlessShowcaseScreen({
   onBack,
-  platform = resolvePlatform(),
   HmsScanViewComponent = HmsScanView,
 }: HeadlessShowcaseScreenProps) {
   const controller = useHeadlessController();
@@ -78,22 +64,22 @@ export function HeadlessShowcaseScreen({
   const styles = useThemedStyles(makeStyles);
 
   useEffect(() => {
-    void controller.check(platform);
-  }, [controller, platform]);
+    void controller.check();
+  }, [controller]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
-        void controller.onAppActive(platform);
+        void controller.onAppActive();
       }
     });
 
     return () => subscription.remove();
-  }, [controller, platform]);
+  }, [controller]);
 
   const retryPermission = useCallback(() => {
-    void controller.check(platform);
-  }, [controller, platform]);
+    void controller.check();
+  }, [controller]);
 
   const requestPermission = useCallback(() => {
     void controller.request();
@@ -164,7 +150,7 @@ export function HeadlessShowcaseScreen({
                 />
                 {snapshot.error ? (
                   <View style={styles.errorCopy}>
-                    <Tag label={snapshot.error.code} variant="error" />
+                    <Tag label={snapshot.error.reason} variant="error" />
                     <Text style={styles.body}>{snapshot.error.message}</Text>
                   </View>
                 ) : null}
@@ -194,7 +180,7 @@ export function HeadlessShowcaseScreen({
                 onScanError={(error) =>
                   controller.dispatch({ type: 'scanError', error })
                 }
-                onTorchStatus={(status) =>
+                onTorchState={(status) =>
                   controller.dispatch({ type: 'torchStatus', status })
                 }
               />
@@ -262,9 +248,17 @@ export function HeadlessShowcaseScreen({
                   variant={snapshot.torchStatus.on ? 'success' : 'outline'}
                 />
                 <Tag
-                  label={`available：${
-                    snapshot.torchStatus.available ? '是' : '否'
+                  label={`手电硬件：${
+                    snapshot.torchStatus.available === undefined
+                      ? '未知'
+                      : snapshot.torchStatus.available
+                        ? '是'
+                        : '否'
                   }`}
+                  variant="info"
+                />
+                <Tag
+                  label={`暗光：${snapshot.torchStatus.lowLight === undefined ? '未知' : snapshot.torchStatus.lowLight ? '是' : '否'}`}
                   variant="info"
                 />
               </View>
@@ -275,22 +269,17 @@ export function HeadlessShowcaseScreen({
             <Card borderColor={colors.error}>
               <View style={styles.cardContent}>
                 <View style={styles.errorCopy}>
-                  <Tag
-                    label={snapshot.error.code}
-                    variant={
-                      snapshot.error.code === 'E_NO_RESULT' ? 'info' : 'error'
-                    }
-                  />
+                  <Tag label={snapshot.error.reason} variant={'error'} />
                   <Text style={styles.body}>{snapshot.error.message}</Text>
                 </View>
-                {snapshot.error.code !== 'E_NO_RESULT' ? (
+                {
                   <Button
                     label="重试扫描"
                     variant="secondary"
                     block
-                    onPress={() => controller.dispatch({ type: 'retry' })}
+                    onPress={retryPermission}
                   />
-                ) : null}
+                }
               </View>
             </Card>
           ) : null}

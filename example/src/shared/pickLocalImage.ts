@@ -1,6 +1,7 @@
+import type { ScannerImage } from '@unif/react-native-hms-scan';
 import { launchImageLibrary } from 'react-native-image-picker';
 
-export async function pickLocalImage(): Promise<string | null> {
+export async function pickLocalImage(): Promise<ScannerImage | null> {
   const response = await launchImageLibrary({
     mediaType: 'photo',
     selectionLimit: 1,
@@ -8,5 +9,8 @@ export async function pickLocalImage(): Promise<string | null> {
 
   if (response.didCancel) return null;
 
-  return response.assets?.[0]?.uri || null;
+  if (response.errorCode)
+    throw new Error(response.errorMessage ?? response.errorCode);
+  const uri = response.assets?.[0]?.uri;
+  return uri ? { uri } : null;
 }

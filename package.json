@@ -6,6 +6,11 @@
   "types": "./lib/typescript/src/index.d.ts",
   "exports": {
     ".": {
+      "browser": {
+        "source": "./src/index.web.tsx",
+        "types": "./lib/typescript/src/index.web.d.ts",
+        "default": "./lib/module/index.web.js"
+      },
       "source": "./src/index.tsx",
       "types": "./lib/typescript/src/index.d.ts",
       "default": "./lib/module/index.js"

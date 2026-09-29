@@ -2,13 +2,11 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Text, View } from 'react-native';
 import { ThemeProvider, useTheme } from '@unif/react-native-design';
 import type {
-  ScanError,
+  ScanFailure,
   ScannerProps,
-  ScanProduct,
   ScanResult,
 } from '@unif/react-native-hms-scan';
 import { pickLocalImage } from '../shared/pickLocalImage';
-import { lookupDemoProduct } from '../showcases/scanner/products';
 import {
   initialScannerDemoState,
   type ScannerDemoState,
@@ -38,30 +36,17 @@ const milkTeaResult: ScanResult = {
   ],
 };
 
-const milkTeaProduct: ScanProduct = {
-  name: '阿萨姆原味奶茶 500ml',
-  brand: '统一',
-  barcode: '6925303773908',
-  spec: '500ml × 15 瓶/箱',
-  stockShort: '充足',
-  price: '¥5.50',
-};
-
-const scanError: ScanError = {
-  code: 'E_CAMERA_INIT',
+const scanError: ScanFailure = {
+  reason: 'unavailable',
   message: '相机初始化失败',
 };
 
 function createCallbacks(): Required<
-  Pick<
-    ScannerProps,
-    'onClose' | 'onScanError' | 'resolveProduct' | 'onConfirm' | 'pickImage'
-  >
+  Pick<ScannerProps, 'onClose' | 'onError' | 'onConfirm' | 'pickImage'>
 > {
   return {
     onClose: jest.fn(),
-    onScanError: jest.fn(),
-    resolveProduct: lookupDemoProduct,
+    onError: jest.fn(),
     onConfirm: jest.fn(),
     pickImage: pickLocalImage,
   };
@@ -158,26 +143,6 @@ describe('ScannerShowcaseScreen', () => {
     expect(screen.getByTestId('scanner-boundary')).toBeOnTheScreen();
     expect(screen.queryByText('Scanner 配置')).toBeNull();
     expect(getScannerProps()?.pickImage).toBe(pickLocalImage);
-    expect(getScannerProps()?.resolveProduct).toBe(lookupDemoProduct);
-  });
-
-  it('配置页公开唯一 demo EAN-13、预期商品和未命中边界', async () => {
-    render(<ScannerShowcaseScreen onBack={jest.fn()} />, {
-      wrapper: ThemeProvider,
-    });
-
-    expect(screen.getByText('EAN-13：6925303773908')).toBeOnTheScreen();
-    expect(screen.getByText(/阿萨姆原味奶茶 500ml/)).toBeOnTheScreen();
-    expect(screen.getByText(/其他条码.*null/)).toBeOnTheScreen();
-    await expect(lookupDemoProduct(milkTeaResult)).resolves.toEqual(
-      milkTeaProduct
-    );
-    await expect(
-      lookupDemoProduct({
-        ...milkTeaResult,
-        value: '6900000000000',
-      })
-    ).resolves.toBeNull();
   });
 
   it('Scanner onClose 返回配置页', () => {
@@ -210,16 +175,16 @@ describe('ScannerShowcaseScreen', () => {
     expect(onActiveBackHandlerChange).toHaveBeenLastCalledWith(null);
   });
 
-  it('保存普通 ScanError，并可从 Scanner 返回后查看', () => {
+  it('保存普通 ScanFailure，并可从 Scanner 返回后查看', () => {
     const { getScannerProps } = renderWithScanner();
     fireEvent.press(screen.getByRole('button', { name: '进入全屏 Scanner' }));
 
     act(() => {
-      getScannerProps()?.onScanError?.(scanError);
+      getScannerProps()?.onError?.(scanError);
       getScannerProps()?.onClose?.();
     });
 
-    expect(screen.getByText('E_CAMERA_INIT')).toBeOnTheScreen();
+    expect(screen.getByText('unavailable')).toBeOnTheScreen();
     expect(screen.getByText('相机初始化失败')).toBeOnTheScreen();
   });
 
@@ -238,16 +203,12 @@ describe('ScannerShowcaseScreen', () => {
 
       expect(getScannerProps()?.autoConfirm).toBe(enabled);
       act(() => {
-        getScannerProps()?.onConfirm?.(milkTeaProduct, milkTeaResult);
+        getScannerProps()?.onConfirm?.(milkTeaResult);
       });
 
       expect(screen.getByText('Scanner 配置')).toBeOnTheScreen();
       expect(screen.getByTestId('last-confirmed-json')).toHaveTextContent(
-        JSON.stringify(
-          { product: milkTeaProduct, result: milkTeaResult },
-          null,
-          2
-        )
+        JSON.stringify(milkTeaResult, null, 2)
       );
     }
   );

@@ -2,6 +2,7 @@ package com.unif.reactnativehmsscan
 
 import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.FrameLayout
 import com.facebook.react.bridge.Arguments
@@ -42,7 +43,7 @@ class HmsScanView(
   private var paused: Boolean = false
   private var torch: Boolean = false
   private var actualTorchOn: Boolean = false
-  private var torchAvailable: Boolean = false
+  private var lowLight: Boolean? = null
 
   // True while this view is between onAttachedToWindow and onDetachedFromWindow.
   private var attached: Boolean = false
@@ -142,9 +143,15 @@ class HmsScanView(
 
       val view = builder.build()
 
-      view.setOnResultCallback(OnResultCallback { result -> onScanResult(result) })
+      view.setOnResultCallback(
+        OnResultCallback { result ->
+          if (remoteView === view && !paused) onScanResult(result)
+        },
+      )
       view.setOnLightVisibleCallback(
-        OnLightVisibleCallBack { visible -> onTorchVisible(visible) },
+        OnLightVisibleCallBack { visible ->
+          if (remoteView === view) onTorchVisible(visible)
+        },
       )
 
       // onCreate must run after build() and before addView (per HMS docs/demo).
@@ -182,6 +189,7 @@ class HmsScanView(
     removeView(view)
     remoteView = null
     actualTorchOn = false
+    lowLight = null
   }
 
   /** Rebuild the RemoteView in place to honour a changed build-time prop. */
@@ -215,7 +223,7 @@ class HmsScanView(
     } catch (_: Throwable) {
       // Ignore: device may have no flash.
     }
-    emitTorchStatus(view)
+    emitTorchState(view)
   }
 
   /** Resolve the hosting Activity required by RemoteView.Builder.setContext(). */
@@ -226,8 +234,14 @@ class HmsScanView(
   private fun onScanResult(result: Array<HmsScan?>?) {
     // Drop empty callbacks (continuous mode can fire with nothing useful).
     if (result == null || result.isEmpty()) return
-    val json = HmsScanResultMapper.toJson(result)
-    // toJson skips value-less hits; avoid emitting an empty "[]" event.
+    val json =
+      try {
+        HmsScanResultMapper.toJson(result)
+      } catch (error: InvalidScanResponse) {
+        emitError("E_INVALID_RESPONSE", error.message ?: "Invalid scan result")
+        return
+      }
+    // A batch containing only null vendor entries has no result to emit.
     if (json == "[]") return
     emitEvent(
       "topScanResult",
@@ -238,12 +252,12 @@ class HmsScanView(
   }
 
   private fun onTorchVisible(visible: Boolean) {
-    torchAvailable = visible
+    lowLight = visible
     val view = remoteView ?: return
-    emitTorchStatus(view)
+    emitTorchState(view)
   }
 
-  private fun emitTorchStatus(view: RemoteView) {
+  private fun emitTorchState(view: RemoteView) {
     val on =
       try {
         view.lightStatus
@@ -252,9 +266,12 @@ class HmsScanView(
       }
     actualTorchOn = on
     emitEvent(
-      "topTorchStatus",
+      "topTorchState",
       Arguments.createMap().apply {
-        putBoolean("available", torchAvailable)
+        putBoolean("available", context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH))
+        putBoolean("hasAvailable", true)
+        putBoolean("lowLight", lowLight ?: false)
+        putBoolean("hasLowLight", lowLight != null)
         putBoolean("on", on)
       },
     )

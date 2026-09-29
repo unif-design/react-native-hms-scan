@@ -27,15 +27,13 @@ import {
 import {
   Scanner,
   type ScannerProps,
-  type ScanError,
-  type ScanProduct,
+  type ScanFailure,
   type ScanResult,
 } from '@unif/react-native-hms-scan';
 import { FormatSelector } from '../../shared/FormatSelector';
 import { ShowcaseScaffold } from '../../shared/ShowcaseScaffold';
 import { formatsForPreset } from '../../shared/formatPresets';
 import { pickLocalImage } from '../../shared/pickLocalImage';
-import { DEMO_BARCODE, DEMO_PRODUCT, lookupDemoProduct } from './products';
 import {
   initialScannerDemoState,
   scannerDemoReducer,
@@ -43,10 +41,7 @@ import {
 } from './scannerModel';
 
 export type ScannerCallbacks = Required<
-  Pick<
-    ScannerProps,
-    'onClose' | 'onScanError' | 'resolveProduct' | 'onConfirm' | 'pickImage'
-  >
+  Pick<ScannerProps, 'onClose' | 'onError' | 'onConfirm' | 'pickImage'>
 >;
 
 export type ActiveBackHandler = () => boolean;
@@ -105,14 +100,14 @@ export function ScannerShowcaseScreen({
     return () => onActiveBackHandlerChange?.(null);
   }, [handleActiveBack, onActiveBackHandlerChange, state.active]);
 
-  const onConfirm = useCallback((product: ScanProduct, result: ScanResult) => {
-    dispatch({ type: 'confirmed', product, result });
+  const onConfirm = useCallback((result: Readonly<ScanResult>) => {
+    dispatch({ type: 'confirmed', result });
     toast.success('已保存扫码结果');
   }, []);
 
-  const onScanError = useCallback((error: ScanError) => {
+  const onError = useCallback((error: ScanFailure) => {
     dispatch({ type: 'error', error });
-    toast.error(`${error.code}：${error.message}`);
+    toast.error(`${error.reason}：${error.message}`);
   }, []);
 
   if (state.active) {
@@ -125,9 +120,8 @@ export function ScannerShowcaseScreen({
           {...buildScannerProps(state, insets, {
             onClose,
             onConfirm,
-            onScanError,
+            onError,
             pickImage: pickLocalImage,
-            resolveProduct: lookupDemoProduct,
           })}
         />
       </ThemeProvider>
@@ -147,24 +141,14 @@ export function ScannerShowcaseScreen({
             value={state.preset}
             onChange={(preset) => dispatch({ type: 'setPreset', preset })}
           />
-          <View style={styles.demoCopy}>
-            <Text style={styles.rowTitle}>可复现商品演示</Text>
-            <Text selectable style={styles.code}>
-              EAN-13：{DEMO_BARCODE}
-            </Text>
-            <Text style={styles.rowDescription}>
-              预期商品：{DEMO_PRODUCT.name}（{DEMO_PRODUCT.brand}，
-              {DEMO_PRODUCT.price}）
-            </Text>
-            <Text style={styles.rowDescription}>
-              其他条码由演示 resolver 返回 null，并进入未识别状态。
-            </Text>
-          </View>
+          <Text style={styles.rowDescription}>
+            扫描任意条码或二维码，查看原文和码制；选用后返回此页。
+          </Text>
           <View style={styles.switchRow}>
             <View style={styles.switchCopy}>
               <Text style={styles.rowTitle}>自动确认</Text>
               <Text style={styles.rowDescription}>
-                命中商品后跳过确认卡并立即返回配置页
+                识别后直接选用并返回配置页
               </Text>
             </View>
             <Switch
@@ -214,7 +198,7 @@ export function ScannerShowcaseScreen({
       {state.lastError ? (
         <Card borderColor={colors.error}>
           <View style={styles.cardContent}>
-            <Text style={styles.errorTitle}>{state.lastError.code}</Text>
+            <Text style={styles.errorTitle}>{state.lastError.reason}</Text>
             <Text style={styles.rowDescription}>{state.lastError.message}</Text>
           </View>
         </Card>
