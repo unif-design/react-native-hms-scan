@@ -25,14 +25,18 @@ internal object HmsScanResultMapper {
    * type is nullable because the HMS APIs (decodeWithBitmap / OnResultCallback)
    * hand back a Java array that can contain nulls.
    */
-  fun toJson(scans: Array<out HmsScan?>?): String {
+  fun toJson(
+    scans: Array<out HmsScan?>?,
+    scaleX: Double = 1.0,
+    scaleY: Double = 1.0,
+  ): String {
     val array = JSONArray()
     if (scans != null) {
       for (scan in scans) {
         if (scan == null) continue
         val value = scan.getOriginalValue()
         if (value == null) throw InvalidScanResponse("ScanKit returned a result without text")
-        array.put(toJsonObject(scan, value))
+        array.put(toJsonObject(scan, value, scaleX, scaleY))
       }
     }
     return array.toString()
@@ -41,6 +45,8 @@ internal object HmsScanResultMapper {
   private fun toJsonObject(
     scan: HmsScan,
     value: String,
+    scaleX: Double,
+    scaleY: Double,
   ): JSONObject {
     val obj = JSONObject()
     obj.put("value", value)
@@ -55,8 +61,8 @@ internal object HmsScanResultMapper {
         if (point == null) continue
         points.put(
           JSONObject().apply {
-            put("x", point.x)
-            put("y", point.y)
+            put("x", point.x * scaleX)
+            put("y", point.y * scaleY)
           },
         )
       }

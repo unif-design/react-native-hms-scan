@@ -23,9 +23,17 @@ title: 平台差异
 
 torch prop 是请求，onTorchState.on 是实际状态。available 始终表示硬件；lowLight 单独表示环境。iOS 厂商可能占用设备配置锁，不保证请求点亮，显示必须采用实际回报。
 
+iOS 视图离开窗口会关闭手电并回报实际状态，重新进入窗口会重新应用当前请求。挂载期间观察设备手电变化；两端重复的手电/暗光状态不会重复触发事件。
+
+## 图片 {#images}
+
+Android 在独立线程按预算采样并校正 EXIF，返回角点采用校正方向后的原图坐标；具体预算和并发限制见[图片识别](/docs/guides/decode-image)。iOS 图片路径仍采用厂商原有 UIImage 接口，识别率、内存与方向行为需要各自设备验证。
+
 ## 权限 {#permissions}
 
 Android 查询返回 granted/denied，请求后才可判 blocked；iOS 返回 granted/undetermined/blocked。调用异常抛 ScanError，无法解释的值为 invalid_response。
+
+Android 同一界面的并发权限请求共享一次系统申请，每个 Promise 都会结算；申请所属界面销毁或申请未完成时返回明确错误。
 
 ## Web
 

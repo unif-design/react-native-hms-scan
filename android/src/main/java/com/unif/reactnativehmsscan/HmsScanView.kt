@@ -47,10 +47,8 @@ class HmsScanView(
 
   // True while this view is between onAttachedToWindow and onDetachedFromWindow.
   private var attached: Boolean = false
-
-  init {
-    themedReactContext.addLifecycleEventListener(this)
-  }
+  private var listening: Boolean = false
+  private var lastTorchState: Triple<Boolean, Boolean, Boolean?>? = null
 
   // ── Props (called from the ViewManager) ───────────────────────────────────
 
@@ -82,6 +80,10 @@ class HmsScanView(
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
     attached = true
+    if (!listening) {
+      listening = true
+      themedReactContext.addLifecycleEventListener(this)
+    }
     if (remoteView == null) {
       buildRemoteView()
     }
@@ -92,6 +94,7 @@ class HmsScanView(
     super.onDetachedFromWindow()
     attached = false
     teardownRemoteView()
+    removeLifecycleListener()
   }
 
   // ── Host (Activity) lifecycle ─────────────────────────────────────────────
@@ -110,7 +113,14 @@ class HmsScanView(
 
   override fun onHostDestroy() {
     teardownRemoteView()
-    themedReactContext.removeLifecycleEventListener(this)
+    removeLifecycleListener()
+  }
+
+  private fun removeLifecycleListener() {
+    if (listening) {
+      listening = false
+      themedReactContext.removeLifecycleEventListener(this)
+    }
   }
 
   // ── RemoteView build / teardown ───────────────────────────────────────────
@@ -179,6 +189,8 @@ class HmsScanView(
 
   private fun teardownRemoteView() {
     val view = remoteView ?: return
+    // Invalidate callbacks before the SDK starts its asynchronous teardown.
+    remoteView = null
     try {
       view.onPause()
       view.onStop()
@@ -187,9 +199,9 @@ class HmsScanView(
       // Defensive: never let teardown crash the host.
     }
     removeView(view)
-    remoteView = null
     actualTorchOn = false
     lowLight = null
+    lastTorchState = null
   }
 
   /** Rebuild the RemoteView in place to honour a changed build-time prop. */
@@ -265,10 +277,14 @@ class HmsScanView(
         actualTorchOn
       }
     actualTorchOn = on
+    val available = context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)
+    val state = Triple(on, available, lowLight)
+    if (lastTorchState == state) return
+    lastTorchState = state
     emitEvent(
       "topTorchState",
       Arguments.createMap().apply {
-        putBoolean("available", context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH))
+        putBoolean("available", available)
         putBoolean("hasAvailable", true)
         putBoolean("lowLight", lowLight ?: false)
         putBoolean("hasLowLight", lowLight != null)

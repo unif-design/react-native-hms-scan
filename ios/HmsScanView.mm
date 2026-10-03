@@ -20,6 +20,7 @@
 #import <ScanKitFrameWork/ScanKitFrameWork.h>
 
 using namespace facebook::react;
+static void *HmsScanTorchObservation = &HmsScanTorchObservation;
 
 @interface HmsScanView () <CustomizedScanDelegate>
 @end
@@ -34,6 +35,12 @@ using namespace facebook::react;
   BOOL _appliedTorch;
   BOOL _hasAppliedOnce;
   BOOL _childAttached;
+  AVCaptureDevice *_torchDevice;
+  BOOL _observingTorch;
+  BOOL _awaitingTorchOff;
+  BOOL _hasTorchReport;
+  BOOL _lastTorchOn;
+  BOOL _lastTorchAvailable;
 }
 
 #pragma mark - Codegen wiring
@@ -54,7 +61,7 @@ using namespace facebook::react;
     _hasAppliedOnce = NO;
     _childAttached = NO;
 
-    [self buildScanViewControllerWithCsv:_appliedFormatsCsv];
+    // Fabric supplies the initial props before mounting. Construct only that configuration.
   }
   return self;
 }
@@ -140,12 +147,23 @@ using namespace facebook::react;
 - (void)didMoveToWindow {
   [super didMoveToWindow];
   if (self.window != nil) {
+    _awaitingTorchOff = NO;
     if ([HmsScanResultMapper unsupportedFormatInCsv:_appliedFormatsCsv] != nil) {
       [self emitScanErrorWithCode:@"E_UNSUPPORTED_FORMAT" message:@"iOS ScanKit 不支持请求的码制"];
     }
     [self attachChildViewController];
+    if (_scanVC != nil) {
+      [self startObservingTorch];
+      [self applyTorch:_appliedTorch];
+    }
   } else {
-    [self setTorchHardwareOn:NO available:NULL];
+    _awaitingTorchOff = YES;
+    [self applyTorch:NO];
+    // torchMode can change before torchActive. Keep observing until the device
+    // confirms shutdown, or until this view is recycled/deallocated.
+    if (!_torchDevice.isTorchActive) {
+      [self stopObservingTorch];
+    }
     [self detachChildViewController];
   }
 }
@@ -164,9 +182,10 @@ using namespace facebook::react;
   BOOL newTorch = newViewProps.torch;
 
   BOOL first = !_hasAppliedOnce;
+  BOOL rebuilt = first || ![newCsv isEqualToString:_appliedFormatsCsv];
 
   // formatsCsv change -> rebuild the controller (carry over continuous/paused).
-  if (first || ![newCsv isEqualToString:_appliedFormatsCsv]) {
+  if (rebuilt) {
     _appliedContinuous = newContinuous;
     _appliedPaused = newPaused;
     [self buildScanViewControllerWithCsv:newCsv];
@@ -188,9 +207,11 @@ using namespace facebook::react;
   }
 
   // torch change (best-effort, see applyTorch:).
-  if (first || newTorch != _appliedTorch) {
-    _appliedTorch = newTorch;
-    [self applyTorch:newTorch];
+  BOOL torchChanged = newTorch != _appliedTorch;
+  _appliedTorch = newTorch;
+  if (self.window != nil && _scanVC != nil && (rebuilt || torchChanged)) {
+    [self startObservingTorch];
+    [self applyTorch:_appliedTorch];
   }
 
   _hasAppliedOnce = YES;
@@ -200,11 +221,9 @@ using namespace facebook::react;
 
 #pragma mark - Torch (best-effort)
 
-// HUAWEI Scan Kit exposes NO public torch API on iOS — HmsCustomScanViewController
-// renders its own torch button and auto-detects low light. We therefore drive the
-// torch directly through AVFoundation as a best-effort convenience. This is NOT
-// guaranteed to stay in sync with HUAWEI's built-in torch button, and may be a
-// no-op if HUAWEI holds an exclusive lock on the capture device's configuration.
+// ScanKit has no public torch command. Observe the same AVCaptureDevice we
+// configure, including changes made by the SDK or system. A configuration lock
+// failure still reports the device's real state.
 - (void)applyTorch:(BOOL)on {
   BOOL available = NO;
   BOOL torchOn = [self setTorchHardwareOn:on available:&available];
@@ -214,6 +233,8 @@ using namespace facebook::react;
 // 优先取「带手电的后置广角相机」(这通常就是华为扫码用的那颗);取不到再退回
 // 默认 video 设备。比已弃用的 defaultDeviceWithMediaType 更可能命中正确设备。
 - (AVCaptureDevice *)torchCaptureDevice {
+  if (_torchDevice != nil)
+    return _torchDevice;
   AVCaptureDeviceDiscoverySession *session =
       [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:@[ AVCaptureDeviceTypeBuiltInWideAngleCamera ]
                                                              mediaType:AVMediaTypeVideo
@@ -224,6 +245,60 @@ using namespace facebook::react;
     }
   }
   return [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+}
+
+- (void)startObservingTorch {
+  if (_observingTorch)
+    return;
+  _torchDevice = [self torchCaptureDevice];
+  if (_torchDevice == nil)
+    return;
+  _observingTorch = YES;
+  [_torchDevice addObserver:self forKeyPath:@"torchActive" options:0 context:HmsScanTorchObservation];
+  [_torchDevice addObserver:self forKeyPath:@"torchAvailable" options:0 context:HmsScanTorchObservation];
+}
+
+- (void)stopObservingTorch {
+  if (_observingTorch) {
+    [_torchDevice removeObserver:self forKeyPath:@"torchActive" context:HmsScanTorchObservation];
+    [_torchDevice removeObserver:self forKeyPath:@"torchAvailable" context:HmsScanTorchObservation];
+  }
+  _observingTorch = NO;
+  _awaitingTorchOff = NO;
+  _torchDevice = nil;
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change
+                       context:(void *)context {
+  if (context != HmsScanTorchObservation) {
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+    return;
+  }
+  __weak HmsScanView *weakSelf = self;
+  void (^report)(void) = ^{
+    HmsScanView *view = weakSelf;
+    if (view == nil || !view->_observingTorch || view->_torchDevice != object)
+      return;
+    if (view.window == nil) {
+      if (view->_awaitingTorchOff) {
+        [view emitTorchStateAvailable:view->_torchDevice.hasTorch on:view->_torchDevice.isTorchActive];
+        if (!view->_torchDevice.isTorchActive)
+          [view stopObservingTorch];
+      }
+      return;
+    }
+    if ([keyPath isEqualToString:@"torchAvailable"] && view->_torchDevice.isTorchAvailable && view->_appliedTorch) {
+      [view applyTorch:YES];
+    } else {
+      [view emitTorchStateAvailable:view->_torchDevice.hasTorch on:view->_torchDevice.isTorchActive];
+    }
+  };
+  if ([NSThread isMainThread])
+    report();
+  else
+    dispatch_async(dispatch_get_main_queue(), report);
 }
 
 // Mutates the capture device's torch. Returns the resulting on-state and writes
@@ -315,6 +390,11 @@ using namespace facebook::react;
   if (!_eventEmitter) {
     return;
   }
+  if (_hasTorchReport && available == _lastTorchAvailable && on == _lastTorchOn)
+    return;
+  _hasTorchReport = YES;
+  _lastTorchAvailable = available;
+  _lastTorchOn = on;
   std::static_pointer_cast<const HmsScanViewEventEmitter>(_eventEmitter)
       ->onTorchState(HmsScanViewEventEmitter::OnTorchState{
           .available = available ? true : false,
@@ -330,6 +410,7 @@ using namespace facebook::react;
 - (void)prepareForRecycle {
   // Reset imperative state so a recycled view re-applies props cleanly.
   // Turn the torch off WITHOUT emitting (the emitter is being torn down).
+  [self stopObservingTorch];
   [self setTorchHardwareOn:NO available:NULL];
   [self teardownScanViewController];
   _hasAppliedOnce = NO;
@@ -337,10 +418,12 @@ using namespace facebook::react;
   _appliedContinuous = YES;
   _appliedPaused = NO;
   _appliedTorch = NO;
+  _hasTorchReport = NO;
   [super prepareForRecycle];
 }
 
 - (void)dealloc {
+  [self stopObservingTorch];
   if (_scanVC != nil) {
     _scanVC.customizedScanDelegate = nil;
   }
