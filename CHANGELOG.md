@@ -1,5 +1,15 @@
 # Changelog
 
+# [1.0.0](https://github.com/unif-design/react-native-hms-scan/compare/v0.6.2...v1.0.0) (2026-10-03)
+
+
+* feat(scan)!: implement recognition and image ownership contract ([dc225dc](https://github.com/unif-design/react-native-hms-scan/commit/dc225dc4a9b3fa46ce783a3d8ed903cb9b027728))
+
+
+### BREAKING CHANGES
+
+* Scanner.onConfirm 改为单个 ScanResult，移除 resolveProduct/ScanProduct；decodeImage 改为对象输入和 readonly 全量结果；pickImage 改为带释放回调的图片源；统一新的错误、权限、码制及 onTorchState 类型。消费者需迁移参数、回调和图片释放时机后重建原生 App。
+
 ## [0.6.2](https://github.com/unif-design/react-native-hms-scan/compare/v0.6.1...v0.6.2) (2026-09-20)
 
 

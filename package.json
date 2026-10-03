@@ -1,6 +1,6 @@
 {
   "name": "@unif/react-native-hms-scan",
-  "version": "0.6.2",
+  "version": "1.0.0",
   "description": "Unif React Native 扫码：实时预览、二维码、条码和本地图片识别",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
