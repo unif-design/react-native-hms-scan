@@ -1,6 +1,7 @@
+import { ScanError } from '@unif/react-native-hms-scan';
 import type {
-  CameraPermissionStatus,
-  ScanError,
+  ScanCameraPermission,
+  ScanFailure,
 } from '@unif/react-native-hms-scan';
 import {
   createHeadlessController,
@@ -29,16 +30,16 @@ function createDeps(overrides: Partial<HeadlessDeps> = {}): HeadlessDeps {
 describe('createHeadlessController permission flow', () => {
   it('初次 check 只 query，不自动 request', async () => {
     const getStatus = jest.fn(
-      async (): Promise<CameraPermissionStatus> => 'granted'
+      async (): Promise<ScanCameraPermission> => 'granted'
     );
     const request = jest.fn(
-      async (): Promise<CameraPermissionStatus> => 'blocked'
+      async (): Promise<ScanCameraPermission> => 'blocked'
     );
     const controller = createHeadlessController(
       createDeps({ getStatus, request })
     );
 
-    await controller.check('ios');
+    await controller.check();
 
     expect(getStatus).toHaveBeenCalledTimes(1);
     expect(request).not.toHaveBeenCalled();
@@ -50,18 +51,18 @@ describe('createHeadlessController permission flow', () => {
     });
   });
 
-  it('iOS 初次 query blocked 直接进入设置态且不 request', async () => {
+  it('初次 query blocked 直接进入设置态且不 request', async () => {
     const getStatus = jest.fn(
-      async (): Promise<CameraPermissionStatus> => 'blocked'
+      async (): Promise<ScanCameraPermission> => 'blocked'
     );
     const request = jest.fn(
-      async (): Promise<CameraPermissionStatus> => 'granted'
+      async (): Promise<ScanCameraPermission> => 'granted'
     );
     const controller = createHeadlessController(
       createDeps({ getStatus, request })
     );
 
-    await controller.check('ios');
+    await controller.check();
 
     expect(getStatus).toHaveBeenCalledTimes(1);
     expect(request).not.toHaveBeenCalled();
@@ -73,23 +74,23 @@ describe('createHeadlessController permission flow', () => {
     });
   });
 
-  it('Android query blocked 仍进入可请求态', async () => {
+  it('query denied 进入可请求态', async () => {
     const controller = createHeadlessController(
-      createDeps({ getStatus: async () => 'blocked' })
+      createDeps({ getStatus: async () => 'denied' })
     );
 
-    await controller.check('android');
+    await controller.check();
 
     expect(controller.getSnapshot()).toMatchObject({
       permission: 'denied',
-      nativePermission: 'blocked',
+      nativePermission: 'denied',
       shouldMountView: false,
       canRequest: true,
     });
   });
 
   it('只有显式 request 才请求权限并接受 blocked 结果', async () => {
-    const pending = deferred<CameraPermissionStatus>();
+    const pending = deferred<ScanCameraPermission>();
     const request = jest.fn(() => pending.promise);
     const controller = createHeadlessController(createDeps({ request }));
 
@@ -112,9 +113,10 @@ describe('createHeadlessController permission flow', () => {
     });
   });
 
-  it('权限 helper reject 保存普通 ScanError 并保持 fail-closed', async () => {
-    const nativeError = Object.assign(new Error('no activity'), {
-      code: 'E_NO_ACTIVITY',
+  it('权限 helper reject 保存普通 ScanFailure 并保持 fail-closed', async () => {
+    const nativeError = new ScanError({
+      reason: 'unavailable',
+      message: 'no activity',
     });
     const controller = createHeadlessController(
       createDeps({
@@ -124,18 +126,18 @@ describe('createHeadlessController permission flow', () => {
       })
     );
 
-    await controller.check('android');
+    await controller.check();
 
     expect(controller.getSnapshot()).toMatchObject({
       permission: 'error',
       error: {
-        code: 'E_NO_ACTIVITY',
+        reason: 'unavailable',
         message: 'no activity',
       },
       shouldMountView: false,
       canRequest: false,
     });
-    expect(controller.getSnapshot().error).not.toBe(nativeError);
+    expect(controller.getSnapshot().error).toBe(nativeError);
   });
 
   it('request reject 进入可重试的普通权限错误态', async () => {
@@ -152,7 +154,7 @@ describe('createHeadlessController permission flow', () => {
     expect(controller.getSnapshot()).toMatchObject({
       permission: 'error',
       error: {
-        code: 'E_UNKNOWN',
+        reason: 'unavailable',
         message: 'request failed',
       },
       shouldMountView: false,
@@ -161,10 +163,10 @@ describe('createHeadlessController permission flow', () => {
 
   it('设置返回 active 后只重新 query，不直接假设 granted', async () => {
     const getStatus = jest.fn(
-      async (): Promise<CameraPermissionStatus> => 'granted'
+      async (): Promise<ScanCameraPermission> => 'granted'
     );
     const request = jest.fn(
-      async (): Promise<CameraPermissionStatus> => 'blocked'
+      async (): Promise<ScanCameraPermission> => 'blocked'
     );
     const openSettings = jest.fn(async () => undefined);
     const controller = createHeadlessController(
@@ -176,7 +178,7 @@ describe('createHeadlessController permission flow', () => {
     expect(controller.getSnapshot().permission).toBe('blocked');
     expect(getStatus).not.toHaveBeenCalled();
 
-    await controller.onAppActive('ios');
+    await controller.onAppActive();
 
     expect(openSettings).toHaveBeenCalledTimes(1);
     expect(getStatus).toHaveBeenCalledTimes(1);
@@ -190,11 +192,11 @@ describe('createHeadlessController permission flow', () => {
 
   it('普通 active 不重新查询权限', async () => {
     const getStatus = jest.fn(
-      async (): Promise<CameraPermissionStatus> => 'granted'
+      async (): Promise<ScanCameraPermission> => 'granted'
     );
     const controller = createHeadlessController(createDeps({ getStatus }));
 
-    await controller.onAppActive('android');
+    await controller.onAppActive();
 
     expect(getStatus).not.toHaveBeenCalled();
     expect(controller.getSnapshot().permission).toBe('checking');
@@ -205,7 +207,7 @@ describe('createHeadlessController permission flow', () => {
       createDeps({
         openSettings: async () => {
           throw Object.assign(new Error('settings failed'), {
-            code: 'E_SETTINGS',
+            reason: 'unavailable',
           });
         },
       })
@@ -216,7 +218,7 @@ describe('createHeadlessController permission flow', () => {
     expect(controller.getSnapshot()).toMatchObject({
       permission: 'error',
       error: {
-        code: 'E_SETTINGS',
+        reason: 'unavailable',
         message: 'settings failed',
       },
       shouldMountView: false,
@@ -226,7 +228,7 @@ describe('createHeadlessController permission flow', () => {
 
 describe('createHeadlessController operation ordering', () => {
   it('较旧 query 晚完成时不能覆盖较新的 request', async () => {
-    const olderQuery = deferred<CameraPermissionStatus>();
+    const olderQuery = deferred<ScanCameraPermission>();
     const controller = createHeadlessController(
       createDeps({
         getStatus: () => olderQuery.promise,
@@ -234,7 +236,7 @@ describe('createHeadlessController operation ordering', () => {
       })
     );
 
-    const queryOperation = controller.check('android');
+    const queryOperation = controller.check();
     await controller.request();
     olderQuery.resolve('denied');
     await queryOperation;
@@ -247,7 +249,7 @@ describe('createHeadlessController operation ordering', () => {
   });
 
   it('较旧 request 晚完成时不能覆盖较新的 query', async () => {
-    const olderRequest = deferred<CameraPermissionStatus>();
+    const olderRequest = deferred<ScanCameraPermission>();
     const controller = createHeadlessController(
       createDeps({
         getStatus: async () => 'denied',
@@ -256,7 +258,7 @@ describe('createHeadlessController operation ordering', () => {
     );
 
     const requestOperation = controller.request();
-    await controller.check('android');
+    await controller.check();
     olderRequest.resolve('granted');
     await requestOperation;
 
@@ -290,15 +292,14 @@ describe('createHeadlessController external store', () => {
 
   it('权限失效错误立即让 snapshot 停止挂载 view', () => {
     const controller = createHeadlessController(createDeps());
-    const permissionError: ScanError = {
-      code: 'E_NO_CAMERA_PERMISSION',
+    const permissionError: ScanFailure = {
+      reason: 'permission_denied',
       message: 'permission lost',
     };
 
     controller.dispatch({
       type: 'permissionChecked',
       status: 'granted',
-      os: 'android',
     });
     controller.dispatch({ type: 'scanError', error: permissionError });
 
@@ -314,12 +315,11 @@ describe('createHeadlessController external store', () => {
     controller.dispatch({
       type: 'permissionChecked',
       status: 'granted',
-      os: 'android',
     });
 
     controller.dispatch({
       type: 'scanError',
-      error: { code: 'E_CAMERA_INIT', message: 'camera init failed' },
+      error: { reason: 'unavailable', message: 'camera init failed' },
     });
     expect(controller.getSnapshot().viewGeneration).toBe(0);
 

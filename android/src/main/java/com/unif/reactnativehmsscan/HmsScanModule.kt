@@ -3,200 +3,216 @@ package com.unif.reactnativehmsscan
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.bridge.UiThreadUtil
 import com.facebook.react.modules.core.PermissionAwareActivity
 import com.facebook.react.modules.core.PermissionListener
 import com.huawei.hms.hmsscankit.ScanUtil
 import com.huawei.hms.ml.scan.HmsScan
 import com.huawei.hms.ml.scan.HmsScanAnalyzerOptions
-import java.io.File
-import java.io.InputStream
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
-/**
- * TurboModule "HmsScan". Implements the codegen-generated [NativeHmsScanSpec]:
- *   - decodeImage(): decode a local image into a ScanResult[] JSON string.
- *   - getCameraPermissionStatus() / requestCameraPermission(): camera permission.
- */
+/** Independent image decoding and camera permission boundaries. */
 class HmsScanModule(
   reactContext: ReactApplicationContext,
-) : NativeHmsScanSpec(reactContext) {
+) : NativeHmsScanSpec(reactContext),
+  LifecycleEventListener {
+  // One allocated image at a time, with at most four waiting file borrowers.
+  private val imageQueue =
+    ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, ArrayBlockingQueue(4)) { work ->
+      Thread(work, "HmsScan-image").apply { isDaemon = true }
+    }
+
+  @Volatile private var invalidated = false
+
+  // Permission requests and host callbacks are serialized on the UI thread.
+  private class PermissionBatch(
+    val activity: Activity,
+    val promises: MutableList<Promise>,
+  )
+
+  private var permissionBatch: PermissionBatch? = null
+
   override fun getName(): String = NAME
 
-  // ── decodeImage ──────────────────────────────────────────────────────────
-
-  /**
-   * Decode barcodes/QR codes from a local image. Loads the bitmap from a
-   * file:// / content:// URI or an absolute path, runs ScanUtil.decodeWithBitmap
-   * (photo mode), and resolves the ScanResult[] JSON. Never rejects on "no code
-   * found" — it resolves an empty array, matching the JS contract.
-   */
   override fun decodeImage(
     uri: String,
     formatsCsv: String,
     promise: Promise,
   ) {
-    val bitmap = loadBitmap(uri)
-    if (bitmap == null) {
-      promise.reject(E_IMAGE_LOAD_FAILED, "Failed to load image from uri: $uri")
-      return
-    }
-
-    try {
-      val types = HmsScanResultMapper.parseFormatsCsv(formatsCsv)
-      val optionsCreator = HmsScanAnalyzerOptions.Creator().setPhotoMode(true)
-      if (types != null && types.isNotEmpty()) {
-        val first = types.first()
-        val rest = if (types.size > 1) types.copyOfRange(1, types.size) else IntArray(0)
-        optionsCreator.setHmsScanTypes(first, *rest)
-      } else {
-        optionsCreator.setHmsScanTypes(HmsScan.ALL_SCAN_TYPE)
+    val work = ImageWork(uri, formatsCsv, promise)
+    synchronized(imageQueue) {
+      if (invalidated) {
+        work.rejectUnavailable()
+        return
       }
-      val options = optionsCreator.create()
-
-      val scans = ScanUtil.decodeWithBitmap(reactApplicationContext, bitmap, options)
-      promise.resolve(HmsScanResultMapper.toJson(scans))
-    } catch (e: Throwable) {
-      promise.reject(E_DECODE_FAILED, e.message ?: "Failed to decode image", e)
-    } finally {
-      if (!bitmap.isRecycled) {
-        bitmap.recycle()
+      try {
+        imageQueue.execute(work)
+      } catch (_: RejectedExecutionException) {
+        work.rejectUnavailable()
       }
     }
   }
 
-  /** Resolve a uri/path to a decoded [Bitmap], or null on any failure. */
-  private fun loadBitmap(uri: String): Bitmap? =
-    try {
-      val parsed = Uri.parse(uri)
-      val scheme = parsed.scheme?.lowercase()
-      when (scheme) {
-        "content", "file", "android.resource" -> {
-          val resolver = reactApplicationContext.contentResolver
-          var stream: InputStream? = null
-          try {
-            stream = resolver.openInputStream(parsed)
-            if (stream == null) null else BitmapFactory.decodeStream(stream)
-          } finally {
-            stream?.close()
+  private inner class ImageWork(
+    val uri: String,
+    val formatsCsv: String,
+    val promise: Promise,
+  ) : Runnable {
+    fun rejectUnavailable() {
+      promise.reject("E_UNAVAILABLE", "图片识别不可用或等待队列已满")
+    }
+
+    override fun run() {
+      if (invalidated) {
+        rejectUnavailable()
+        return
+      }
+      try {
+        // use closes the bitmap before the promise settles and the caller releases its file.
+        val json =
+          HmsScanImage.read(uri).use { image ->
+            val types = HmsScanResultMapper.parseFormatsCsv(formatsCsv)
+            val creator = HmsScanAnalyzerOptions.Creator().setPhotoMode(true)
+            if (types != null && types.isNotEmpty()) {
+              creator.setHmsScanTypes(types.first(), *types.drop(1).toIntArray())
+            } else {
+              creator.setHmsScanTypes(HmsScan.ALL_SCAN_TYPE)
+            }
+            val scans = ScanUtil.decodeWithBitmap(reactApplicationContext, image.bitmap, creator.create())
+            HmsScanResultMapper.toJson(scans, image.scaleX, image.scaleY)
           }
-        }
-
-        null -> {
-          // No scheme -> treat as an absolute filesystem path.
-          val path = parsed.path ?: uri
-          decodeFile(path)
-        }
-
-        else -> {
-          // Unsupported scheme (e.g. http/https): JS contract forbids remote URLs.
-          null
-        }
+        promise.resolve(json)
+      } catch (error: ScanImageFailure) {
+        promise.reject(error.code, error.message, error)
+      } catch (error: InvalidScanResponse) {
+        promise.reject("E_INVALID_RESPONSE", error.message, error)
+      } catch (error: Exception) {
+        promise.reject("E_DECODE_FAILED", error.message ?: "图片识别失败", error)
+      } catch (error: OutOfMemoryError) {
+        promise.reject("E_DECODE_FAILED", "图片识别内存不足", error)
       }
-    } catch (e: Throwable) {
-      null
     }
-
-  private fun decodeFile(path: String): Bitmap? {
-    val file = File(path)
-    if (!file.exists() || !file.canRead()) return null
-    return BitmapFactory.decodeFile(file.absolutePath)
   }
 
-  // ── Camera permission ────────────────────────────────────────────────────
-
-  /**
-   * Current camera permission without prompting.
-   *
-   * Note: at query time Android exposes no reliable signal to distinguish
-   * "blocked" / "undetermined" from a plain denial (shouldShowRequestPermissionRationale
-   * is false for both the never-asked and permanently-denied states), so a
-   * not-granted result is reported as "denied". The blocked/undetermined nuance is
-   * resolved by requestCameraPermission() via the post-request rationale check.
-   */
+  /** Android does not distinguish never asked from blocked in a read-only query. */
   override fun getCameraPermissionStatus(promise: Promise) {
-    promise.resolve(if (hasCameraPermission()) GRANTED else DENIED)
+    try {
+      promise.resolve(if (hasCameraPermission()) GRANTED else DENIED)
+    } catch (error: Exception) {
+      promise.reject("E_UNAVAILABLE", "读取相机权限失败", error)
+    }
   }
 
-  /**
-   * Request the camera permission (system dialog if needed) and resolve the
-   * resulting status:
-   *   - granted: permission held.
-   *   - denied: rejected but the app may ask again (rationale should be shown).
-   *   - blocked: rejected with "don't ask again" (rationale will not be shown).
-   */
   override fun requestCameraPermission(promise: Promise) {
-    if (hasCameraPermission()) {
-      promise.resolve(GRANTED)
-      return
-    }
-
-    val activity = currentActivity
-    if (activity == null || activity !is PermissionAwareActivity) {
-      // Can't surface a system dialog without a PermissionAwareActivity; report the
-      // current (not-granted) state rather than hanging the promise.
-      promise.reject(
-        E_NO_ACTIVITY,
-        "Cannot request camera permission: no current PermissionAwareActivity",
-      )
-      return
-    }
-
-    val permissionAwareActivity = activity as PermissionAwareActivity
-    val listener =
-      PermissionListener { requestCode, _, grantResults ->
-        if (requestCode != CAMERA_PERMISSION_REQUEST_CODE) {
-          return@PermissionListener false
-        }
-        val granted =
-          grantResults.isNotEmpty() &&
-            grantResults[0] == PackageManager.PERMISSION_GRANTED
-        val status =
-          when {
-            granted -> GRANTED
-
-            // After a denial: rationale==true means the user can be asked again;
-            // rationale==false means "don't ask again" (blocked).
-            ActivityCompat.shouldShowRequestPermissionRationale(
-              activity,
-              Manifest.permission.CAMERA,
-            ) -> DENIED
-
-            else -> BLOCKED
-          }
-        promise.resolve(status)
-        true
+    UiThreadUtil.runOnUiThread {
+      if (invalidated) {
+        promise.reject("E_UNAVAILABLE", "扫码模块已释放")
+        return@runOnUiThread
       }
+      try {
+        if (hasCameraPermission()) {
+          promise.resolve(GRANTED)
+          return@runOnUiThread
+        }
+        val activity = reactApplicationContext.currentActivity
+        if (activity !is PermissionAwareActivity) {
+          promise.reject("E_NO_ACTIVITY", "没有可申请相机权限的界面")
+          return@runOnUiThread
+        }
+        permissionBatch?.let { pending ->
+          if (pending.activity === activity) {
+            pending.promises.add(promise)
+            return@runOnUiThread
+          }
+          rejectPermissions(pending, "E_NO_ACTIVITY", "相机权限所属界面已结束")
+        }
+        val batch = PermissionBatch(activity, mutableListOf(promise))
+        permissionBatch = batch
+        reactApplicationContext.addLifecycleEventListener(this)
+        val listener =
+          PermissionListener { requestCode, _, grantResults ->
+            if (requestCode != CAMERA_PERMISSION_REQUEST_CODE) {
+              return@PermissionListener false
+            }
+            if (permissionBatch !== batch) return@PermissionListener true
+            if (grantResults.isEmpty()) {
+              rejectPermissions(batch, "E_UNAVAILABLE", "相机权限申请未完成")
+            } else {
+              val status =
+                when {
+                  grantResults[0] == PackageManager.PERMISSION_GRANTED -> GRANTED
+                  ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.CAMERA) -> DENIED
+                  else -> BLOCKED
+                }
+              finishPermissions(batch).forEach { it.resolve(status) }
+            }
+            true
+          }
+        try {
+          activity.requestPermissions(arrayOf(Manifest.permission.CAMERA), CAMERA_PERMISSION_REQUEST_CODE, listener)
+        } catch (error: Exception) {
+          rejectPermissions(batch, "E_UNAVAILABLE", error.message ?: "申请相机权限失败")
+        }
+      } catch (error: Exception) {
+        promise.reject("E_UNAVAILABLE", "申请相机权限失败", error)
+      }
+    }
+  }
 
-    permissionAwareActivity.requestPermissions(
-      arrayOf(Manifest.permission.CAMERA),
-      CAMERA_PERMISSION_REQUEST_CODE,
-      listener,
-    )
+  private fun finishPermissions(batch: PermissionBatch): List<Promise> {
+    if (permissionBatch !== batch) return emptyList()
+    permissionBatch = null
+    reactApplicationContext.removeLifecycleEventListener(this)
+    return batch.promises.toList().also { batch.promises.clear() }
+  }
+
+  private fun rejectPermissions(
+    batch: PermissionBatch,
+    code: String,
+    message: String,
+  ) {
+    finishPermissions(batch).forEach { it.reject(code, message) }
+  }
+
+  override fun onHostResume() = Unit
+
+  override fun onHostPause() = Unit
+
+  override fun onHostDestroy() {
+    permissionBatch?.let { rejectPermissions(it, "E_NO_ACTIVITY", "相机权限所属界面已结束") }
+  }
+
+  override fun invalidate() {
+    val waiting = mutableListOf<Runnable>()
+    synchronized(imageQueue) {
+      invalidated = true
+      imageQueue.queue.drainTo(waiting)
+      // Do not interrupt an active vendor read or return its file before it finishes.
+      imageQueue.shutdown()
+    }
+    waiting.forEach { (it as ImageWork).rejectUnavailable() }
+    UiThreadUtil.runOnUiThread {
+      permissionBatch?.let { rejectPermissions(it, "E_UNAVAILABLE", "扫码模块已释放") }
+    }
+    super.invalidate()
   }
 
   private fun hasCameraPermission(): Boolean =
-    ContextCompat.checkSelfPermission(
-      reactApplicationContext,
-      Manifest.permission.CAMERA,
-    ) == PackageManager.PERMISSION_GRANTED
+    ContextCompat.checkSelfPermission(reactApplicationContext, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
 
   companion object {
     const val NAME = NativeHmsScanSpec.NAME
-
     private const val GRANTED = "granted"
     private const val DENIED = "denied"
     private const val BLOCKED = "blocked"
-
-    private const val E_IMAGE_LOAD_FAILED = "E_IMAGE_LOAD_FAILED"
-    private const val E_DECODE_FAILED = "E_DECODE_FAILED"
-    private const val E_NO_ACTIVITY = "E_NO_ACTIVITY"
-
-    private const val CAMERA_PERMISSION_REQUEST_CODE = 0x48_4D // "HM"
+    private const val CAMERA_PERMISSION_REQUEST_CODE = 0x48_4D
   }
 }

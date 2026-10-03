@@ -89,20 +89,20 @@ buildscript {
 
 ### 权限声明 {#android-permissions}
 
-本库的 `AndroidManifest.xml` 已声明 `CAMERA` 以及 camera feature,会通过 manifest 合并进入宿主 App。**通常无需在宿主重复声明。**当前清单还保留 `READ_MEDIA_IMAGES` / `READ_EXTERNAL_STORAGE(maxSdkVersion="32")` 兼容声明,但 `decodeImage` 自身不会请求或检查相册权限,当前 native 也不会产生 `E_NO_READ_PERMISSION`。
+本库的 `AndroidManifest.xml` 已声明 `CAMERA` 以及 camera feature,会通过 manifest 合并进入宿主 App。**通常无需在宿主重复声明。**`decodeImage` 读取调用方准备的本地文件；本库不声明或申请相册读取权限。
 
 若宿主的清单合并策略覆盖了它们,或你想显式声明,可在 `android/app/src/main/AndroidManifest.xml` 的 `<manifest>` 节点下补:
 
-| 权限                        | 说明                                                                                                |
-| --------------------------- | --------------------------------------------------------------------------------------------------- |
-| `android.permission.CAMERA` | 相机扫码所需权限                                                                                    |
-| 相册 / 文件读取             | 由宿主图片选择器和 URI 来源决定;优先使用 picker 返回的临时 `content://` grant 或复制到 App 自有目录 |
+| 权限                        | 说明                                                      |
+| --------------------------- | --------------------------------------------------------- |
+| `android.permission.CAMERA` | 相机扫码所需权限                                          |
+| 相册 / 文件读取             | 由宿主图片选择器决定；将相册资源准备为可读的本地 file URI |
 
 ```xml title="android/app/src/main/AndroidManifest.xml"
 <uses-permission android:name="android.permission.CAMERA" />
 ```
 
-> `CAMERA` 是运行时权限,声明之外还要请求。`<Scanner>` 已自动处理;用 `<HmsScanView>` 时自行请求。`decodeImage` 的文件访问由宿主 picker / URI grant 负责,见[权限处理](/docs/guides/permissions)。
+> `CAMERA` 是运行时权限,声明之外还要请求。`<Scanner>` 已自动处理;用 `<HmsScanView>` 时自行请求。`decodeImage` 的可读文件由宿主图片选择能力准备,见[权限处理](/docs/guides/permissions)。
 
 ---
 
@@ -138,7 +138,7 @@ iOS 相机扫码与 `decodeImage` 原生路径都只支持真机。Simulator 的
 ```
 
 :::note iOS 上 decodeImage 与相册权限
-本库 iOS 端的 `decodeImage` 只接受 `file://` / 绝对路径 / `data:`,**不直接读相册 URI(`ph://`)**。从相册选图通常由宿主的图片选择器(如 `react-native-image-picker`)完成 —— 是**那个库**决定是否需要 `NSPhotoLibraryUsageDescription`,选完图它给你一个本地路径再传给 `decodeImage`。详见[图片识别](/docs/guides/decode-image)。
+本库的 `decodeImage` 只接受可读的 `file:///...` URI。相册选择由宿主图片选择器（如 `react-native-image-picker`）完成；该能力决定是否需要 `NSPhotoLibraryUsageDescription`，并在选图后准备本地文件。详见[图片识别](/docs/guides/decode-image)。
 :::
 
 ---

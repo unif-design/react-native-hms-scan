@@ -1,8 +1,8 @@
 import type {
-  CameraPermissionStatus,
-  ScanError,
+  ScanCameraPermission,
+  ScanFailure,
   ScanResult,
-  TorchStatus,
+  ScanTorchState,
 } from '@unif/react-native-hms-scan';
 
 export type PermissionPhase =
@@ -13,17 +13,15 @@ export type PermissionPhase =
   | 'blocked'
   | 'error';
 
-export type HeadlessPlatform = 'android' | 'ios';
-
 export type HeadlessState = {
   permission: PermissionPhase;
-  nativePermission: CameraPermissionStatus | null;
+  nativePermission: ScanCameraPermission | null;
   paused: boolean;
   continuous: boolean;
   torchRequested: boolean;
-  torchStatus: TorchStatus;
+  torchStatus: ScanTorchState;
   results: readonly ScanResult[];
-  error: ScanError | null;
+  error: ScanFailure | null;
   needsPermissionRecheck: boolean;
   viewGeneration: number;
 };
@@ -38,17 +36,16 @@ export type HeadlessAction =
   | { type: 'permissionRequesting' }
   | {
       type: 'permissionChecked';
-      status: CameraPermissionStatus;
-      os: HeadlessPlatform;
+      status: ScanCameraPermission;
     }
-  | { type: 'permissionRequested'; status: CameraPermissionStatus }
-  | { type: 'permissionError'; error: ScanError }
+  | { type: 'permissionRequested'; status: ScanCameraPermission }
+  | { type: 'permissionError'; error: ScanFailure }
   | { type: 'setPaused'; paused: boolean }
   | { type: 'setContinuous'; continuous: boolean }
   | { type: 'setTorchRequested'; torchRequested: boolean }
-  | { type: 'torchStatus'; status: TorchStatus }
+  | { type: 'torchStatus'; status: ScanTorchState }
   | { type: 'scanResults'; results: readonly ScanResult[] }
-  | { type: 'scanError'; error: ScanError }
+  | { type: 'scanError'; error: ScanFailure }
   | { type: 'retry' };
 
 export const initialHeadlessState: HeadlessState = {
@@ -58,7 +55,6 @@ export const initialHeadlessState: HeadlessState = {
   continuous: false,
   torchRequested: false,
   torchStatus: {
-    available: false,
     on: false,
   },
   results: [],
@@ -67,27 +63,8 @@ export const initialHeadlessState: HeadlessState = {
   viewGeneration: 0,
 };
 
-function permissionAfterCheck(
-  status: CameraPermissionStatus,
-  os: HeadlessPlatform
-): PermissionPhase {
-  if (status === 'granted') return 'granted';
-
-  if (os === 'ios') {
-    // iOS query 能区分首次可请求与已阻止；blocked 必须直接引导设置。
-    return status === 'blocked' ? 'blocked' : 'denied';
-  }
-
-  // Android query 不区分 denied/blocked，blocked 只采信 request 的结果。
-  return 'denied';
-}
-
-function permissionAfterRequest(
-  status: CameraPermissionStatus
-): PermissionPhase {
-  if (status === 'granted') return 'granted';
-  if (status === 'blocked') return 'blocked';
-  return 'denied';
+function permissionPhase(status: ScanCameraPermission): PermissionPhase {
+  return status === 'undetermined' ? 'denied' : status;
 }
 
 function scanResultKey(result: ScanResult): string {
@@ -117,6 +94,9 @@ export function headlessReducer(
       return {
         ...state,
         permission: 'checking',
+        viewGeneration: state.error
+          ? state.viewGeneration + 1
+          : state.viewGeneration,
         error: null,
         needsPermissionRecheck: false,
       };
@@ -128,7 +108,7 @@ export function headlessReducer(
         needsPermissionRecheck: false,
       };
     case 'permissionChecked': {
-      const permission = permissionAfterCheck(action.status, action.os);
+      const permission = permissionPhase(action.status);
       return {
         ...state,
         permission,
@@ -139,7 +119,7 @@ export function headlessReducer(
       };
     }
     case 'permissionRequested': {
-      const permission = permissionAfterRequest(action.status);
+      const permission = permissionPhase(action.status);
       return {
         ...state,
         permission,
@@ -174,10 +154,7 @@ export function headlessReducer(
         error: null,
       };
     case 'scanError':
-      if (action.error.code === 'E_NO_RESULT') {
-        return { ...state, error: action.error };
-      }
-      if (action.error.code === 'E_NO_CAMERA_PERMISSION') {
+      if (action.error.reason === 'permission_denied') {
         return {
           ...state,
           paused: true,
@@ -195,10 +172,9 @@ export function headlessReducer(
         ...state,
         paused: false,
         error: null,
-        viewGeneration:
-          state.error && state.error.code !== 'E_NO_RESULT'
-            ? state.viewGeneration + 1
-            : state.viewGeneration,
+        viewGeneration: state.error
+          ? state.viewGeneration + 1
+          : state.viewGeneration,
       };
   }
 }

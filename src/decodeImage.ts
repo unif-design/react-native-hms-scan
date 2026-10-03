@@ -1,37 +1,43 @@
 import NativeHmsScan from './NativeHmsScan';
 import { formatsToCsv, parseResultsJson } from './format';
-import { HmsScanError, type DecodeImageOptions, type ScanResult } from './types';
+import { scanError } from './errors';
+import { ScanError } from './ScanError';
+import type { DecodeScanImageInput, ScanResult } from './types';
 
-/**
- * 从本地图片解码条码 / 二维码（华为 Bitmap 模式）。
- *
- * @param uri 本地图片。iOS 支持 file://、绝对路径、data:；Android 支持
- *            file://、绝对路径、content://、android.resource://。
- *            两端都不下载远程 URL，也不支持 ph:// / assets-library://。
- * @param options 可选；formats 限定码制，不传 = 全部。
- * @returns 命中的结果数组（可能为空）。
- * @throws HmsScanError 图片加载失败 / 读权限缺失等。
- */
 export async function decodeImage(
-  uri: string,
-  options?: DecodeImageOptions
-): Promise<ScanResult[]> {
-  if (!uri) {
-    throw new HmsScanError('E_IMAGE_LOAD_FAILED', 'decodeImage: uri 不能为空');
+  input: Readonly<DecodeScanImageInput>
+): Promise<readonly ScanResult[]> {
+  // No remote authority, empty filename, fragment, query or malformed escapes.
+  const uri = input?.uri;
+  if (
+    typeof uri !== 'string' ||
+    !/^file:\/\/\/(?:[^?#\s]+\/)*[^/?#\s]+$/i.test(uri)
+  ) {
+    throw new ScanError({
+      reason: 'invalid_input',
+      message: 'decodeImage 需要可读的 file URI',
+    });
   }
   try {
-    const json = await NativeHmsScan.decodeImage(uri, formatsToCsv(options?.formats));
-    return parseResultsJson(json);
-  } catch (e) {
-    // 原生 reject 的 code 透传为 HmsScanError
-    const err = e as { code?: string; message?: string };
-    if (
-      err.code === 'E_NO_READ_PERMISSION' ||
-      err.code === 'E_IMAGE_LOAD_FAILED' ||
-      err.code === 'E_DECODE_FAILED'
-    ) {
-      throw new HmsScanError(err.code, err.message);
-    }
-    throw new HmsScanError('E_UNKNOWN', err.message ?? 'decodeImage failed');
+    decodeURIComponent(uri);
+  } catch {
+    throw new ScanError({
+      reason: 'invalid_input',
+      message: '图片 URI 编码无效',
+    });
+  }
+  const csv = formatsToCsv(input.formats);
+  if (!NativeHmsScan)
+    throw new ScanError({
+      reason: 'unavailable',
+      message: 'HMS Scan 原生模块未安装',
+    });
+  try {
+    return parseResultsJson(await NativeHmsScan.decodeImage(uri, csv));
+  } catch (error) {
+    throw scanError(error, {
+      reason: 'decode_failed',
+      message: '图片识别失败',
+    });
   }
 }

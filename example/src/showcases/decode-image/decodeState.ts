@@ -1,7 +1,4 @@
-import type {
-  HmsScanErrorCode,
-  ScanResult,
-} from '@unif/react-native-hms-scan';
+import type { ScanFailure, ScanResult } from '@unif/react-native-hms-scan';
 
 export type DecodePhase =
   | 'idle'
@@ -12,7 +9,7 @@ export type DecodePhase =
   | 'error';
 
 export type DecodeError =
-  | { kind: 'hms'; code: HmsScanErrorCode; message: string }
+  | { kind: 'hms'; reason: ScanFailure['reason']; message: string }
   | { kind: 'unexpected'; message: string };
 
 export type DecodeState = {
@@ -93,12 +90,9 @@ export function decodeReducer(
   }
 }
 
-export function toDecodeSnapshot(
-  state: DecodeState
-): DecodeSnapshot {
+export function toDecodeSnapshot(state: DecodeState): DecodeSnapshot {
   return {
     ...state,
-    canStart:
-      state.phase !== 'picking' && state.phase !== 'decoding',
+    canStart: state.phase !== 'picking' && state.phase !== 'decoding',
   };
 }

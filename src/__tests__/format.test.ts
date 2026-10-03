@@ -38,7 +38,7 @@ describe('formatsToCsv', () => {
     expect(formatsToCsv([])).toBe('');
   });
   it('多个码制 → 逗号分隔', () => {
-    expect(formatsToCsv(['QR_CODE', 'EAN_13'])).toBe('QR_CODE,EAN_13');
+    expect(formatsToCsv(['QR_CODE', 'EAN_13'])).toBe('EAN_13,QR_CODE');
   });
 });
 
@@ -62,19 +62,16 @@ describe('parseResultsJson', () => {
     ]);
   });
 
-  it('收敛未知码制、丢弃无 value 的项', () => {
-    const json = JSON.stringify([
-      { value: 'abc', format: 'WEIRD' },
-      { format: 'QR_CODE' }, // 无 value → 丢弃
-      { value: '', format: 'QR_CODE' }, // 空 value → 丢弃
+  it('未知码制不丢失原文，非法必需字段抛稳定错误', () => {
+    expect(parseResultsJson('[{"value":"abc","format":"NEW"}]')).toEqual([
+      { value: 'abc', format: 'UNKNOWN' },
     ]);
-    expect(parseResultsJson(json)).toEqual([{ value: 'abc', format: 'UNKNOWN' }]);
+    expect(() => parseResultsJson('[{"format":"QR_CODE"}]')).toThrow(
+      '原生扫码结果不符合约定'
+    );
   });
-
-  it('脏数据 / 空串 / 非数组 → 空数组', () => {
-    expect(parseResultsJson('')).toEqual([]);
-    expect(parseResultsJson('not json')).toEqual([]);
-    expect(parseResultsJson('{"a":1}')).toEqual([]);
+  it.each(['', 'not json', '{"a":1}'])('非法桥接数据 %s 抛错', (json) => {
+    expect(() => parseResultsJson(json)).toThrow('原生扫码结果不符合约定');
   });
 
   it('过滤非法角点', () => {

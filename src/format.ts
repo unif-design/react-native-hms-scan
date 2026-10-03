@@ -1,93 +1,94 @@
-import {
-  ALL_BARCODE_FORMATS,
-  type BarcodeContentType,
-  type BarcodeFormat,
-  type ScanCornerPoint,
-  type ScanResult,
+import { SCAN_FORMAT_SET, SCAN_CONTENT_TYPE_SET } from './constants';
+import { ScanError } from './ScanError';
+import type {
+  RequestedScanFormat,
+  ScanContentType,
+  ScanFormat,
+  ScanPoint,
+  ScanResult,
 } from './types';
-
-const FORMAT_SET = new Set<string>([...ALL_BARCODE_FORMATS, 'UNKNOWN']);
-
-const CONTENT_TYPES: readonly BarcodeContentType[] = [
-  'TEXT',
-  'URL',
-  'EMAIL',
-  'PHONE',
-  'SMS',
-  'WIFI',
-  'CONTACT',
-  'EVENT',
-  'LOCATION',
-  'DRIVER',
-  'ISBN',
-  'ARTICLE',
-  'OTHER',
-];
-const CONTENT_SET = new Set<string>(CONTENT_TYPES);
-
-/** 把任意字符串安全收敛成 BarcodeFormat（未知归 UNKNOWN）。 */
-export function coerceFormat(value: unknown): BarcodeFormat {
-  return typeof value === 'string' && FORMAT_SET.has(value)
-    ? (value as BarcodeFormat)
+export function coerceFormat(value: unknown): ScanFormat {
+  return typeof value === 'string' && SCAN_FORMAT_SET.has(value)
+    ? (value as ScanFormat)
     : 'UNKNOWN';
 }
-
-/** 把任意字符串安全收敛成 BarcodeContentType（未知/缺省 → undefined）。 */
-export function coerceContentType(value: unknown): BarcodeContentType | undefined {
-  return typeof value === 'string' && CONTENT_SET.has(value)
-    ? (value as BarcodeContentType)
+export function coerceContentType(value: unknown): ScanContentType | undefined {
+  return typeof value === 'string' && SCAN_CONTENT_TYPE_SET.has(value)
+    ? (value as ScanContentType)
     : undefined;
 }
-
-/** formats[] → 逗号分隔 CSV（传给原生）；空/未传 → ''（= 全部码制）。 */
-export function formatsToCsv(formats?: readonly BarcodeFormat[]): string {
-  return formats && formats.length > 0 ? formats.join(',') : '';
+/** Empty means no extra filter. Order and duplicates do not change the filter. */
+export function formatsToCsv(value?: readonly RequestedScanFormat[]): string {
+  if (value === undefined) return '';
+  if (
+    !Array.isArray(value) ||
+    [...value].some(
+      (item) =>
+        typeof item !== 'string' ||
+        item === 'UNKNOWN' ||
+        !SCAN_FORMAT_SET.has(item)
+    )
+  ) {
+    throw new ScanError({
+      reason: 'invalid_input',
+      message: 'formats 包含无效码制',
+    });
+  }
+  return [...new Set(value)].sort().join(',');
 }
-
-function coerceCornerPoints(value: unknown): ScanCornerPoint[] | undefined {
+export function formatConfiguration(value?: readonly RequestedScanFormat[]) {
+  try {
+    return { csv: formatsToCsv(value), error: undefined };
+  } catch (error) {
+    return { csv: '', error: error as ScanError };
+  }
+}
+function cornerPoints(value: unknown): readonly ScanPoint[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const points = value
     .filter(
-      (p): p is { x: number; y: number } =>
-        !!p && typeof p.x === 'number' && typeof p.y === 'number'
+      (p): p is ScanPoint =>
+        !!p &&
+        typeof p.x === 'number' &&
+        Number.isFinite(p.x) &&
+        typeof p.y === 'number' &&
+        Number.isFinite(p.y)
     )
     .map((p) => ({ x: p.x, y: p.y }));
-  return points.length > 0 ? points : undefined;
+  return points.length ? points : undefined;
 }
-
-function coerceResult(raw: unknown): ScanResult | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const r = raw as Record<string, unknown>;
-  // 没有有效 value 的命中无意义，丢弃
-  if (typeof r.value !== 'string' || r.value.length === 0) return null;
-  const result: ScanResult = {
-    value: r.value,
-    format: coerceFormat(r.format),
-  };
-  const contentType = coerceContentType(r.contentType);
-  if (contentType) result.contentType = contentType;
-  const cornerPoints = coerceCornerPoints(r.cornerPoints);
-  if (cornerPoints) result.cornerPoints = cornerPoints;
-  return result;
+function invalidResponse(): never {
+  throw new ScanError({
+    reason: 'invalid_response',
+    message: '原生扫码结果不符合约定',
+  });
 }
-
-/**
- * 解析原生回传的 JSON 字符串 → 强类型 ScanResult[]。
- * 任何脏数据都被安全过滤；解析失败返回空数组而非抛错。
- */
-export function parseResultsJson(json: string): ScanResult[] {
-  if (!json) return [];
-  let parsed: unknown;
+/** Malformed bridge data is distinct from a successfully decoded empty batch. */
+export function parseResultsJson(json: unknown): readonly ScanResult[] {
+  let data: unknown;
+  if (typeof json !== 'string') return invalidResponse();
   try {
-    parsed = JSON.parse(json);
+    data = JSON.parse(json);
   } catch {
-    return [];
+    return invalidResponse();
   }
-  if (!Array.isArray(parsed)) return [];
-  const out: ScanResult[] = [];
-  for (const item of parsed) {
-    const r = coerceResult(item);
-    if (r) out.push(r);
-  }
-  return out;
+  if (!Array.isArray(data)) return invalidResponse();
+  return data.map((raw) => {
+    if (
+      !raw ||
+      typeof raw !== 'object' ||
+      typeof raw.value !== 'string' ||
+      typeof raw.format !== 'string'
+    )
+      return invalidResponse();
+    const result: ScanResult = {
+      value: raw.value,
+      format: coerceFormat(raw.format),
+    };
+    const contentType = coerceContentType(raw.contentType);
+    const points = cornerPoints(raw.cornerPoints);
+    if (contentType !== undefined) result.contentType = contentType;
+    if (points !== undefined) result.cornerPoints = points;
+    return result;
+  });
 }

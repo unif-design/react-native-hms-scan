@@ -5,7 +5,7 @@
 //  Fabric component registered under the name "HmsScanView". Hosts HUAWEI Scan
 //  Kit's HmsCustomScanViewController as an embedded child view controller and
 //  bridges its delegate callbacks to the codegen events
-//  (onScanResult / onScanError / onTorchStatus).
+//  (onScanResult / onScanError / onTorchState).
 //
 
 #import <React/RCTViewComponentView.h>

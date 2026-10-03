@@ -154,7 +154,7 @@ describe('decodeReducer lifecycle', () => {
         token: 3,
         error: {
           kind: 'hms',
-          code: 'E_IMAGE_LOAD_FAILED',
+          reason: 'image_unavailable',
           message: 'load failed',
         },
       })
@@ -164,7 +164,7 @@ describe('decodeReducer lifecycle', () => {
       results: [],
       error: {
         kind: 'hms',
-        code: 'E_IMAGE_LOAD_FAILED',
+        reason: 'image_unavailable',
         message: 'load failed',
       },
     });

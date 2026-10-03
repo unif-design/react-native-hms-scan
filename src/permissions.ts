@@ -1,27 +1,40 @@
 import NativeHmsScan from './NativeHmsScan';
-import type { CameraPermissionStatus } from './types';
+import { scanError } from './errors';
+import { ScanError } from './ScanError';
+import type { ScanCameraPermission } from './types';
 
-function normalize(status: string): CameraPermissionStatus {
-  switch (status) {
-    case 'granted':
-    case 'denied':
-    case 'blocked':
-    case 'undetermined':
+async function permission(request: boolean): Promise<ScanCameraPermission> {
+  if (!NativeHmsScan)
+    throw new ScanError({
+      reason: 'unavailable',
+      message: 'HMS Scan 原生模块未安装',
+    });
+  try {
+    const status = await (request
+      ? NativeHmsScan.requestCameraPermission()
+      : NativeHmsScan.getCameraPermissionStatus());
+    if (
+      status === 'granted' ||
+      status === 'denied' ||
+      status === 'blocked' ||
+      status === 'undetermined'
+    )
       return status;
-    default:
-      return 'undetermined';
+    throw new ScanError({
+      reason: 'invalid_response',
+      message: '原生相机权限状态无法识别',
+    });
+  } catch (error) {
+    throw scanError(error, {
+      reason: 'unavailable',
+      message: '读取相机权限失败',
+    });
   }
 }
-
-/** 查询当前相机权限状态（不弹窗）。 */
-export async function getCameraPermissionStatus(): Promise<CameraPermissionStatus> {
-  return normalize(await NativeHmsScan.getCameraPermissionStatus());
+/** Reads the actual status without presenting a system permission prompt. */
+export function getCameraPermissionStatus(): Promise<ScanCameraPermission> {
+  return permission(false);
 }
-
-/**
- * 发起相机权限请求（必要时弹系统授权框），返回请求后的状态。
- * 若用户已永久拒绝（blocked），需引导去系统设置开启。
- */
-export async function requestCameraPermission(): Promise<CameraPermissionStatus> {
-  return normalize(await NativeHmsScan.requestCameraPermission());
+export function requestCameraPermission(): Promise<ScanCameraPermission> {
+  return permission(true);
 }

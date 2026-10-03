@@ -1,9 +1,9 @@
-import type { BarcodeFormat } from '@unif/react-native-hms-scan';
+import type { RequestedScanFormat } from '@unif/react-native-hms-scan';
 
 export type FormatPresetId = 'all' | 'qr' | 'retail';
 
 const formatsByPreset: Readonly<
-  Record<FormatPresetId, readonly BarcodeFormat[] | undefined>
+  Record<FormatPresetId, readonly RequestedScanFormat[] | undefined>
 > = {
   all: undefined,
   qr: ['QR_CODE'],
@@ -12,6 +12,6 @@ const formatsByPreset: Readonly<
 
 export function formatsForPreset(
   id: FormatPresetId
-): readonly BarcodeFormat[] | undefined {
+): readonly RequestedScanFormat[] | undefined {
   return formatsByPreset[id];
 }

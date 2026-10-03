@@ -1,201 +1,50 @@
 ---
 sidebar_position: 1
 title: 成品扫一扫页
-description: '接入扫码页面，配置确认、相册、手电和码制。'
 ---
 
-# 成品扫一扫页
+# 组合扫码页
 
-`<Scanner>` 是开箱即用的成品扫码界面（聚焦款）。底层用 `<HmsScanView>` 出相机画面，取景框 / 工具栏 / 结果卡使用 [`@unif/react-native-design`](https://www.npmjs.com/package/@unif/react-native-design) 的主题令牌与组件绘制。
-
-它继承宿主 `ThemeProvider` 的主题和字号，权限流和状态机由 Scanner 维护，可直接作为一个路由整屏接入。没有外层 Provider 时采用 Design 自身默认值。
+Scanner 已组合实时扫码、权限和图片解码，默认选用每批首项。
 
 ```tsx
-import { ThemeProvider } from '@unif/react-native-design';
 import { Scanner } from '@unif/react-native-hms-scan';
 
-<ThemeProvider forceScheme="dark" fontScale={1.5}>
-  <Scanner onConfirm={onConfirm} onClose={onClose} />
-</ThemeProvider>;
-```
-
-宿主更新主题或字号时保留同一个 Scanner 实例。取景文字使用有效字号，结果卡随主题更新；相机预览、手电和当前待确认结果继续保留。example 的 Scanner 配置页提供深色主题和大字号选项，便于核对实际设备上的显示。
-
-`ToastHost` 由宿主按需在 App 根部挂载。
-
-:::info 何时用 `<Scanner>` vs `<HmsScanView>`
-要现成的扫一扫页 → 用 `<Scanner>`(本页)。要完全自绘 UI(自定义取景框 / 工具栏布局)→ 用底层 [`<HmsScanView>`](/docs/guides/headless)。
-:::
-
----
-
-## 内部状态机 {#state-machine}
-
-```
-权限流:
-init ─ 已授权 → scan（取景）
-  ├─ 未授权 → denied（无权限遮罩）→ 去系统设置 → 返回后自动重查
-  └─ helper reject → error（fatal）→ 重试 → init
-
-识别流:
-scan → detecting（识别中）
-          ├─ 解析成功 → success（浮层确认卡）→ 确认 / 重扫 → scan
-          ├─ autoConfirm + onConfirm 正常返回 → done（暂停终态）
-          └─ 未识别 / 解析或 onConfirm 抛错 → fail（未识别弹层）→ 重扫 → scan
-
-view error:
-scan / detecting ─ E_NO_CAMERA_PERMISSION → denied
-                ├─ 其他 fatal error → error → 重试 → init
-                └─ E_NO_RESULT → 只上报，phase 不变
-```
-
-`<Scanner>` 挂载时**自动请求相机权限**:已授权直接进入取景;永久拒绝则展示引导去系统设置的遮罩(`denied`),从系统设置返回后会自动重新查询。**一次扫一个** —— 扫到 `results[0]` 即进入 `detecting`;手动确认或重扫后复位到 `scan`。`autoConfirm` 仅在传入 `onConfirm` 时调用回调后进入 `done`,未传回调则显示结果卡;相机保持暂停且不会自动重扫。`onConfirm` 同步抛错会被 `resolveProduct` 那一层的 `catch` 收成 `fail`,**不会**进入 `done`。相机 view error 分三路:`E_NO_RESULT` 仅作 soft error 回调上报;`E_NO_CAMERA_PERMISSION` 进入 `denied` 并卸载相机 view;其余 fatal view error 进入可重试的 `error`。权限 helper reject 也进入 `error`。
-
----
-
-## 商品解析 `resolveProduct` {#resolve-product}
-
-扫到条码后,`<Scanner>` 把 `ScanResult` 交给 `resolveProduct`,由你解析成商品信息(用于浮层确认卡):
-
-```tsx
 <Scanner
-  resolveProduct={async (result) => {
-    const product = await api.lookupByBarcode(result.value);
-    if (!product) return null; // null = 未识别 → 进入 fail 重扫弹层
+  formats={['QR_CODE', 'EAN_13']}
+  pickImage={async () => {
+    const file = await chooseLocalImage();
+    if (!file) return null;
     return {
-      name: product.name, // 仅 name 必填
-      brand: product.brand,
-      price: `¥${product.price}`,
-      spec: product.spec,
-      stockShort: product.stockText,
+      uri: file.uri,
+      onSourceReleased: () => file.release(),
     };
   }}
-/>
-```
-
-- 返回 `null` / `undefined` **或抛错**,均视为「未识别」,进入 `fail` 重扫弹层。
-- **不传 `resolveProduct`** 时,默认以扫到的原文(`result.value`)作为商品名。
-- 返回的 `ScanProduct` 中只有 `name` 必填,其余(`brand` / `price` / `spec` / `stockShort` / `brandChar` / `priceCaption` 等)可缺省;`barcode` 缺省时自动取扫到的 `value`。完整字段见 [API → ScanProduct](/docs/api/types)。
-
----
-
-## 确认回调 `onConfirm` {#on-confirm}
-
-用户在浮层确认卡点「确定」时触发,签名 `(product, result)`:
-
-```tsx
-<Scanner
-  onConfirm={(product, result) => {
-    navigation.navigate('Order', {
-      barcode: result.value, // 扫码原始内容
-      product, // resolveProduct 返回的商品
-    });
+  onConfirm={(result) => {
+    // 结果已交付；这里可导航、查询客户或查询商品。
+    handleValue(result.value);
   }}
-/>
-```
-
-> 手动点「确定」会调用 `onConfirm` 并复位回取景态;提示与导航由宿主在 `onConfirm` 中处理。
-
----
-
-## 相册扫码 `pickImage` {#pick-image}
-
-**库不内置图片选择器**(遵循 RN 惯例):**传了 `pickImage` 才显示「相册」按钮**,不传则隐藏。宿主用自己的选择器选图,返回本地 `uri`(取消返回 `null`),`<Scanner>` 内部对它调 `decodeImage`:
-
-```tsx
-import { launchImageLibrary } from 'react-native-image-picker';
-
-<Scanner
-  pickImage={async () => {
-    const res = await launchImageLibrary({ mediaType: 'photo' });
-    return res.assets?.[0]?.uri ?? null; // 取消返回 null
-  }}
+  onClose={() => navigation.goBack()}
+  onError={(error) => reportError(error)}
 />;
 ```
 
-```tsx
-// ❌ Incorrect：没传 pickImage 却期望出现相册按钮
-<Scanner onConfirm={...} /> // 工具栏不会有"相册"
+`chooseLocalImage`、`file.release` 与业务回调是应用提供的能力。选图入口返回可读 file URI；若该文件由临时媒体能力管理，在 onSourceReleased 中交回该能力。Scanner 不删除文件。
 
-// ✅ Correct：传了 pickImage，相册按钮才显示
-<Scanner onConfirm={...} pickImage={async () => /* 选图返回本地 uri */} />
-```
+## 状态与归属
 
-> 相册识图走 `decodeImage`,它**只接受本地 uri、不下载远程 URL**。`react-native-image-picker` 返回的就是本地路径,可直接用;细节见[图片识别](/docs/guides/decode-image)。
+- 进入时读权限，按明确扫码意图申请；授权后开始预览。
+- 相机识别与相册解码竞争同一轮结果采用权，不会覆盖彼此结果。
+- 识别成功暂停并展示原文与码制；点“选用”最多交付一次。
+- autoConfirm 直接走相同交付，不表示业务提交确认。
+- 取消选图恢复扫描；真实空结果展示未识别；错误另行展示并通过 onError 通知。
+- 重扫结束原结果采用；关闭/卸载停止设备和结果采用。
+- 关闭期间仍在原生读取的图片等待实际结束后归还；迟到选择直接归还，不再读取。
 
----
+## 配置、主题和安全区
 
-## 手电筒 `showTorch` {#show-torch}
+有效 formats 变化开始新的扫描，仍在进行的读取先收尾。标题、提示、主题、字号和回调变化不重启。业务目标变化时由消费方卸载旧 Scanner。
 
-底部工具栏默认显示手电筒按钮(`showTorch` 默认 `true`),手电状态由库内自管:
+外层 ThemeProvider 的颜色和字号自动继承。topInset/bottomInset 可显式指定；省略时使用所在窗口 SafeAreaProvider，无提供方时由局部 Provider 测量实际值。
 
-- **Android** —— 可编程控制,稳定可用。
-- **iOS** —— HMS 未提供公开手电 API,本库通过 `AVCaptureDevice` **尽力而为**,不保证点亮。
-
-手电按钮最终以底层 `onTorchStatus.on` 的真实点亮状态回写;`available` 的含义仍按平台不同：Android 是环境暗光提示，iOS 是设备是否有手电硬件。
-
-不想在 iOS 上呈现一个可能无效的按钮,可关掉:
-
-```tsx
-import { Platform } from 'react-native';
-
-<Scanner showTorch={Platform.OS === 'android'} />;
-```
-
-详见[平台差异 → 手电筒](/docs/platform-differences#torch)。
-
----
-
-## 安全区 `topInset` / `bottomInset` {#insets}
-
-`<Scanner>` 默认 `topInset=54` / `bottomInset=34`。用 `react-native-safe-area-context` 时,把 `insets.top/bottom` 传入更精准:
-
-```tsx
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-function ScanScreen() {
-  const insets = useSafeAreaInsets();
-  return (
-    <Scanner
-      topInset={insets.top}
-      bottomInset={insets.bottom}
-      onClose={() => navigation.goBack()}
-      // ...
-    />
-  );
-}
-```
-
----
-
-## 限定码制 `formats` {#formats}
-
-`formats` 限定识别哪些码制,**不传 = 识别全部 14 种**:
-
-```tsx
-<Scanner
-  formats={['QR_CODE', 'EAN_13', 'EAN_8']}
-  // ...
-/>
-```
-
-> 限定到业务真正需要的码制(如只扫商品条码),能减少误识、提升识别速度。全部码制清单见 [API → BarcodeFormat](/docs/api/types)。
-
----
-
-## 自定义提示文案 `hintText` {#hint-text}
-
-取景态默认提示「将条码 / 二维码放入框内,自动扫描」,可用 `hintText` 覆盖:
-
-```tsx
-<Scanner hintText="对准商品上的条形码" />
-```
-
----
-
-## 相关
-
-- [API 参考 → Scanner](/docs/api/scanner) —— 完整 props 表
-- [指南 → 底层 headless 组件](/docs/guides/headless) —— 需要自定义 UI 时用 `<HmsScanView>`
-- [指南 → 图片识别](/docs/guides/decode-image) —— `decodeImage` 单独使用
-- [指南 → 权限处理](/docs/guides/permissions) —— `<Scanner>` 自动处理;手动场景的 API
+完整输入与默认值见 [Scanner API](/docs/api/scanner)。

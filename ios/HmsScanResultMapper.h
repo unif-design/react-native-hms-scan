@@ -18,8 +18,9 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface HmsScanResultMapper : NSObject
++ (nullable NSString *)unsupportedFormatInCsv:(NSString *)csv;
 
-/// Parse a comma-separated list of our BarcodeFormat strings into the
+/// Parse a comma-separated list of our ScanFormat strings into the
 /// `HmsScanOptions.scanFormatType` bitmask (HMSScanFormatTypeCode OR-ed).
 /// An empty/whitespace-only string means "all formats".
 + (unsigned int)scanFormatTypeFromCsv:(nullable NSString *)csv;
@@ -30,11 +31,11 @@ NS_ASSUME_NONNULL_BEGIN
 + (nullable NSDictionary *)scanResultFromHuaweiDict:(nullable NSDictionary *)dict;
 
 /// Map an array of HUAWEI result dictionaries into an array of ScanResult
-/// dictionaries (dropping entries without a usable value).
+/// dictionaries. Invalid required fields raise HmsInvalidResponse.
 + (NSArray<NSDictionary *> *)scanResultsFromHuaweiArray:(nullable NSArray *)array;
 
 /// Serialize an array of ScanResult dictionaries to a JSON string.
-/// Never returns nil: on failure it returns "[]".
+/// Invalid input or serialization failures raise HmsInvalidResponse.
 + (NSString *)jsonStringFromScanResults:(nullable NSArray<NSDictionary *> *)results;
 
 /// Convenience: HUAWEI multi-decode array -> ScanResult[] JSON string.

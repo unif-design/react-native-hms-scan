@@ -1,16 +1,12 @@
-import type {
-  ScanError,
-  ScanProduct,
-  ScanResult,
-} from '@unif/react-native-hms-scan';
+import type { ScanFailure, ScanResult } from '@unif/react-native-hms-scan';
 import type { FormatPresetId } from '../../shared/formatPresets';
 
 export type ScannerDemoState = {
   active: boolean;
   preset: FormatPresetId;
   autoConfirm: boolean;
-  lastConfirmed: { product: ScanProduct; result: ScanResult } | null;
-  lastError: ScanError | null;
+  lastConfirmed: ScanResult | null;
+  lastError: ScanFailure | null;
 };
 
 export const initialScannerDemoState: ScannerDemoState = {
@@ -26,8 +22,8 @@ type ScannerDemoAction =
   | { type: 'setAutoConfirm'; autoConfirm: boolean }
   | { type: 'enter' }
   | { type: 'close' }
-  | { type: 'confirmed'; product: ScanProduct; result: ScanResult }
-  | { type: 'error'; error: ScanError };
+  | { type: 'confirmed'; result: ScanResult }
+  | { type: 'error'; error: ScanFailure };
 
 export function scannerDemoReducer(
   state: ScannerDemoState,
@@ -46,10 +42,7 @@ export function scannerDemoReducer(
       return {
         ...state,
         active: false,
-        lastConfirmed: {
-          product: action.product,
-          result: action.result,
-        },
+        lastConfirmed: action.result,
       };
     case 'error':
       return { ...state, lastError: action.error };

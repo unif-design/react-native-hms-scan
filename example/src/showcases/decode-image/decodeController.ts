@@ -1,7 +1,8 @@
 import {
   decodeImage,
-  HmsScanError,
-  type BarcodeFormat,
+  ScanError,
+  type RequestedScanFormat,
+  type ScannerImage,
 } from '@unif/react-native-hms-scan';
 import {
   decodeReducer,
@@ -14,38 +15,31 @@ import {
 } from './decodeState';
 
 export type DecodeDeps = {
-  pickImage: () => Promise<string | null>;
+  pickImage: () => Promise<ScannerImage | null>;
 };
 
 export type DecodeController = {
-  pickAndDecode: (
-    formats?: readonly BarcodeFormat[]
-  ) => Promise<void>;
+  pickAndDecode: (formats?: readonly RequestedScanFormat[]) => Promise<void>;
   getSnapshot: () => DecodeSnapshot;
   subscribe: (listener: () => void) => () => void;
 };
 
 function toDecodeError(error: unknown): DecodeError {
-  if (error instanceof HmsScanError) {
+  if (error instanceof ScanError) {
     return {
       kind: 'hms',
-      code: error.code,
+      reason: error.reason,
       message: error.message,
     };
   }
 
   return {
     kind: 'unexpected',
-    message:
-      error instanceof Error
-        ? error.message
-        : '选择或识别图片失败',
+    message: error instanceof Error ? error.message : '选择或识别图片失败',
   };
 }
 
-export function createDecodeController(
-  deps: DecodeDeps
-): DecodeController {
+export function createDecodeController(deps: DecodeDeps): DecodeController {
   let state: DecodeState = initialDecodeState;
   let snapshot = toDecodeSnapshot(state);
   let nextToken = state.activeToken;
@@ -60,26 +54,30 @@ export function createDecodeController(
     listeners.forEach((listener) => listener());
   };
 
-  const pickAndDecode = async (
-    formats?: readonly BarcodeFormat[]
-  ) => {
+  const pickAndDecode = async (formats?: readonly RequestedScanFormat[]) => {
     const token = ++nextToken;
     dispatch({ type: 'pickStarted', token });
 
     try {
-      const uri = await deps.pickImage();
-      if (token !== state.activeToken) return;
+      const image = await deps.pickImage();
+      if (token !== state.activeToken) {
+        image?.onSourceReleased?.();
+        return;
+      }
 
-      if (uri === null) {
+      if (image === null) {
         dispatch({ type: 'pickCancelled', token });
         return;
       }
 
+      const { uri } = image;
       dispatch({ type: 'decodeStarted', token, uri });
-      const results =
-        formats === undefined
-          ? await decodeImage(uri)
-          : await decodeImage(uri, { formats });
+      let results;
+      try {
+        results = await decodeImage({ uri, formats });
+      } finally {
+        image.onSourceReleased?.();
+      }
 
       dispatch({
         type: 'decodeCompleted',

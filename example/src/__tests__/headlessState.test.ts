@@ -1,7 +1,7 @@
 import type {
-  ScanError,
+  ScanFailure,
   ScanResult,
-  TorchStatus,
+  ScanTorchState,
 } from '@unif/react-native-hms-scan';
 import {
   headlessReducer,
@@ -40,12 +40,11 @@ const grantedState: HeadlessState = {
 };
 
 describe('headlessReducer permissions', () => {
-  it('将 iOS undetermined 映射为可请求态并保留原生状态', () => {
+  it('undetermined 显示可请求入口并保留能力状态', () => {
     expect(
       headlessReducer(initialHeadlessState, {
         type: 'permissionChecked',
         status: 'undetermined',
-        os: 'ios',
       })
     ).toEqual({
       ...initialHeadlessState,
@@ -54,25 +53,23 @@ describe('headlessReducer permissions', () => {
     });
   });
 
-  it('iOS query 保留 blocked，直接进入设置恢复态', () => {
+  it('query blocked 直接进入设置恢复态', () => {
     const checked = headlessReducer(initialHeadlessState, {
       type: 'permissionChecked',
       status: 'blocked',
-      os: 'ios',
     });
 
     expect(checked.permission).toBe('blocked');
     expect(checked.nativePermission).toBe('blocked');
   });
 
-  it('Android query 即使收到 blocked 也保持可请求 denied', () => {
+  it('query 保留能力边界已经归一的 blocked', () => {
     const checked = headlessReducer(initialHeadlessState, {
       type: 'permissionChecked',
       status: 'blocked',
-      os: 'android',
     });
 
-    expect(checked.permission).toBe('denied');
+    expect(checked.permission).toBe('blocked');
     expect(checked.nativePermission).toBe('blocked');
   });
 
@@ -86,12 +83,11 @@ describe('headlessReducer permissions', () => {
     expect(requested.nativePermission).toBe('blocked');
   });
 
-  it('Android query denied 进入可请求态', () => {
+  it('query denied 进入可请求态', () => {
     expect(
       headlessReducer(initialHeadlessState, {
         type: 'permissionChecked',
         status: 'denied',
-        os: 'android',
       }).permission
     ).toBe('denied');
   });
@@ -100,7 +96,7 @@ describe('headlessReducer permissions', () => {
     const previous: HeadlessState = {
       ...initialHeadlessState,
       permission: 'error',
-      error: { code: 'E_NO_ACTIVITY', message: 'no activity' },
+      error: { reason: 'unavailable', message: 'no activity' },
       paused: true,
       needsPermissionRecheck: true,
     };
@@ -109,7 +105,6 @@ describe('headlessReducer permissions', () => {
       headlessReducer(previous, {
         type: 'permissionChecked',
         status: 'granted',
-        os: 'android',
       })
     ).toEqual({
       ...previous,
@@ -128,7 +123,7 @@ describe('headlessReducer controls and results', () => {
       type: 'setTorchRequested',
       torchRequested: true,
     });
-    const actualStatus: TorchStatus = { available: true, on: false };
+    const actualStatus: ScanTorchState = { available: true, on: false };
     const reported = headlessReducer(requested, {
       type: 'torchStatus',
       status: actualStatus,
@@ -233,9 +228,9 @@ describe('headlessReducer controls and results', () => {
 });
 
 describe('headlessReducer errors', () => {
-  it('E_NO_RESULT 只保存 feedback 而不中断预览', () => {
-    const error: ScanError = {
-      code: 'E_NO_RESULT',
+  it('invalid_response 暂停预览并保留错误', () => {
+    const error: ScanFailure = {
+      reason: 'invalid_response',
       message: '未识别到条码',
     };
 
@@ -246,14 +241,15 @@ describe('headlessReducer errors', () => {
 
     expect(failed).toEqual({
       ...grantedState,
+      paused: true,
       error,
     });
     expect(failed.viewGeneration).toBe(0);
   });
 
   it('E_NO_CAMERA_PERMISSION 暂停并请求权限复查', () => {
-    const error: ScanError = {
-      code: 'E_NO_CAMERA_PERMISSION',
+    const error: ScanFailure = {
+      reason: 'permission_denied',
       message: '相机权限已失效',
     };
 
@@ -268,8 +264,8 @@ describe('headlessReducer errors', () => {
   });
 
   it('普通 view error 可通过 retry 清除并恢复扫描', () => {
-    const error: ScanError = {
-      code: 'E_CAMERA_INIT',
+    const error: ScanFailure = {
+      reason: 'unavailable',
       message: '相机初始化失败',
     };
     const failed = headlessReducer(grantedState, {

@@ -7,7 +7,7 @@ import codegenNativeComponent from 'react-native/Libraries/Utilities/codegenNati
 
 // RN codegen Fabric 组件规范（注册名 "HmsScanView"）。
 // 事件 payload 都用基础类型 / 单字符串，绕开 codegen 对复杂事件结构的限制：
-// 扫码结果以 JSON 字符串回传（由 src/HmsScanView.tsx 解析成 ScanResult[]）。
+// 扫码结果以 JSON 字符串回传（由 HmsScanView/HmsScanView.tsx 解析成 ScanResult[]）。
 
 type ScanResultEvent = Readonly<{
   /** JSON 编码的 ScanResult[]。 */
@@ -19,15 +19,17 @@ type ScanErrorEvent = Readonly<{
   message: string;
 }>;
 
-type TorchStatusEvent = Readonly<{
-  /** 环境是否暗到建议显示手电按钮（Android OnLightVisibleCallBack）。 */
+type TorchStateEvent = Readonly<{
   available: boolean;
+  hasAvailable: boolean;
+  lowLight: boolean;
+  hasLowLight: boolean;
   /** 手电当前是否点亮。 */
   on: boolean;
 }>;
 
 export interface NativeProps extends ViewProps {
-  /** 限定码制（逗号分隔的 BarcodeFormat），空串 = 全部。 */
+  /** 限定码制（逗号分隔的 ScanFormat），空串 = 全部。 */
   formatsCsv?: WithDefault<string, ''>;
   /** 连续扫码（命中后继续，不自动停）。 */
   continuous?: WithDefault<boolean, true>;
@@ -38,7 +40,7 @@ export interface NativeProps extends ViewProps {
 
   onScanResult?: DirectEventHandler<ScanResultEvent>;
   onScanError?: DirectEventHandler<ScanErrorEvent>;
-  onTorchStatus?: DirectEventHandler<TorchStatusEvent>;
+  onTorchState?: DirectEventHandler<TorchStateEvent>;
 }
 
 export default codegenNativeComponent<NativeProps>('HmsScanView');

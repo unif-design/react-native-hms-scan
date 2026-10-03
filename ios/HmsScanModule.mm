@@ -11,18 +11,18 @@
 
 #import <ScanKitFrameWork/ScanKitFrameWork.h>
 
-// Error codes mirror HmsScanErrorCode in src/types.ts.
+// Native codes are normalized to ScanFailure at the public capability boundary.
 static NSString *const kErrImageLoadFailed = @"E_IMAGE_LOAD_FAILED";
 static NSString *const kErrDecodeFailed = @"E_DECODE_FAILED";
 
 @implementation HmsScanModule
 
-// Export under the JS-visible name "HmsScan" (TurboModuleRegistry.getEnforcing<Spec>('HmsScan')).
+// Export under the JS-visible TurboModule name "HmsScan".
 RCT_EXPORT_MODULE(HmsScan)
 
 #pragma mark - Permission status mapping
 
-// AVAuthorizationStatus -> our CameraPermissionStatus string.
+// AVAuthorizationStatus -> our ScanCameraPermission string.
 // authorized -> granted; notDetermined -> undetermined; denied/restricted -> blocked.
 + (NSString *)stringForAuthorizationStatus:(AVAuthorizationStatus)status {
   switch (status) {
@@ -34,7 +34,7 @@ RCT_EXPORT_MODULE(HmsScan)
   case AVAuthorizationStatusRestricted:
     return @"blocked";
   default:
-    return @"undetermined";
+    return @"unknown";
   }
 }
 
@@ -66,45 +66,18 @@ RCT_EXPORT_MODULE(HmsScan)
 
 #pragma mark - Image loading
 
-// Load a UIImage from a local URI: file:// , an absolute/relative file path,
-// or a data: URI. Remote URLs and Photos (ph:// / assets-library://) are not
-// supported here -> returns nil so the caller rejects E_IMAGE_LOAD_FAILED.
+// Read only the local file prepared by the caller.
 + (nullable UIImage *)imageForURI:(NSString *)uri {
   if (uri.length == 0) {
     return nil;
   }
 
   NSURL *url = [NSURL URLWithString:uri];
-  NSString *scheme = url.scheme.lowercaseString;
-
-  // data: URI (base64 or otherwise) -> decode bytes directly.
-  if ([scheme isEqualToString:@"data"]) {
-    NSData *data = [NSData dataWithContentsOfURL:url];
-    return data ? [UIImage imageWithData:data] : nil;
-  }
-
-  // file:// URI -> use its filesystem path.
-  if ([scheme isEqualToString:@"file"]) {
+  if (url.isFileURL) {
     NSString *path = url.path;
     return path ? [UIImage imageWithContentsOfFile:path] : nil;
   }
 
-  // No scheme (or a Windows-like drive letter is irrelevant on iOS): treat the
-  // whole string as a filesystem path. Also strip a leading file path that may
-  // have arrived percent-encoded.
-  if (scheme == nil || scheme.length == 0) {
-    UIImage *image = [UIImage imageWithContentsOfFile:uri];
-    if (image == nil) {
-      NSString *decoded = [uri stringByRemovingPercentEncoding];
-      if (decoded != nil && ![decoded isEqualToString:uri]) {
-        image = [UIImage imageWithContentsOfFile:decoded];
-      }
-    }
-    return image;
-  }
-
-  // ph:// , assets-library:// , http(s):// , content:// (Android-only) etc. are
-  // intentionally unsupported on iOS in this bridge.
   return nil;
 }
 
@@ -114,11 +87,13 @@ RCT_EXPORT_MODULE(HmsScan)
          formatsCsv:(NSString *)formatsCsv
             resolve:(RCTPromiseResolveBlock)resolve
              reject:(RCTPromiseRejectBlock)reject {
+  if ([HmsScanResultMapper unsupportedFormatInCsv:formatsCsv] != nil) {
+    reject(@"E_UNSUPPORTED_FORMAT", @"iOS ScanKit 不支持请求的码制", nil);
+    return;
+  }
   UIImage *image = [HmsScanModule imageForURI:uri];
   if (image == nil) {
-    reject(kErrImageLoadFailed,
-           [NSString stringWithFormat:@"无法从 URI 加载图片（仅支持 file:// / 绝对路径 / data:）：%@", uri ?: @"(nil)"],
-           nil);
+    reject(kErrImageLoadFailed, [NSString stringWithFormat:@"无法读取本地图片文件：%@", uri ?: @"(nil)"], nil);
     return;
   }
 
@@ -133,7 +108,8 @@ RCT_EXPORT_MODULE(HmsScan)
     // JS parseResultsJson handles the empty case.
     resolve(json);
   } @catch (NSException *exception) {
-    reject(kErrDecodeFailed, exception.reason ?: @"HUAWEI Scan Kit 解码图片时发生异常", nil);
+    reject([exception.name isEqualToString:@"HmsInvalidResponse"] ? @"E_INVALID_RESPONSE" : kErrDecodeFailed,
+           exception.reason ?: @"HUAWEI Scan Kit 解码图片时发生异常", nil);
   }
 }
 

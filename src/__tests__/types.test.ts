@@ -1,19 +1,33 @@
-/// <reference types="jest" />
-
-import { ALL_BARCODE_FORMATS } from '../types';
-import type { DecodeImageOptions, ScanError } from '../types';
-import type { HmsScanViewProps } from '../HmsScanView';
-import type { ScannerProps } from '../Scanner/Scanner';
-
-const subset = ['QR_CODE', 'EAN_13'] as const;
-const decodeOptions = { formats: ALL_BARCODE_FORMATS } satisfies DecodeImageOptions;
-const viewProps = { formats: subset } satisfies HmsScanViewProps;
-const scannerProps = { formats: subset } satisfies ScannerProps;
-const scanError = { code: 'E_CAMERA_INIT', message: 'camera failed' } satisfies ScanError;
-
-test('公开 formats 输入接受 readonly 数组', () => {
-  expect(decodeOptions.formats).toBe(ALL_BARCODE_FORMATS);
-  expect(viewProps.formats).toBe(subset);
-  expect(scannerProps.formats).toBe(subset);
-  expect(scanError.code).toBe('E_CAMERA_INIT');
+import type {
+  DecodeScanImageInput,
+  HmsScanViewProps,
+  ScannerProps,
+  ScanResult,
+  ScanFailure,
+  RequestedScanFormat,
+} from '@unif/react-native-hms-scan';
+const readonlyFormats = ['QR_CODE', 'EAN_13'] as const;
+const decode = {
+  uri: 'file:///tmp/a',
+  formats: readonlyFormats,
+} satisfies DecodeScanImageInput;
+const view = { formats: readonlyFormats } satisfies HmsScanViewProps;
+const scanner = {
+  formats: readonlyFormats,
+  onConfirm: (_result: Readonly<ScanResult>) => {},
+} satisfies ScannerProps;
+const failure = {
+  reason: 'invalid_response',
+  message: 'invalid',
+} satisfies ScanFailure;
+// @ts-expect-error UNKNOWN describes a result, never an input filter.
+const invalidFormat: RequestedScanFormat = 'UNKNOWN';
+// @ts-expect-error Consumers must provide the single-result delivery callback.
+const invalidScanner: ScannerProps = {};
+void invalidFormat;
+void invalidScanner;
+test('public input contracts accept readonly filters', () => {
+  expect(decode.formats).toEqual(view.formats);
+  expect(scanner.formats).toEqual(readonlyFormats);
+  expect(failure.reason).toBe('invalid_response');
 });

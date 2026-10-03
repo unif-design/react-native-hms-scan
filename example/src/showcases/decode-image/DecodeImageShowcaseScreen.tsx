@@ -49,8 +49,7 @@ export function DecodeImageShowcaseScreen({
   const [preset, setPreset] = useState<FormatPresetId>('all');
   const colors = useColors();
   const styles = useThemedStyles(makeStyles);
-  const pending =
-    snapshot.phase === 'picking' || snapshot.phase === 'decoding';
+  const pending = snapshot.phase === 'picking' || snapshot.phase === 'decoding';
 
   return (
     <ShowcaseScaffold
@@ -82,9 +81,7 @@ export function DecodeImageShowcaseScreen({
           <View style={styles.pending}>
             <Spinner color={colors.primary} />
             <Text style={styles.body}>
-              {snapshot.phase === 'picking'
-                ? '正在选择图片…'
-                : '正在识别图片…'}
+              {snapshot.phase === 'picking' ? '正在选择图片…' : '正在识别图片…'}
             </Text>
           </View>
         </Card>
@@ -117,9 +114,7 @@ export function DecodeImageShowcaseScreen({
                 <Tag label={`结果 ${index + 1}`} variant="success" />
                 <Text style={styles.value}>{result.value}</Text>
                 <Text style={styles.meta}>码制：{result.format}</Text>
-                <Text style={styles.meta}>
-                  内容类型：{result.contentType}
-                </Text>
+                <Text style={styles.meta}>内容类型：{result.contentType}</Text>
               </View>
             </Card>
           ))}
@@ -131,7 +126,7 @@ export function DecodeImageShowcaseScreen({
           <View style={styles.cardContent}>
             {snapshot.error.kind === 'hms' ? (
               <>
-                <Tag label={snapshot.error.code} variant="error" />
+                <Tag label={snapshot.error.reason} variant="error" />
                 <Text style={styles.sectionTitle}>图片识别失败</Text>
                 <Text style={styles.body}>{snapshot.error.message}</Text>
               </>
@@ -139,9 +134,7 @@ export function DecodeImageShowcaseScreen({
               <>
                 <Tag label="UNEXPECTED" variant="error" />
                 <Text style={styles.sectionTitle}>图片识别失败</Text>
-                <Text style={styles.body}>
-                  选择或识别图片失败，请重试。
-                </Text>
+                <Text style={styles.body}>选择或识别图片失败，请重试。</Text>
               </>
             )}
           </View>

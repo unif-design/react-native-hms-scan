@@ -20,12 +20,14 @@ export function DeniedOverlay({ onClose, onSettings }: DeniedOverlayProps) {
       <Empty
         icon="permission-denied"
         title="需要相机权限"
-        desc="开启相机后，才能扫描商品条码与门店二维码。请前往系统设置授权。"
+        desc="开启相机后，才能扫描条码与二维码。请前往系统设置授权。"
       />
       {/* block(flexGrow:1)而非 flex:1：ButtonBase 非 block 时硬编码 flexGrow:0,
           会压过 style 里的 flex:1 → 按钮塌成 padding 宽、label 被裁(同 ResultFocus)。 */}
       <View style={styles.row}>
-        {onClose && <Button label="取消" variant="ghost" block onPress={onClose} />}
+        {onClose && (
+          <Button label="取消" variant="ghost" block onPress={onClose} />
+        )}
         <Button
           label="去设置开启"
           variant="primary"

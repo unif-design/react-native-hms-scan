@@ -2,6 +2,7 @@ package com.unif.reactnativehmsscan
 
 import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.FrameLayout
 import com.facebook.react.bridge.Arguments
@@ -42,14 +43,12 @@ class HmsScanView(
   private var paused: Boolean = false
   private var torch: Boolean = false
   private var actualTorchOn: Boolean = false
-  private var torchAvailable: Boolean = false
+  private var lowLight: Boolean? = null
 
   // True while this view is between onAttachedToWindow and onDetachedFromWindow.
   private var attached: Boolean = false
-
-  init {
-    themedReactContext.addLifecycleEventListener(this)
-  }
+  private var listening: Boolean = false
+  private var lastTorchState: Triple<Boolean, Boolean, Boolean?>? = null
 
   // ── Props (called from the ViewManager) ───────────────────────────────────
 
@@ -81,6 +80,10 @@ class HmsScanView(
   override fun onAttachedToWindow() {
     super.onAttachedToWindow()
     attached = true
+    if (!listening) {
+      listening = true
+      themedReactContext.addLifecycleEventListener(this)
+    }
     if (remoteView == null) {
       buildRemoteView()
     }
@@ -91,6 +94,7 @@ class HmsScanView(
     super.onDetachedFromWindow()
     attached = false
     teardownRemoteView()
+    removeLifecycleListener()
   }
 
   // ── Host (Activity) lifecycle ─────────────────────────────────────────────
@@ -109,7 +113,14 @@ class HmsScanView(
 
   override fun onHostDestroy() {
     teardownRemoteView()
-    themedReactContext.removeLifecycleEventListener(this)
+    removeLifecycleListener()
+  }
+
+  private fun removeLifecycleListener() {
+    if (listening) {
+      listening = false
+      themedReactContext.removeLifecycleEventListener(this)
+    }
   }
 
   // ── RemoteView build / teardown ───────────────────────────────────────────
@@ -142,9 +153,15 @@ class HmsScanView(
 
       val view = builder.build()
 
-      view.setOnResultCallback(OnResultCallback { result -> onScanResult(result) })
+      view.setOnResultCallback(
+        OnResultCallback { result ->
+          if (remoteView === view && !paused) onScanResult(result)
+        },
+      )
       view.setOnLightVisibleCallback(
-        OnLightVisibleCallBack { visible -> onTorchVisible(visible) },
+        OnLightVisibleCallBack { visible ->
+          if (remoteView === view) onTorchVisible(visible)
+        },
       )
 
       // onCreate must run after build() and before addView (per HMS docs/demo).
@@ -172,6 +189,8 @@ class HmsScanView(
 
   private fun teardownRemoteView() {
     val view = remoteView ?: return
+    // Invalidate callbacks before the SDK starts its asynchronous teardown.
+    remoteView = null
     try {
       view.onPause()
       view.onStop()
@@ -180,8 +199,9 @@ class HmsScanView(
       // Defensive: never let teardown crash the host.
     }
     removeView(view)
-    remoteView = null
     actualTorchOn = false
+    lowLight = null
+    lastTorchState = null
   }
 
   /** Rebuild the RemoteView in place to honour a changed build-time prop. */
@@ -207,15 +227,17 @@ class HmsScanView(
 
   private fun applyTorch() {
     val view = remoteView ?: return
+    var commandFailed = false
     try {
       // switchLight() toggles; only flip when the current state differs from target.
       if (view.lightStatus != torch) {
-        view.switchLight()
+        commandFailed = !view.switchLight()
       }
     } catch (_: Throwable) {
-      // Ignore: device may have no flash.
+      commandFailed = true
     }
-    emitTorchStatus(view)
+    // A rejected command must acknowledge even an unchanged state so JS can retry.
+    emitTorchState(view, force = commandFailed)
   }
 
   /** Resolve the hosting Activity required by RemoteView.Builder.setContext(). */
@@ -226,8 +248,14 @@ class HmsScanView(
   private fun onScanResult(result: Array<HmsScan?>?) {
     // Drop empty callbacks (continuous mode can fire with nothing useful).
     if (result == null || result.isEmpty()) return
-    val json = HmsScanResultMapper.toJson(result)
-    // toJson skips value-less hits; avoid emitting an empty "[]" event.
+    val json =
+      try {
+        HmsScanResultMapper.toJson(result)
+      } catch (error: InvalidScanResponse) {
+        emitError("E_INVALID_RESPONSE", error.message ?: "Invalid scan result")
+        return
+      }
+    // A batch containing only null vendor entries has no result to emit.
     if (json == "[]") return
     emitEvent(
       "topScanResult",
@@ -238,12 +266,15 @@ class HmsScanView(
   }
 
   private fun onTorchVisible(visible: Boolean) {
-    torchAvailable = visible
+    lowLight = visible
     val view = remoteView ?: return
-    emitTorchStatus(view)
+    emitTorchState(view)
   }
 
-  private fun emitTorchStatus(view: RemoteView) {
+  private fun emitTorchState(
+    view: RemoteView,
+    force: Boolean = false,
+  ) {
     val on =
       try {
         view.lightStatus
@@ -251,10 +282,17 @@ class HmsScanView(
         actualTorchOn
       }
     actualTorchOn = on
+    val available = context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)
+    val state = Triple(on, available, lowLight)
+    if (!force && lastTorchState == state) return
+    lastTorchState = state
     emitEvent(
-      "topTorchStatus",
+      "topTorchState",
       Arguments.createMap().apply {
-        putBoolean("available", torchAvailable)
+        putBoolean("available", available)
+        putBoolean("hasAvailable", true)
+        putBoolean("lowLight", lowLight ?: false)
+        putBoolean("hasLowLight", lowLight != null)
         putBoolean("on", on)
       },
     )

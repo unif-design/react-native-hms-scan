@@ -1,8 +1,9 @@
 import {
   decodeImage,
-  HmsScanError,
-  type BarcodeFormat,
+  ScanError,
+  type RequestedScanFormat,
   type ScanResult,
+  type ScannerImage,
 } from '@unif/react-native-hms-scan';
 import {
   createDecodeController,
@@ -13,9 +14,7 @@ jest.mock('@unif/react-native-hms-scan', () =>
   require('@unif/react-native-hms-scan/mock')
 );
 
-const mockDecodeImage = decodeImage as jest.MockedFunction<
-  typeof decodeImage
->;
+const mockDecodeImage = decodeImage as jest.MockedFunction<typeof decodeImage>;
 
 const qrResult: ScanResult = {
   value: 'https://unif.example/scan',
@@ -51,11 +50,9 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function createDeps(
-  overrides: Partial<DecodeDeps> = {}
-): DecodeDeps {
+function createDeps(overrides: Partial<DecodeDeps> = {}): DecodeDeps {
   return {
-    pickImage: async () => 'file:///qr.png',
+    pickImage: async () => ({ uri: 'file:///qr.png' }),
     ...overrides,
   };
 }
@@ -66,7 +63,7 @@ beforeEach(() => {
 
 describe('createDecodeController lifecycle', () => {
   it('picking 与 decoding 期间禁止再次开始，完成后恢复', async () => {
-    const pendingPick = deferred<string | null>();
+    const pendingPick = deferred<ScannerImage | null>();
     const pendingDecode = deferred<ScanResult[]>();
     const controller = createDecodeController(
       createDeps({ pickImage: () => pendingPick.promise })
@@ -79,7 +76,7 @@ describe('createDecodeController lifecycle', () => {
       canStart: false,
     });
 
-    pendingPick.resolve('file:///qr.png');
+    pendingPick.resolve({ uri: 'file:///qr.png' });
     await Promise.resolve();
     expect(controller.getSnapshot()).toMatchObject({
       phase: 'decoding',
@@ -113,14 +110,15 @@ describe('createDecodeController lifecycle', () => {
   });
 
   it('传入 formats 时只把本地 URI 和 formats options 交给 decodeImage', async () => {
-    const formats: readonly BarcodeFormat[] = ['QR_CODE'];
+    const formats: readonly RequestedScanFormat[] = ['QR_CODE'];
     mockDecodeImage.mockResolvedValueOnce([qrResult, eanResult]);
     const controller = createDecodeController(createDeps());
 
     await controller.pickAndDecode(formats);
 
     expect(mockDecodeImage).toHaveBeenCalledTimes(1);
-    expect(mockDecodeImage).toHaveBeenCalledWith('file:///qr.png', {
+    expect(mockDecodeImage).toHaveBeenCalledWith({
+      uri: 'file:///qr.png',
       formats,
     });
     expect(controller.getSnapshot()).toMatchObject({
@@ -139,7 +137,10 @@ describe('createDecodeController lifecycle', () => {
     await controller.pickAndDecode();
 
     expect(mockDecodeImage).toHaveBeenCalledTimes(1);
-    expect(mockDecodeImage).toHaveBeenCalledWith('file:///qr.png');
+    expect(mockDecodeImage).toHaveBeenCalledWith({
+      uri: 'file:///qr.png',
+      formats: undefined,
+    });
     expect(controller.getSnapshot()).toMatchObject({
       phase: 'empty',
       results: [],
@@ -148,9 +149,9 @@ describe('createDecodeController lifecycle', () => {
     });
   });
 
-  it('保存 HmsScanError 的公开 code 与 message', async () => {
+  it('保存 ScanError 的公开 code 与 message', async () => {
     mockDecodeImage.mockRejectedValueOnce(
-      new HmsScanError('E_IMAGE_LOAD_FAILED', 'load failed')
+      new ScanError({ reason: 'image_unavailable', message: 'load failed' })
     );
     const controller = createDecodeController(createDeps());
 
@@ -160,7 +161,7 @@ describe('createDecodeController lifecycle', () => {
       phase: 'error',
       error: {
         kind: 'hms',
-        code: 'E_IMAGE_LOAD_FAILED',
+        reason: 'image_unavailable',
         message: 'load failed',
       },
       canStart: true,
@@ -193,10 +194,10 @@ describe('createDecodeController lifecycle', () => {
 
 describe('createDecodeController operation ordering', () => {
   it('较旧 picker 晚完成时不解码旧 URI，也不覆盖较新选择', async () => {
-    const olderPicker = deferred<string | null>();
-    const newerPicker = deferred<string | null>();
+    const olderPicker = deferred<ScannerImage | null>();
+    const newerPicker = deferred<ScannerImage | null>();
     const pickImage = jest
-      .fn<Promise<string | null>, []>()
+      .fn<Promise<ScannerImage | null>, []>()
       .mockReturnValueOnce(olderPicker.promise)
       .mockReturnValueOnce(newerPicker.promise);
     mockDecodeImage.mockResolvedValueOnce([eanResult]);
@@ -205,7 +206,7 @@ describe('createDecodeController operation ordering', () => {
     const olderOperation = controller.pickAndDecode();
     const newerOperation = controller.pickAndDecode(['EAN_13']);
 
-    newerPicker.resolve('file:///new.png');
+    newerPicker.resolve({ uri: 'file:///new.png' });
     await newerOperation;
     expect(controller.getSnapshot()).toMatchObject({
       phase: 'success',
@@ -214,11 +215,12 @@ describe('createDecodeController operation ordering', () => {
       activeToken: 2,
     });
 
-    olderPicker.resolve('file:///old.png');
+    olderPicker.resolve({ uri: 'file:///old.png' });
     await olderOperation;
 
     expect(mockDecodeImage).toHaveBeenCalledTimes(1);
-    expect(mockDecodeImage).toHaveBeenCalledWith('file:///new.png', {
+    expect(mockDecodeImage).toHaveBeenCalledWith({
+      uri: 'file:///new.png',
       formats: ['EAN_13'],
     });
     expect(mockDecodeImage).not.toHaveBeenCalledWith('file:///old.png');
@@ -233,9 +235,9 @@ describe('createDecodeController operation ordering', () => {
   it('较旧解码晚完成时不能覆盖较新选择的结果', async () => {
     const olderDecode = deferred<ScanResult[]>();
     const pickImage = jest
-      .fn<Promise<string | null>, []>()
-      .mockResolvedValueOnce('file:///old.png')
-      .mockResolvedValueOnce('file:///new.png');
+      .fn<Promise<ScannerImage | null>, []>()
+      .mockResolvedValueOnce({ uri: 'file:///old.png' })
+      .mockResolvedValueOnce({ uri: 'file:///new.png' });
     mockDecodeImage
       .mockReturnValueOnce(olderDecode.promise)
       .mockResolvedValueOnce([eanResult]);

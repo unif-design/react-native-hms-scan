@@ -15,22 +15,28 @@ import org.json.JSONObject
  *   "cornerPoints":[{"x":10,"y":20}]}]
  * ```
  */
+internal class InvalidScanResponse(
+  message: String,
+) : IllegalArgumentException(message)
+
 internal object HmsScanResultMapper {
   /**
    * Serialize an array of [HmsScan] into the ScanResult[] JSON string. The element
    * type is nullable because the HMS APIs (decodeWithBitmap / OnResultCallback)
    * hand back a Java array that can contain nulls.
    */
-  fun toJson(scans: Array<out HmsScan?>?): String {
+  fun toJson(
+    scans: Array<out HmsScan?>?,
+    scaleX: Double = 1.0,
+    scaleY: Double = 1.0,
+  ): String {
     val array = JSONArray()
     if (scans != null) {
       for (scan in scans) {
         if (scan == null) continue
         val value = scan.getOriginalValue()
-        // A hit with no value is meaningless to the JS layer (it would be dropped
-        // by coerceResult anyway); skip it to keep the payload clean.
-        if (value.isNullOrEmpty()) continue
-        array.put(toJsonObject(scan, value))
+        if (value == null) throw InvalidScanResponse("ScanKit returned a result without text")
+        array.put(toJsonObject(scan, value, scaleX, scaleY))
       }
     }
     return array.toString()
@@ -39,6 +45,8 @@ internal object HmsScanResultMapper {
   private fun toJsonObject(
     scan: HmsScan,
     value: String,
+    scaleX: Double,
+    scaleY: Double,
   ): JSONObject {
     val obj = JSONObject()
     obj.put("value", value)
@@ -53,8 +61,8 @@ internal object HmsScanResultMapper {
         if (point == null) continue
         points.put(
           JSONObject().apply {
-            put("x", point.x)
-            put("y", point.y)
+            put("x", point.x * scaleX)
+            put("y", point.y * scaleY)
           },
         )
       }
@@ -66,7 +74,7 @@ internal object HmsScanResultMapper {
     return obj
   }
 
-  /** HmsScan.getScanType() (barcode symbology) -> unified BarcodeFormat string. */
+  /** HmsScan.getScanType() (barcode symbology) -> unified ScanFormat string. */
   fun mapScanType(scanType: Int): String =
     when (scanType) {
       HmsScan.QRCODE_SCAN_TYPE -> "QR_CODE"
@@ -105,7 +113,7 @@ internal object HmsScanResultMapper {
     return if (types.isEmpty()) null else types.toIntArray()
   }
 
-  /** Unified BarcodeFormat string -> HmsScan.*_SCAN_TYPE (null when unknown). */
+  /** Unified ScanFormat string -> HmsScan.*_SCAN_TYPE (null when unknown). */
   private fun mapFormatString(format: String): Int? =
     when (format) {
       "QR_CODE" -> HmsScan.QRCODE_SCAN_TYPE
