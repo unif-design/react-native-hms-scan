@@ -216,7 +216,7 @@ assert.match(
 );
 assertOrdered(
   applyTorch,
-  ['catch (_: Throwable)', 'emitTorchState(view)'],
+  ['catch (_: Throwable)', 'emitTorchState(view, force = commandFailed)'],
   'torch 切换成功或抛错后都必须回读并 emit 实际状态'
 );
 

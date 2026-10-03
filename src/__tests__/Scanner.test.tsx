@@ -292,12 +292,10 @@ test('torch already on outside the last request can be switched off', async () =
   expect(camera().props.torch).toBe(false);
 });
 
-test('a failed torch request can be retried from the reported off state', async () => {
+test('a failed torch request can be retried after the initial off state was already reported', async () => {
   render(<Scanner onConfirm={jest.fn()} />);
   await ready();
-  fireEvent.press(screen.getByRole('button', { name: '手电筒' }));
-  expect(camera().props.torch).toBe(true);
-  fireEvent(camera(), 'torchState', {
+  const offState = {
     nativeEvent: {
       on: false,
       hasAvailable: true,
@@ -305,7 +303,11 @@ test('a failed torch request can be retried from the reported off state', async 
       hasLowLight: false,
       lowLight: false,
     },
-  });
+  };
+  fireEvent(camera(), 'torchState', offState);
+  fireEvent.press(screen.getByRole('button', { name: '手电筒' }));
+  expect(camera().props.torch).toBe(true);
+  fireEvent(camera(), 'torchState', offState);
   expect(camera().props.torch).toBe(false);
   fireEvent.press(screen.getByRole('button', { name: '手电筒' }));
   expect(camera().props.torch).toBe(true);

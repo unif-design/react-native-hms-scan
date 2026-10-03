@@ -226,8 +226,11 @@ static void *HmsScanTorchObservation = &HmsScanTorchObservation;
 // failure still reports the device's real state.
 - (void)applyTorch:(BOOL)on {
   BOOL available = NO;
-  BOOL torchOn = [self setTorchHardwareOn:on available:&available];
-  [self emitTorchStateAvailable:available on:torchOn];
+  BOOL commandFailed = NO;
+  BOOL torchOn = [self setTorchHardwareOn:on available:&available commandFailed:&commandFailed];
+  // A rejected command must acknowledge even an unchanged state so JS can retry.
+  // Accepted commands may update torchActive later; keep those observations deduplicated.
+  [self emitTorchStateAvailable:available on:torchOn force:commandFailed];
 }
 
 // 优先取「带手电的后置广角相机」(这通常就是华为扫码用的那颗);取不到再退回
@@ -283,7 +286,7 @@ static void *HmsScanTorchObservation = &HmsScanTorchObservation;
       return;
     if (view.window == nil) {
       if (view->_awaitingTorchOff) {
-        [view emitTorchStateAvailable:view->_torchDevice.hasTorch on:view->_torchDevice.isTorchActive];
+        [view emitTorchStateAvailable:view->_torchDevice.hasTorch on:view->_torchDevice.isTorchActive force:NO];
         if (!view->_torchDevice.isTorchActive)
           [view stopObservingTorch];
       }
@@ -292,7 +295,7 @@ static void *HmsScanTorchObservation = &HmsScanTorchObservation;
     if ([keyPath isEqualToString:@"torchAvailable"] && view->_torchDevice.isTorchAvailable && view->_appliedTorch) {
       [view applyTorch:YES];
     } else {
-      [view emitTorchStateAvailable:view->_torchDevice.hasTorch on:view->_torchDevice.isTorchActive];
+      [view emitTorchStateAvailable:view->_torchDevice.hasTorch on:view->_torchDevice.isTorchActive force:NO];
     }
   };
   if ([NSThread isMainThread])
@@ -302,19 +305,26 @@ static void *HmsScanTorchObservation = &HmsScanTorchObservation;
 }
 
 // Mutates the capture device's torch. Returns the resulting on-state and writes
-// hardware availability into `available`. Does NOT emit any event (so it can be
-// reused on teardown/recycle without firing onTorchState on a stale emitter).
+// hardware availability into `available` and rejection into `commandFailed`.
+// Does NOT emit any event (so it can be reused on teardown/recycle without
+// firing onTorchState on a stale emitter).
 //
 // best-effort:华为独占相机会话且无手电 API,这里直接操作设备硬件。可能因华为
 // 持有配置锁(lockForConfiguration 失败)或用了别的设备而不生效。DEBUG 日志会
 // 打印到底卡在哪一步,真机调试时看 Xcode console。
-- (BOOL)setTorchHardwareOn:(BOOL)on available:(BOOL *)available {
+- (BOOL)setTorchHardwareOn:(BOOL)on available:(BOOL *)available commandFailed:(BOOL *)commandFailed {
   AVCaptureDevice *device = [self torchCaptureDevice];
   BOOL hasTorch = (device != nil && device.hasTorch);
   if (available != NULL) {
     *available = hasTorch;
   }
+  if (commandFailed != NULL) {
+    *commandFailed = NO;
+  }
   if (!hasTorch) {
+    if (commandFailed != NULL) {
+      *commandFailed = on;
+    }
 #if DEBUG
     NSLog(@"[HmsScanView] torch: 无带手电的相机设备 (device=%@)", device);
 #endif
@@ -327,6 +337,9 @@ static void *HmsScanTorchObservation = &HmsScanTorchObservation;
     if (on && device.isTorchAvailable && [device isTorchModeSupported:AVCaptureTorchModeOn]) {
       device.torchMode = AVCaptureTorchModeOn;
     } else {
+      if (commandFailed != NULL) {
+        *commandFailed = on;
+      }
       device.torchMode = AVCaptureTorchModeOff;
     }
     torchOn = device.isTorchActive; // 反映硬件真实状态,而非乐观假设
@@ -336,6 +349,9 @@ static void *HmsScanTorchObservation = &HmsScanTorchObservation;
           device.isTorchAvailable);
 #endif
   } else {
+    if (commandFailed != NULL) {
+      *commandFailed = YES;
+    }
 #if DEBUG
     NSLog(@"[HmsScanView] torch lockForConfiguration 失败(华为可能占用了设备配置锁): %@", error);
 #endif
@@ -386,11 +402,11 @@ static void *HmsScanTorchObservation = &HmsScanTorchObservation;
       });
 }
 
-- (void)emitTorchStateAvailable:(BOOL)available on:(BOOL)on {
+- (void)emitTorchStateAvailable:(BOOL)available on:(BOOL)on force:(BOOL)force {
   if (!_eventEmitter) {
     return;
   }
-  if (_hasTorchReport && available == _lastTorchAvailable && on == _lastTorchOn)
+  if (!force && _hasTorchReport && available == _lastTorchAvailable && on == _lastTorchOn)
     return;
   _hasTorchReport = YES;
   _lastTorchAvailable = available;
@@ -411,7 +427,7 @@ static void *HmsScanTorchObservation = &HmsScanTorchObservation;
   // Reset imperative state so a recycled view re-applies props cleanly.
   // Turn the torch off WITHOUT emitting (the emitter is being torn down).
   [self stopObservingTorch];
-  [self setTorchHardwareOn:NO available:NULL];
+  [self setTorchHardwareOn:NO available:NULL commandFailed:NULL];
   [self teardownScanViewController];
   _hasAppliedOnce = NO;
   _appliedFormatsCsv = @"";

@@ -7,6 +7,7 @@ import com.facebook.react.modules.core.PermissionAwareActivity
 import com.facebook.react.modules.core.PermissionListener
 import com.facebook.react.uimanager.ThemedReactContext
 import com.facebook.react.uimanager.UIManagerHelper
+import com.huawei.hms.hmsscankit.RemoteView
 import com.huawei.hms.hmsscankit.ScanUtil
 import com.unif.reactnativehmsscan.HmsScanModule
 import com.unif.reactnativehmsscan.HmsScanView
@@ -109,6 +110,41 @@ fun main() {
     view.onHostResume()
     check(UIManagerHelper.events.count { it.getEventName() == "topTorchState" } == 1)
     view.onDetachedFromWindow()
+  }
+  for (throwsError in listOf(false, true)) {
+    val failure = if (throwsError) "exception" else "rejection"
+    test("failed torch enable ($failure) reports off again so the next press can retry") {
+      val app = ReactApplicationContext()
+      app.currentActivity = Activity()
+      UIManagerHelper.events.clear()
+      RemoteView.switchLightCalls = 0
+      val view = HmsScanView(ThemedReactContext(app))
+
+      fun torchReports() = UIManagerHelper.events.filter { it.getEventName() == "topTorchState" }
+
+      try {
+        view.onAttachedToWindow()
+        check(torchReports().size == 1 && torchReports().last().getEventData().entries["on"] == false)
+        RemoteView.throwsOnSwitchLight = throwsError
+        RemoteView.rejectsSwitchLight = !throwsError
+        view.setTorch(true)
+        check(torchReports().size == 2 && torchReports().last().getEventData().entries["on"] == false) {
+          "failed enable did not acknowledge the unchanged off state"
+        }
+        // Scanner reconciles its request to the failed command's actual-state report.
+        view.setTorch(false)
+        check(torchReports().size == 2) { "unchanged successful off request was reported again" }
+        RemoteView.throwsOnSwitchLight = false
+        RemoteView.rejectsSwitchLight = false
+        view.setTorch(true)
+        check(RemoteView.switchLightCalls == 2) { "next press did not retry the hardware command" }
+        check(torchReports().size == 3 && torchReports().last().getEventData().entries["on"] == true)
+      } finally {
+        RemoteView.throwsOnSwitchLight = false
+        RemoteView.rejectsSwitchLight = false
+        view.onDetachedFromWindow()
+      }
+    }
   }
   test("concurrent camera requests share one prompt and both settle") {
     val app = ReactApplicationContext()

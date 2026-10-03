@@ -6,6 +6,7 @@ static const NSInteger AVCaptureDevicePositionBack = 1;
 typedef NS_ENUM(NSInteger, AVCaptureTorchMode) { AVCaptureTorchModeOff = 0, AVCaptureTorchModeOn = 1 };
 @interface AVCaptureDevice : NSObject
 @property BOOL delaysTorchChange;
+@property BOOL failsConfigurationLock;
 @property BOOL hasTorch;
 @property(getter=isTorchAvailable) BOOL torchAvailable;
 @property(getter=isTorchActive) BOOL torchActive;

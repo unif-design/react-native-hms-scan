@@ -37,6 +37,12 @@ object ScanUtil {
 }
 
 class RemoteView {
+  companion object {
+    var throwsOnSwitchLight = false
+    var rejectsSwitchLight = false
+    var switchLightCalls = 0
+  }
+
   var lightStatus = false
   var result: OnResultCallback? = null
 
@@ -62,9 +68,14 @@ class RemoteView {
 
   fun resumeContinuouslyScan() {}
 
-  fun switchLight() {
+  fun switchLight(): Boolean {
+    switchLightCalls++
+    check(!throwsOnSwitchLight) { "torch command failed" }
+    // Scan Kit also returns false for a missing delegate or a caught RemoteException.
+    if (rejectsSwitchLight) return false
     lightStatus =
       !lightStatus
+    return true
   }
 
   class Builder {

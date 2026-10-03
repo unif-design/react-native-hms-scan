@@ -68,3 +68,13 @@ ktlint 'android/**/*.kt' 'android/**/*.kts' 'scripts/native-tests/android/**/*.k
 | shell 语法、Python 编译、`git diff --check` | 通过 |
 
 Jest 初次环境验证遇到沙盒禁止写入用户 npm 缓存，以及 Watchman socket 不可用；最终使用临时 `npm_config_cache` 和 `--watchman=false` 完整通过，无项目配置绕过。本轮主任务完成了上述 iOS example 补充编译；未重跑完整 Android APK。边界替身测试和 App 编译均不能当作真机运行结果。独立审查重跑 Android 14 项 / iOS 5 项并核对 RN、AVCaptureDevice 及锁定 Scan Kit 字节码，未发现新增运行代码 P1/P2；据此修正了 SDK 空数组语义的过度保证。
+
+## 手电失败回执补充（2026-10-03）
+
+后续复审发现：初始 off 已报告后，开灯命令失败仍为 off，原生去重会吞掉这次回执。Scanner 的请求因此仍为 true，用户下一次点击只会请求关灯，无法直接重试开灯。
+
+生产类回归先复现了 Android 切灯抛错、iOS 配置锁失败及暂不可用时丢失第二次 off。核对锁定 Scan Kit Plus `2.15.0.301` 字节码后，还补入 `RemoteView.switchLight()` 返回 false 的失败回归：该方法在远程 delegate 不存在或捕获 `RemoteException` 时返回 false，返回值表示命令是否接受，不是实际点亮状态。
+
+修复只为明确失败的命令保留相同状态回执。Android 同时处理 false 返回和向外抛错；iOS 区分配置锁/可用性拒绝与成功提交。普通硬件观察继续去重；iOS 成功提交、`torchActive` 延后变化时不会重复报告 off，待实际点亮后报告 on。
+
+补充验证：Android 16/16、iOS 8/8 原生回归通过；Scanner、ScannerTheme 与 capabilities 的 3 suites / 39 tests 通过，包含“初始 off 后失败、下一次点击即可重试”的公开组合用例。集成契约 5/5、两端接线、类型、ESLint、ktlint 1.8.0 与 clang-format 18.1.8 检查通过；此补充不替代新提交的完整 App CI 或真机验收。

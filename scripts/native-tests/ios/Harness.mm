@@ -13,9 +13,9 @@ static void apply(HmsScanView *view, bool torch) {
   Props::Shared props = value;
   [view updateProps:props oldProps:props];
 }
-static HmsScanView *activeView() {
+static HmsScanView *activeView(bool torch = true) {
   HmsScanView *view = [[HmsScanView alloc] initWithFrame:CGRectMake(0, 0, 320, 480)];
-  apply(view, true);
+  apply(view, torch);
   view.window = [NSObject new];
   [view didMoveToWindow];
   return view;
@@ -40,6 +40,62 @@ int main() {
       apply(view, false);
       check(controllersCreated == 1, @"constructed default and configured controllers");
       [view prepareForRecycle];
+    });
+    test(@"failed torch enable reports off again so the next press can retry", ^{
+      HmsScanViewEventEmitter::torchEvents.clear();
+      HmsScanView *view = activeView(false);
+      AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+      @try {
+        check(HmsScanViewEventEmitter::torchEvents.size() == 1 && !HmsScanViewEventEmitter::torchEvents.back().on,
+              @"initial off state was not reported");
+        device.failsConfigurationLock = YES;
+        apply(view, true);
+        check(HmsScanViewEventEmitter::torchEvents.size() == 2 && !HmsScanViewEventEmitter::torchEvents.back().on,
+              @"failed enable did not acknowledge the unchanged off state");
+        device.failsConfigurationLock = NO;
+        apply(view, false); // Scanner reconciles its request to the actual-state report.
+        check(HmsScanViewEventEmitter::torchEvents.size() == 2, @"unchanged successful off request was reported again");
+        apply(view, true);
+        check(HmsScanViewEventEmitter::torchEvents.size() == 3 && HmsScanViewEventEmitter::torchEvents.back().on,
+              @"next press did not retry the hardware command");
+      } @finally {
+        device.failsConfigurationLock = NO;
+        [view prepareForRecycle];
+      }
+    });
+    test(@"unavailable torch enable acknowledges the unchanged off state", ^{
+      HmsScanViewEventEmitter::torchEvents.clear();
+      HmsScanView *view = activeView(false);
+      AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+      @try {
+        check(HmsScanViewEventEmitter::torchEvents.size() == 1 && !HmsScanViewEventEmitter::torchEvents.back().on,
+              @"initial off state was not reported");
+        device.torchAvailable = NO;
+        apply(view, true);
+        check(HmsScanViewEventEmitter::torchEvents.size() == 2 && !HmsScanViewEventEmitter::torchEvents.back().on,
+              @"unavailable enable did not acknowledge the unchanged off state");
+      } @finally {
+        [view prepareForRecycle];
+        device.torchAvailable = YES;
+      }
+    });
+    test(@"accepted torch enable waits for delayed hardware state without repeating off", ^{
+      HmsScanView *view = activeView(false);
+      AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
+      device.delaysTorchChange = YES;
+      @try {
+        HmsScanViewEventEmitter::torchEvents.clear();
+        apply(view, true);
+        device.torchActive = NO; // Unchanged observation while the accepted command is pending.
+        device.torchAvailable = YES;
+        check(HmsScanViewEventEmitter::torchEvents.empty(), @"accepted enable was reported as a failed off request");
+        device.torchActive = YES;
+        check(HmsScanViewEventEmitter::torchEvents.size() == 1 && HmsScanViewEventEmitter::torchEvents.back().on,
+              @"delayed hardware enable was lost");
+      } @finally {
+        device.delaysTorchChange = NO;
+        [view prepareForRecycle];
+      }
     });
     test(@"detach reports actual torch off", ^{
       HmsScanView *view = activeView();

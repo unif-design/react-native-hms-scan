@@ -227,15 +227,17 @@ class HmsScanView(
 
   private fun applyTorch() {
     val view = remoteView ?: return
+    var commandFailed = false
     try {
       // switchLight() toggles; only flip when the current state differs from target.
       if (view.lightStatus != torch) {
-        view.switchLight()
+        commandFailed = !view.switchLight()
       }
     } catch (_: Throwable) {
-      // Ignore: device may have no flash.
+      commandFailed = true
     }
-    emitTorchState(view)
+    // A rejected command must acknowledge even an unchanged state so JS can retry.
+    emitTorchState(view, force = commandFailed)
   }
 
   /** Resolve the hosting Activity required by RemoteView.Builder.setContext(). */
@@ -269,7 +271,10 @@ class HmsScanView(
     emitTorchState(view)
   }
 
-  private fun emitTorchState(view: RemoteView) {
+  private fun emitTorchState(
+    view: RemoteView,
+    force: Boolean = false,
+  ) {
     val on =
       try {
         view.lightStatus
@@ -279,7 +284,7 @@ class HmsScanView(
     actualTorchOn = on
     val available = context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)
     val state = Triple(on, available, lowLight)
-    if (lastTorchState == state) return
+    if (!force && lastTorchState == state) return
     lastTorchState = state
     emitEvent(
       "topTorchState",

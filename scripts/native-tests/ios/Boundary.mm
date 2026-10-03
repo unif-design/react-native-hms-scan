@@ -61,7 +61,7 @@
     self.torchActive = mode == AVCaptureTorchModeOn;
 }
 - (BOOL)lockForConfiguration:(NSError **)error {
-  return YES;
+  return !self.failsConfigurationLock;
 }
 - (void)unlockForConfiguration {
 }
