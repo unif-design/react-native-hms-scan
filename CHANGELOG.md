@@ -1,5 +1,18 @@
 # Changelog
 
+# [2.0.0](https://github.com/unif-design/react-native-hms-scan/compare/v1.0.0...v2.0.0) (2026-10-06)
+
+
+* feat(scan)!: adopt design liquid glass dependencies (#77) ([6815f79](https://github.com/unif-design/react-native-hms-scan/commit/6815f79bd244f4841bd5e57babfb4cc726c19965)), closes [#77](https://github.com/unif-design/react-native-hms-scan/issues/77)
+
+
+### BREAKING CHANGES
+
+* consumers must install design ^0.35.0 and
+liquid-glass >=0.8.2 <0.9.0 instead of the former blur dependency, and use
+the declared React 19.2.3, RNGH 3, Reanimated and Worklets ranges.
+Scanner APIs are unchanged.
+
 # [1.0.0](https://github.com/unif-design/react-native-hms-scan/compare/v0.6.2...v1.0.0) (2026-10-03)
 
 
