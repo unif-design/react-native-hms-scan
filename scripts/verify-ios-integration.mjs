@@ -100,7 +100,7 @@ for (const cliPackage of [
   );
 }
 
-const [packResult] = JSON.parse(
+const packResults = JSON.parse(
   execFileSync(
     'npm',
     ['pack', '--dry-run', '--json', '--ignore-scripts'],
@@ -110,6 +110,9 @@ const [packResult] = JSON.parse(
     }
   )
 );
+const [packResult] = Array.isArray(packResults)
+  ? packResults
+  : Object.values(packResults);
 const packedPaths = new Set(packResult.files.map((file) => file.path));
 
 assert.equal(

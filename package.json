@@ -80,6 +80,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@callstack/liquid-glass": "0.8.2",
     "@commitlint/config-conventional": "^20.5.0",
     "@eslint/js": "^8.57.1",
     "@react-native/babel-preset": "0.86.3",
@@ -87,12 +88,11 @@
     "@react-native/jest-preset": "0.86.3",
     "@react-native/metro-config": "0.86.3",
     "@release-it/conventional-changelog": "^11.0.0",
-    "@sbaiahmed1/react-native-blur": "6.0.1",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.0",
     "@types/react": "^19.2.0",
     "@types/react-test-renderer": "^19",
-    "@unif/react-native-design": "0.30.1",
+    "@unif/react-native-design": "0.35.0",
     "commitlint": "^20.5.0",
     "del-cli": "^7.0.0",
     "eslint": "^8.57.1",
@@ -117,16 +117,16 @@
     "typescript-eslint": "^8.20.0"
   },
   "peerDependencies": {
-    "@sbaiahmed1/react-native-blur": ">=4",
-    "@unif/react-native-design": ">=0.26.0",
-    "react": ">=19.0.0",
+    "@callstack/liquid-glass": ">=0.8.2 <0.9.0",
+    "@unif/react-native-design": "^0.35.0",
+    "react": ">=19.2.3 <20.0.0",
     "react-native": ">=0.86.0",
-    "react-native-gesture-handler": ">=2.21.0",
-    "react-native-reanimated": ">=4.0.0",
+    "react-native-gesture-handler": ">=3.0.0 <4.0.0",
+    "react-native-reanimated": ">=4.5.2 <4.7.0",
     "react-native-reanimated-carousel": ">=5.0.0 <6.0.0",
     "react-native-safe-area-context": ">=5.0.0",
     "react-native-svg": ">=15",
-    "react-native-worklets": "*"
+    "react-native-worklets": ">=0.11.0 <0.13.0"
   },
   "workspaces": [
     "example",
