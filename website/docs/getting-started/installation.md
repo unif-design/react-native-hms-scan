@@ -13,7 +13,7 @@ description: '安装依赖，配置原生权限、构建环境与宿主接线。
 | 要求         | 版本                                                |
 | ------------ | --------------------------------------------------- |
 | React Native | **新架构(Fabric + TurboModules)必须开启**           |
-| React        | 19+                                                 |
+| React        | `>=19.2.3 <20.0.0`                                   |
 | Android      | **minSdkVersion ≥ 24**(Android 7.0)                 |
 | iOS          | 随宿主 RN 工程最低版本;原生构建和运行**仅支持真机** |
 
@@ -29,25 +29,27 @@ description: '安装依赖，配置原生权限、构建环境与宿主接线。
 
 ```sh
 yarn add @unif/react-native-hms-scan \
-  @unif/react-native-design react-native-svg \
-  @sbaiahmed1/react-native-blur \
+  '@unif/react-native-design@0.35.0' react-native-svg \
+  '@callstack/liquid-glass@0.8.2' \
   react-native-gesture-handler react-native-reanimated \
   react-native-reanimated-carousel react-native-safe-area-context \
   react-native-worklets
 ```
 
+2.0 起使用 Design 0.35 与 Liquid Glass。升级 1.x 宿主时，移除旧 `@sbaiahmed1/react-native-blur`，安装上述依赖并重新执行 iOS Pods 安装；扫码公共 API 保持不变。
+
 各包的作用与版本约束:
 
 | 包                                 | 版本约束         | 作用                                                 |
 | ---------------------------------- | ---------------- | ---------------------------------------------------- |
-| `@unif/react-native-design`        | `>=0.26.0`       | `<Scanner>` 的主题、取景框、工具栏、结果卡全用它绘制 |
+| `@unif/react-native-design`        | `^0.35.0`       | `<Scanner>` 的主题、取景框、工具栏、结果卡全用它绘制 |
 | `react-native-svg`                 | `>=15`           | `<Scanner>` 图标                                     |
-| `@sbaiahmed1/react-native-blur`    | `>=4`            | design 界面毛玻璃                                    |
-| `react-native-gesture-handler`     | `>=2.21.0`       | design / 手势                                        |
-| `react-native-reanimated`          | `>=4.0.0`        | design 动画                                          |
+| `@callstack/liquid-glass`    | `>=0.8.2 <0.9.0`            | Design Liquid Glass 原生材质                                    |
+| `react-native-gesture-handler`     | `>=3.0.0 <4.0.0`       | design / 手势                                        |
+| `react-native-reanimated`          | `>=4.5.2 <4.7.0`        | design 动画                                          |
 | `react-native-reanimated-carousel` | `>=5.0.0 <6.0.0` | design 组件依赖                                      |
 | `react-native-safe-area-context`   | `>=5.0.0`        | 安全区适配                                           |
-| `react-native-worklets`            | `*`              | reanimated 4 的 worklet 运行时                       |
+| `react-native-worklets`            | `>=0.11.0 <0.13.0` | reanimated 4 的 worklet 运行时                       |
 
 :::note 为什么扫码库要装这么多 UI 包
 这些 peerDeps 几乎都是**成品 `<Scanner>`** 间接需要的:`<Scanner>` 的取景框 / 工具栏 / 结果卡全部复用 [`@unif/react-native-design`](https://www.npmjs.com/package/@unif/react-native-design),而 design 自身依赖 `react-native-reanimated` / `react-native-gesture-handler` 等。即便你只用 headless `<HmsScanView>` 或 `decodeImage`,这些仍是声明的 peer —— 装齐即可,通常项目里已有大半。宿主若需要 toast,可自行在 App 根部挂载 `ToastHost`。

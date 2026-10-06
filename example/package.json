@@ -10,8 +10,8 @@
     "build:ios": "node ../scripts/verify-ios-integration.mjs --require-lock && react-native build-ios --mode Debug --device --extra-params \"CODE_SIGNING_ALLOWED=NO\""
   },
   "dependencies": {
-    "@sbaiahmed1/react-native-blur": "6.0.1",
-    "@unif/react-native-design": "0.30.1",
+    "@callstack/liquid-glass": "0.8.2",
+    "@unif/react-native-design": "0.35.0",
     "@unif/react-native-hms-scan": "workspace:*",
     "react": "19.2.3",
     "react-native": "0.86.3",
