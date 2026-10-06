@@ -126,7 +126,7 @@ test('Android integration matches React Native lock entries instead of unrelated
         [
           '@unif/react-native-design',
           {
-            version: '0.35.0',
+            version: '0.36.0',
             peerDependencies: {
               'react-native-gesture-handler': '>=3.0.0 <4.0.0',
             },
@@ -169,7 +169,7 @@ test('Android integration matches React Native lock entries instead of unrelated
     const websitePackage = {
       dependencies: {
         '@callstack/liquid-glass': '0.8.2',
-        '@unif/react-native-design': '0.35.0',
+        '@unif/react-native-design': '0.36.0',
         '@unif/react-native-hms-scan': 'workspace:*',
         'react': '19.2.3',
         'react-dom': '19.2.3',

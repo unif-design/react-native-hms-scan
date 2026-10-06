@@ -28,7 +28,7 @@ const androidGradleProperties = read('example/android/gradle.properties');
 
 const sharedRuntimeDependencies = {
   '@callstack/liquid-glass': '0.8.2',
-  '@unif/react-native-design': '0.35.0',
+  '@unif/react-native-design': '0.36.0',
   'react': '19.2.3',
   'react-native': '0.86.3',
   'react-native-gesture-handler': '^3.1.0',
@@ -41,7 +41,7 @@ const sharedRuntimeDependencies = {
 
 const expectedPublicPeerDependencies = {
   '@callstack/liquid-glass': '>=0.8.2 <0.9.0',
-  '@unif/react-native-design': '^0.35.0',
+  '@unif/react-native-design': '>=0.35.0',
   'react': '>=19.2.3 <20.0.0',
   'react-native': '>=0.86.0',
   'react-native-gesture-handler': '>=3.0.0 <4.0.0',
@@ -169,7 +169,7 @@ const installedCarousel = readPackageJson(
   'node_modules/react-native-reanimated-carousel/package.json'
 );
 
-assert.equal(installedDesign.version, '0.35.0');
+assert.equal(installedDesign.version, '0.36.0');
 assert.equal(
   installedDesign.peerDependencies['react-native-gesture-handler'],
   '>=3.0.0 <4.0.0'

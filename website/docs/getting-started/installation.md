@@ -29,7 +29,7 @@ description: '安装依赖，配置原生权限、构建环境与宿主接线。
 
 ```sh
 yarn add @unif/react-native-hms-scan \
-  '@unif/react-native-design@0.35.0' react-native-svg \
+  '@unif/react-native-design@0.36.0' react-native-svg \
   '@callstack/liquid-glass@0.8.2' \
   react-native-gesture-handler react-native-reanimated \
   react-native-reanimated-carousel react-native-safe-area-context \
@@ -42,7 +42,7 @@ yarn add @unif/react-native-hms-scan \
 
 | 包                                 | 版本约束         | 作用                                                 |
 | ---------------------------------- | ---------------- | ---------------------------------------------------- |
-| `@unif/react-native-design`        | `^0.35.0`       | `<Scanner>` 的主题、取景框、工具栏、结果卡全用它绘制 |
+| `@unif/react-native-design`        | `>=0.35.0`       | `<Scanner>` 的主题、取景框、工具栏、结果卡全用它绘制 |
 | `react-native-svg`                 | `>=15`           | `<Scanner>` 图标                                     |
 | `@callstack/liquid-glass`    | `>=0.8.2 <0.9.0`            | Design Liquid Glass 原生材质                                    |
 | `react-native-gesture-handler`     | `>=3.0.0 <4.0.0`       | design / 手势                                        |
