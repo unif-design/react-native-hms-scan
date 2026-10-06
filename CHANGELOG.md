@@ -1,5 +1,12 @@
 # Changelog
 
+# [2.1.0](https://github.com/unif-design/react-native-hms-scan/compare/v2.0.0...v2.1.0) (2026-10-06)
+
+
+### Features
+
+* **deps:** support minimum Design versions ([#78](https://github.com/unif-design/react-native-hms-scan/issues/78)) ([d395044](https://github.com/unif-design/react-native-hms-scan/commit/d395044d23ef09768c0388cd5ec4bd08ea37c134))
+
 # [2.0.0](https://github.com/unif-design/react-native-hms-scan/compare/v1.0.0...v2.0.0) (2026-10-06)
 
 
