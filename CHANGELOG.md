@@ -1,5 +1,12 @@
 # Changelog
 
+# [2.2.0](https://github.com/unif-design/react-native-hms-scan/compare/v2.1.0...v2.2.0) (2026-10-11)
+
+
+### Features
+
+* add system glass scanner surfaces ([#80](https://github.com/unif-design/react-native-hms-scan/issues/80)) ([44befd9](https://github.com/unif-design/react-native-hms-scan/commit/44befd945919827f473f3f5611c5dd8ab98e110f))
+
 # [2.1.0](https://github.com/unif-design/react-native-hms-scan/compare/v2.0.0...v2.1.0) (2026-10-06)
 
 
