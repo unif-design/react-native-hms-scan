@@ -1,3 +1,4 @@
+import { ErrorAlertOutlined } from '@unif/react-native-icons';
 import { StyleSheet, View } from 'react-native';
 import {
   Button,
@@ -17,12 +18,14 @@ export function ScanErrorOverlay({ onClose, onRetry }: ScanErrorOverlayProps) {
   return (
     <View style={s.overlay}>
       <Empty
-        icon="error-alert"
+        icon={ErrorAlertOutlined}
         title="相机启动失败"
         desc="无法启动扫码相机，请确认权限与设备状态后重试。"
       />
       <View style={styles.row}>
-        {onClose && <Button label="取消" variant="ghost" block onPress={onClose} />}
+        {onClose && (
+          <Button label="取消" variant="ghost" block onPress={onClose} />
+        )}
         <Button label="重试" variant="primary" block onPress={onRetry} />
       </View>
     </View>

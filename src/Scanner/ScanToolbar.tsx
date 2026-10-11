@@ -1,6 +1,13 @@
+import {
+  FlashOffOutlined,
+  FlashOnOutlined,
+  ImageOutlined,
+  UndoOutlined,
+} from '@unif/react-native-icons';
+import type { ComponentType } from 'react';
+import type { IconProps } from '@unif/react-native-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
-  Icon,
   GlassLayer,
   darkColors,
   useColors,
@@ -8,7 +15,6 @@ import {
   rf,
   useThemedStyles,
   fw,
-  type IconName,
 } from '@unif/react-native-design';
 import { scanChrome } from './scanChrome';
 
@@ -37,27 +43,31 @@ export function ScanToolbar({
       style={[styles.bar, { bottom: bottomInset + r(50) }]}
       pointerEvents="box-none"
     >
-      {onClose && <ToolbarItem icon="undo" label="返回" onPress={onClose} />}
+      {onClose && (
+        <ToolbarItem icon={UndoOutlined} label="返回" onPress={onClose} />
+      )}
       {onFlash && (
         <ToolbarItem
-          icon={flash ? 'flash-on' : 'flash-off'}
+          icon={flash ? FlashOnOutlined : FlashOffOutlined}
           label={flash ? '已开灯' : '手电筒'}
           activeColor={flash ? c.primary : undefined}
           onPress={onFlash}
         />
       )}
-      {onAlbum && <ToolbarItem icon="image" label="相册" onPress={onAlbum} />}
+      {onAlbum && (
+        <ToolbarItem icon={ImageOutlined} label="相册" onPress={onAlbum} />
+      )}
     </View>
   );
 }
 
 function ToolbarItem({
-  icon,
+  icon: Icon,
   label,
   activeColor,
   onPress,
 }: {
-  icon: IconName;
+  icon: ComponentType<IconProps>;
   label: string;
   activeColor?: string;
   onPress: () => void;
@@ -87,7 +97,6 @@ function ToolbarItem({
               />
             )}
             <Icon
-              name={icon}
               size={r(23)}
               color={activeColor ? c.onPrimary : scanChrome.white}
               style={pressed && { opacity: 0.7 }}

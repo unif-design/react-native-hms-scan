@@ -1,3 +1,4 @@
+import { ImageOutlined, ScanOutlined } from '@unif/react-native-icons';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
@@ -66,7 +67,7 @@ export function DecodeImageShowcaseScreen({
           />
           <Button
             label="选择图片并识别"
-            leftIcon="image"
+            leftIcon={ImageOutlined}
             block
             disabled={!snapshot.canStart}
             onPress={() =>
@@ -89,7 +90,7 @@ export function DecodeImageShowcaseScreen({
 
       {snapshot.phase === 'idle' ? (
         <Empty
-          icon="image"
+          icon={ImageOutlined}
           title="选择一张本地图片"
           desc="支持系统图片选择器返回的本地 URI；取消选择不会产生错误。"
         />
@@ -97,7 +98,7 @@ export function DecodeImageShowcaseScreen({
 
       {snapshot.phase === 'empty' ? (
         <Empty
-          icon="scan"
+          icon={ScanOutlined}
           title="图片中未识别到条码"
           desc="图片已成功加载，这是正常的空结果，可换一张图片重试。"
         />

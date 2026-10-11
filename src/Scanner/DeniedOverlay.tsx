@@ -1,3 +1,7 @@
+import {
+  PermissionDeniedOutlined,
+  SettingsOutlined,
+} from '@unif/react-native-icons';
 import { StyleSheet, View } from 'react-native';
 import {
   Button,
@@ -18,7 +22,7 @@ export function DeniedOverlay({ onClose, onSettings }: DeniedOverlayProps) {
   return (
     <View style={s.overlay}>
       <Empty
-        icon="permission-denied"
+        icon={PermissionDeniedOutlined}
         title="需要相机权限"
         desc="开启相机后，才能扫描条码与二维码。请前往系统设置授权。"
       />
@@ -31,7 +35,7 @@ export function DeniedOverlay({ onClose, onSettings }: DeniedOverlayProps) {
         <Button
           label="去设置开启"
           variant="primary"
-          leftIcon="settings"
+          leftIcon={SettingsOutlined}
           block
           onPress={onSettings}
         />

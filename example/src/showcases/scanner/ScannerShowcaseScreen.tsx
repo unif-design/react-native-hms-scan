@@ -1,3 +1,4 @@
+import { ScannerOutlined } from '@unif/react-native-icons';
 import {
   useCallback,
   useEffect,
@@ -177,7 +178,7 @@ export function ScannerShowcaseScreen({
           </View>
           <Button
             label="进入全屏 Scanner"
-            leftIcon="scanner"
+            leftIcon={ScannerOutlined}
             block
             onPress={() => dispatch({ type: 'enter' })}
           />

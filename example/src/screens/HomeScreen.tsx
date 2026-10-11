@@ -1,3 +1,8 @@
+import {
+  ImageOutlined,
+  ScanOutlined,
+  ScannerOutlined,
+} from '@unif/react-native-icons';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   EntryCard,
@@ -38,19 +43,19 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
 
       <View style={styles.entries}>
         <EntryCard
-          icon="scanner"
+          icon={ScannerOutlined}
           title="Scanner 成品页"
           sub="内置权限、状态机、取景框与确认卡"
           onPress={() => onNavigate({ name: 'scanner' })}
         />
         <EntryCard
-          icon="scan"
+          icon={ScanOutlined}
           title="HmsScanView 自定义页"
           sub="宿主自管 UI、权限、控制与结果状态"
           onPress={() => onNavigate({ name: 'headless' })}
         />
         <EntryCard
-          icon="image"
+          icon={ImageOutlined}
           title="decodeImage 图片识别"
           sub="选择本地图片并在设备上离线解码"
           onPress={() => onNavigate({ name: 'decode-image' })}

@@ -1,6 +1,7 @@
+import { FlashOffOutlined } from '@unif/react-native-icons';
 import { StyleSheet } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { Icon, ThemeProvider } from '@unif/react-native-design';
+import { ThemeProvider } from '@unif/react-native-design';
 import { ScanToolbar } from '../Scanner/ScanToolbar';
 
 test('pressing a toolbar action fades its icon without fading the native material ancestry', () => {
@@ -30,7 +31,7 @@ test('pressing a toolbar action fades its icon without fading the native materia
       ancestor = ancestor.parent;
     }
     expect(
-      StyleSheet.flatten(screen.UNSAFE_getByType(Icon).props.style)
+      StyleSheet.flatten(screen.UNSAFE_getByType(FlashOffOutlined).props.style)
     ).toMatchObject({
       opacity: 0.7,
     });
@@ -39,8 +40,8 @@ test('pressing a toolbar action fades its icon without fading the native materia
     act(() => jest.advanceTimersByTime(150));
     expect(onFlash).toHaveBeenCalledTimes(1);
     expect(
-      StyleSheet.flatten(screen.UNSAFE_getByType(Icon).props.style)?.opacity ??
-        1
+      StyleSheet.flatten(screen.UNSAFE_getByType(FlashOffOutlined).props.style)
+        ?.opacity ?? 1
     ).toBe(1);
   } finally {
     jest.useRealTimers();
