@@ -47,4 +47,6 @@ import { Scanner } from '@unif/react-native-hms-scan';
 
 外层 ThemeProvider 的颜色和字号自动继承。topInset/bottomInset 可显式指定；省略时使用所在窗口 SafeAreaProvider，无提供方时由局部 Provider 测量实际值。
 
+工具栏采用固定深色玻璃，结果卡和无结果浮层继承当前主题；系统降低透明度或设备不支持材质时使用实色回退。权限与相机错误页保持完整的主题背景。材质层不拦截按钮事件，也不改变图片读取与文件释放时机。
+
 完整输入与默认值见 [Scanner API](/docs/api/scanner)。
