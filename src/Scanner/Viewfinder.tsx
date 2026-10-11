@@ -1,6 +1,7 @@
+import { ScanOutlined } from '@unif/react-native-icons';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
-import { Icon, useColors, r } from '@unif/react-native-design';
+import { useColors, r } from '@unif/react-native-design';
 import { scanChrome } from './scanChrome';
 import { ScanHint } from './ScanHint';
 
@@ -35,14 +36,34 @@ export function Viewfinder({ size, detecting, hintText }: ViewfinderProps) {
     const ease = Easing.inOut(Easing.ease);
     const breathe = Animated.loop(
       Animated.sequence([
-        Animated.timing(scale, { toValue: 1.012, duration: 1300, easing: ease, useNativeDriver: true }),
-        Animated.timing(scale, { toValue: 1, duration: 1300, easing: ease, useNativeDriver: true }),
+        Animated.timing(scale, {
+          toValue: 1.012,
+          duration: 1300,
+          easing: ease,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: 1300,
+          easing: ease,
+          useNativeDriver: true,
+        }),
       ])
     );
     const reticle = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, { toValue: 0.55, duration: 900, easing: ease, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1, duration: 900, easing: ease, useNativeDriver: true }),
+        Animated.timing(pulse, {
+          toValue: 0.55,
+          duration: 900,
+          easing: ease,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 900,
+          easing: ease,
+          useNativeDriver: true,
+        }),
       ])
     );
     breathe.start();
@@ -67,7 +88,13 @@ export function Viewfinder({ size, detecting, hintText }: ViewfinderProps) {
             transform: [{ scale }],
             // spread 铺满全屏的纯色硬边阴影 = 圆角洞之外的暗化遮罩（blur 0 → 不晕开）。
             boxShadow: [
-              { offsetX: 0, offsetY: 0, blurRadius: 0, spreadDistance: 9999, color: c.scrim },
+              {
+                offsetX: 0,
+                offsetY: 0,
+                blurRadius: 0,
+                spreadDistance: 9999,
+                color: c.scrim,
+              },
             ],
           },
         ]}
@@ -77,7 +104,7 @@ export function Viewfinder({ size, detecting, hintText }: ViewfinderProps) {
           style={[styles.reticle, { borderColor: c.primary, opacity: pulse }]}
         />
         <View style={styles.crosshair}>
-          <Icon name="scan" size={r(30)} color={scanChrome.crosshair} />
+          <ScanOutlined size={r(30)} color={scanChrome.crosshair} />
         </View>
       </Animated.View>
 

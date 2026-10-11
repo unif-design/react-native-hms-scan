@@ -1,4 +1,9 @@
 import {
+  ErrorAlertOutlined,
+  PermissionDeniedOutlined,
+  ScanOutlined,
+} from '@unif/react-native-icons';
+import {
   useCallback,
   useEffect,
   useMemo,
@@ -117,7 +122,7 @@ export function HeadlessShowcaseScreen({
             {snapshot.permission === 'denied' ? (
               <>
                 <Empty
-                  icon="permission-denied"
+                  icon={PermissionDeniedOutlined}
                   title="需要相机权限"
                   desc="只有点击下方按钮后才会发起系统权限请求。"
                 />
@@ -132,7 +137,7 @@ export function HeadlessShowcaseScreen({
             {snapshot.permission === 'blocked' ? (
               <>
                 <Empty
-                  icon="permission-denied"
+                  icon={PermissionDeniedOutlined}
                   title="相机权限已被阻止"
                   desc="请在系统设置中允许相机权限，返回 App 后会重新检查。"
                 />
@@ -144,7 +149,7 @@ export function HeadlessShowcaseScreen({
             snapshot.needsPermissionRecheck ? (
               <>
                 <Empty
-                  icon="error-alert"
+                  icon={ErrorAlertOutlined}
                   title="相机权限检查失败"
                   desc="预览保持关闭，重新检查通过后才会挂载相机。"
                 />
@@ -287,7 +292,7 @@ export function HeadlessShowcaseScreen({
           {snapshot.paused && snapshot.results.length > 0 ? (
             <Button
               label="继续扫描"
-              leftIcon="scan"
+              leftIcon={ScanOutlined}
               block
               onPress={() => controller.dispatch({ type: 'retry' })}
             />

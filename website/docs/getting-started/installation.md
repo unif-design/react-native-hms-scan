@@ -13,7 +13,7 @@ description: '安装依赖，配置原生权限、构建环境与宿主接线。
 | 要求         | 版本                                                |
 | ------------ | --------------------------------------------------- |
 | React Native | **新架构(Fabric + TurboModules)必须开启**           |
-| React        | `>=19.2.3 <20.0.0`                                   |
+| React        | `>=19.2.3 <20.0.0`                                  |
 | Android      | **minSdkVersion ≥ 24**(Android 7.0)                 |
 | iOS          | 随宿主 RN 工程最低版本;原生构建和运行**仅支持真机** |
 
@@ -29,7 +29,7 @@ description: '安装依赖，配置原生权限、构建环境与宿主接线。
 
 ```sh
 yarn add @unif/react-native-hms-scan \
-  '@unif/react-native-design@>=0.41.0' react-native-svg \
+  '@unif/react-native-design@>=1.0.0' react-native-svg \
   '@callstack/liquid-glass@0.8.2' \
   react-native-gesture-handler react-native-reanimated \
   react-native-reanimated-carousel react-native-safe-area-context \
@@ -40,15 +40,16 @@ yarn add @unif/react-native-hms-scan \
 
 各包的作用与版本约束:
 
-| 包                                 | 版本约束         | 作用                                                 |
-| ---------------------------------- | ---------------- | ---------------------------------------------------- |
-| `@unif/react-native-design`        | `>=0.41.0`       | `<Scanner>` 的主题、取景框、工具栏、结果卡全用它绘制 |
-| `react-native-svg`                 | `>=15`           | `<Scanner>` 图标                                     |
-| `@callstack/liquid-glass`    | `>=0.8.2 <0.9.0`            | Design Liquid Glass 原生材质                                    |
-| `react-native-gesture-handler`     | `>=3.0.0 <4.0.0`       | design / 手势                                        |
-| `react-native-reanimated`          | `>=4.5.2 <4.7.0`        | design 动画                                          |
-| `react-native-reanimated-carousel` | `>=5.0.0 <6.0.0` | design 组件依赖                                      |
-| `react-native-safe-area-context`   | `>=5.0.0`        | 安全区适配                                           |
+| 包                                 | 版本约束           | 作用                                                 |
+| ---------------------------------- | ------------------ | ---------------------------------------------------- |
+| `@unif/react-native-icons`         | `>=0.1.0`          | 独立命名图标组件                                     |
+| `@unif/react-native-design`        | `>=1.0.0`          | `<Scanner>` 的主题、取景框、工具栏、结果卡全用它绘制 |
+| `react-native-svg`                 | `>=15`             | `<Scanner>` 图标                                     |
+| `@callstack/liquid-glass`          | `>=0.8.2 <0.9.0`   | Design Liquid Glass 原生材质                         |
+| `react-native-gesture-handler`     | `>=3.0.0 <4.0.0`   | design / 手势                                        |
+| `react-native-reanimated`          | `>=4.5.2 <4.7.0`   | design 动画                                          |
+| `react-native-reanimated-carousel` | `>=5.0.0 <6.0.0`   | design 组件依赖                                      |
+| `react-native-safe-area-context`   | `>=5.0.0`          | 安全区适配                                           |
 | `react-native-worklets`            | `>=0.11.0 <0.13.0` | reanimated 4 的 worklet 运行时                       |
 
 :::note 为什么扫码库要装这么多 UI 包

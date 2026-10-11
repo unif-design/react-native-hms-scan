@@ -1,3 +1,4 @@
+import { ErrorAlertOutlined } from '@unif/react-native-icons';
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import {
@@ -51,7 +52,7 @@ export function ResultFail({ bottomInset, failed, onRescan }: ResultFailProps) {
         <View style={s.grabber} />
         <View style={[styles.inner, { paddingBottom: bottomInset + r(14) }]}>
           <Empty
-            icon="error-alert"
+            icon={ErrorAlertOutlined}
             title={failed ? '图片识别失败' : '未识别到条码'}
             desc={
               failed
