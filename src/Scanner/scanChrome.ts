@@ -4,12 +4,6 @@ export const scanChrome = {
   /** 相机未就绪时的底色（深色实景占位）。 */
   cameraBg: '#0c0b0a',
   white: '#FFFFFF',
-  /** 顶栏关闭键玻璃底。 */
-  glassDisc: 'rgba(20,18,16,0.42)',
-  /** 工具栏未点亮玻璃底。 */
-  glassDisc2: 'rgba(28,26,24,0.5)',
-  glassBorder: 'rgba(255,255,255,0.16)',
-  glassBorderActive: 'rgba(255,255,255,0.25)',
   /** 取景提示文字。 */
   hintText: 'rgba(255,255,255,0.86)',
   toolbarLabel: 'rgba(255,255,255,0.82)',

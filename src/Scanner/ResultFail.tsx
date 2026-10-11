@@ -3,6 +3,7 @@ import { Animated, StyleSheet, View } from 'react-native';
 import {
   Button,
   Empty,
+  GlassLayer,
   useThemedStyles,
   r,
   type ColorTokens,
@@ -45,24 +46,34 @@ export function ResultFail({ bottomInset, failed, onRescan }: ResultFailProps) {
         },
       ]}
     >
-      <View style={s.grabber} />
-      <View style={[styles.inner, { paddingBottom: bottomInset + r(14) }]}>
-        <Empty
-          icon="error-alert"
-          title={failed ? '图片识别失败' : '未识别到条码'}
-          desc={
-            failed
-              ? '无法读取或解码图片，请重试。'
-              : '请将条码完整置于框内、保持平整并对准光线后重试。'
-          }
-        />
-        <Button label="重扫" variant="primary" block onPress={onRescan} />
+      <View style={styles.surface}>
+        <GlassLayer style={styles.glass} testID="scan-failure-glass" />
+        <View style={s.grabber} />
+        <View style={[styles.inner, { paddingBottom: bottomInset + r(14) }]}>
+          <Empty
+            icon="error-alert"
+            title={failed ? '图片识别失败' : '未识别到条码'}
+            desc={
+              failed
+                ? '无法读取或解码图片，请重试。'
+                : '请将条码完整置于框内、保持平整并对准光线后重试。'
+            }
+          />
+          <Button label="重扫" variant="primary" block onPress={onRescan} />
+        </View>
       </View>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  glass: { borderTopLeftRadius: r(20), borderTopRightRadius: r(20) },
+  surface: {
+    borderTopLeftRadius: r(20),
+    borderTopRightRadius: r(20),
+    paddingTop: r(10),
+    overflow: 'hidden',
+  },
   inner: { paddingHorizontal: r(18), paddingTop: r(8), rowGap: r(16) },
 });
 
@@ -74,10 +85,8 @@ const makeStyles = (c: ColorTokens, shadow: ShadowTokens) =>
       right: 0,
       bottom: 0,
       zIndex: 50,
-      backgroundColor: c.surface,
       borderTopLeftRadius: r(20),
       borderTopRightRadius: r(20),
-      paddingTop: r(10),
       ...shadow.floating,
     },
     grabber: {

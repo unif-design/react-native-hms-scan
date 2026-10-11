@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   Icon,
+  GlassLayer,
+  darkColors,
   useColors,
   r,
   rf,
@@ -61,6 +63,7 @@ function ToolbarItem({
   onPress: () => void;
 }) {
   const s = useThemedStyles(makeTextStyles);
+  const c = useColors();
   return (
     <Pressable
       onPress={onPress}
@@ -73,19 +76,22 @@ function ToolbarItem({
           <View
             style={[
               styles.circle,
-              activeColor
-                ? {
-                    backgroundColor: activeColor,
-                    borderColor: scanChrome.glassBorderActive,
-                  }
-                : {
-                    backgroundColor: scanChrome.glassDisc2,
-                    borderColor: scanChrome.glassBorder,
-                  },
-              pressed && { opacity: 0.7 },
+              activeColor ? { backgroundColor: activeColor } : undefined,
             ]}
           >
-            <Icon name={icon} size={r(23)} color={scanChrome.white} />
+            {!activeColor && (
+              <GlassLayer
+                colorScheme="dark"
+                style={styles.glass}
+                testID="scan-toolbar-glass"
+              />
+            )}
+            <Icon
+              name={icon}
+              size={r(23)}
+              color={activeColor ? c.onPrimary : scanChrome.white}
+              style={pressed && { opacity: 0.7 }}
+            />
           </View>
           <Text style={s.label}>{label}</Text>
         </>
@@ -105,6 +111,7 @@ const styles = StyleSheet.create({
     columnGap: r(40),
   },
   item: { width: r(72), alignItems: 'center', rowGap: r(7) },
+  glass: { borderRadius: 999 },
   circle: {
     width: r(54),
     height: r(54),
@@ -112,6 +119,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.glassBorder,
+    overflow: 'hidden',
   },
 });
 

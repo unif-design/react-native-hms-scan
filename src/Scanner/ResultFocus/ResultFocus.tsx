@@ -1,8 +1,7 @@
 import { ScrollView, Text, View } from 'react-native';
 import {
   Button,
-  Card,
-  useColors,
+  GlassLayer,
   useThemedStyles,
   r,
 } from '@unif/react-native-design';
@@ -16,16 +15,11 @@ export function ResultFocus({
   onRescan,
   onConfirm,
 }: ResultFocusProps) {
-  const colors = useColors();
   const themed = useThemedStyles(makeStyles);
   return (
-    <View style={[styles.wrap, { bottom: bottomInset + r(18) }]}>
-      <Card
-        borderColor={colors.primary}
-        borderWidth={2}
-        borderRadius={r(16)}
-        padding={r(14)}
-      >
+    <View style={[styles.wrap, themed.shadow, { bottom: bottomInset + r(18) }]}>
+      <View style={[styles.surface, themed.border]}>
+        <GlassLayer style={styles.glass} testID="scan-result-glass" />
         <Text style={themed.badge}>已识别</Text>
         <Text style={themed.format}>{result.format}</Text>
         <ScrollView style={styles.content}>
@@ -37,7 +31,7 @@ export function ResultFocus({
           <Button label="重扫" variant="secondary" block onPress={onRescan} />
           <Button label="选用" variant="primary" block onPress={onConfirm} />
         </View>
-      </Card>
+      </View>
     </View>
   );
 }
