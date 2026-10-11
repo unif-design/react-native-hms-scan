@@ -1,5 +1,19 @@
 # Changelog
 
+# [3.0.0](https://github.com/unif-design/react-native-hms-scan/compare/v2.2.0...v3.0.0) (2026-10-11)
+
+
+### Features
+
+* **icons:** consume named icon components ([002a2a0](https://github.com/unif-design/react-native-hms-scan/commit/002a2a0819ea1ff56af5c07238d3159ee88df2ea))
+
+
+### BREAKING CHANGES
+
+* **icons:** 宿主必须安装 `@unif/react-native-design >=1.0.0` 和 `@unif/react-native-icons >=0.1.0`。
+
+验证：正式依赖安装后的类型检查、Lint、20 suites / 150 tests，含 Android/iOS 接线校验、Bob 构建、文档生成器测试、Website 类型和构建均通过。本次未运行手机验收；原生构建由 PR CI 独立验证。
+
 # [2.2.0](https://github.com/unif-design/react-native-hms-scan/compare/v2.1.0...v2.2.0) (2026-10-11)
 
 
