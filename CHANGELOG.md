@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/unif-design/react-native-hms-scan/compare/v3.0.0...v3.0.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* support React Native 0.88 codegen ([5c39165](https://github.com/unif-design/react-native-hms-scan/commit/5c39165dfa54f52fa5a0c371e9b29a437ece9d20))
+
 # [3.0.0](https://github.com/unif-design/react-native-hms-scan/compare/v2.2.0...v3.0.0) (2026-10-11)
 
 
