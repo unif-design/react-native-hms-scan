@@ -47,10 +47,10 @@ yarn add @unif/react-native-hms-scan \
 | `react-native-svg`                 | `>=15`             | `<Scanner>` 图标                                     |
 | `@callstack/liquid-glass`          | `>=0.8.2 <0.9.0`   | Design Liquid Glass 原生材质                         |
 | `react-native-gesture-handler`     | `>=3.0.0 <4.0.0`   | design / 手势                                        |
-| `react-native-reanimated`          | `>=4.5.2 <4.7.0`   | design 动画                                          |
+| `react-native-reanimated`          | `>=4.5.2 <4.8.0`   | design 动画                                          |
 | `react-native-reanimated-carousel` | `>=5.0.0 <6.0.0`   | design 组件依赖                                      |
 | `react-native-safe-area-context`   | `>=5.0.0`          | 安全区适配                                           |
-| `react-native-worklets`            | `>=0.11.0 <0.13.0` | reanimated 4 的 worklet 运行时                       |
+| `react-native-worklets`            | `>=0.11.0 <0.14.0` | reanimated 4 的 worklet 运行时                       |
 
 :::note 为什么扫码库要装这么多 UI 包
 这些 peerDeps 几乎都是**成品 `<Scanner>`** 间接需要的:`<Scanner>` 的取景框 / 工具栏 / 结果卡全部复用 [`@unif/react-native-design`](https://www.npmjs.com/package/@unif/react-native-design),而 design 自身依赖 `react-native-reanimated` / `react-native-gesture-handler` 等。即便你只用 headless `<HmsScanView>` 或 `decodeImage`,这些仍是声明的 peer —— 装齐即可,通常项目里已有大半。宿主若需要 toast,可自行在 App 根部挂载 `ToastHost`。

@@ -1,9 +1,8 @@
-import type { ViewProps } from 'react-native';
-import type {
-  DirectEventHandler,
-  WithDefault,
-} from 'react-native/Libraries/Types/CodegenTypes';
-import codegenNativeComponent from 'react-native/Libraries/Utilities/codegenNativeComponent';
+import {
+  codegenNativeComponent,
+  type CodegenTypes,
+  type ViewProps,
+} from 'react-native';
 
 // RN codegen Fabric 组件规范（注册名 "HmsScanView"）。
 // 事件 payload 都用基础类型 / 单字符串，绕开 codegen 对复杂事件结构的限制：
@@ -30,17 +29,17 @@ type TorchStateEvent = Readonly<{
 
 export interface NativeProps extends ViewProps {
   /** 限定码制（逗号分隔的 ScanFormat），空串 = 全部。 */
-  formatsCsv?: WithDefault<string, ''>;
+  formatsCsv?: CodegenTypes.WithDefault<string, ''>;
   /** 连续扫码（命中后继续，不自动停）。 */
-  continuous?: WithDefault<boolean, true>;
+  continuous?: CodegenTypes.WithDefault<boolean, true>;
   /** 暂停/恢复扫码（命中后想停在结果卡时用）。 */
-  paused?: WithDefault<boolean, false>;
+  paused?: CodegenTypes.WithDefault<boolean, false>;
   /** 手电筒（Android 直接控制；iOS 走 AVCaptureDevice 尽力补）。 */
-  torch?: WithDefault<boolean, false>;
+  torch?: CodegenTypes.WithDefault<boolean, false>;
 
-  onScanResult?: DirectEventHandler<ScanResultEvent>;
-  onScanError?: DirectEventHandler<ScanErrorEvent>;
-  onTorchState?: DirectEventHandler<TorchStateEvent>;
+  onScanResult?: CodegenTypes.DirectEventHandler<ScanResultEvent>;
+  onScanError?: CodegenTypes.DirectEventHandler<ScanErrorEvent>;
+  onTorchState?: CodegenTypes.DirectEventHandler<TorchStateEvent>;
 }
 
 export default codegenNativeComponent<NativeProps>('HmsScanView');

@@ -47,11 +47,11 @@ const expectedPublicPeerDependencies = {
   'react': '>=19.2.3 <20.0.0',
   'react-native': '>=0.86.0',
   'react-native-gesture-handler': '>=3.0.0 <4.0.0',
-  'react-native-reanimated': '>=4.5.2 <4.7.0',
+  'react-native-reanimated': '>=4.5.2 <4.8.0',
   'react-native-reanimated-carousel': '>=5.0.0 <6.0.0',
   'react-native-safe-area-context': '>=5.0.0',
   'react-native-svg': '>=15',
-  'react-native-worklets': '>=0.11.0 <0.13.0',
+  'react-native-worklets': '>=0.11.0 <0.14.0',
 };
 
 function assertExactDependencies(manifest, field, manifestPath, expected) {
