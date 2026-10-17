@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.2](https://github.com/unif-design/react-native-hms-scan/compare/v3.0.1...v3.0.2) (2026-10-17)
+
+
+### Bug Fixes
+
+* align RN 0.88 hosts and harden scan result handling ([#83](https://github.com/unif-design/react-native-hms-scan/issues/83)) ([097c34c](https://github.com/unif-design/react-native-hms-scan/commit/097c34cd42aee0bfaa9fb2bcd3824e58268a6f41))
+
 ## [3.0.1](https://github.com/unif-design/react-native-hms-scan/compare/v3.0.0...v3.0.1) (2026-10-16)
 
 
