@@ -12,12 +12,13 @@ class ThemedReactContext(
 }
 
 object UIManagerHelper {
+  var available = true
   val events = mutableListOf<com.facebook.react.uimanager.events.Event<*>>()
 
   fun getEventDispatcherForReactTag(
     context: ThemedReactContext,
     tag: Int,
-  ) = Dispatcher()
+  ): Dispatcher? = if (available) Dispatcher() else null
 
   class Dispatcher {
     fun dispatchEvent(event: com.facebook.react.uimanager.events.Event<*>) {

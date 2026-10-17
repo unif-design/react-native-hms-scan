@@ -247,7 +247,7 @@
   // Primary key is `text`; tolerate a couple of alternates defensively.
   for (NSString *key in @[ @"text", @"originalValue", @"showText", @"value" ]) {
     id v = dict[key];
-    if ([v isKindOfClass:[NSString class]] && v != nil) {
+    if ([v isKindOfClass:[NSString class]]) {
       return (NSString *)v;
     }
   }
@@ -304,9 +304,9 @@
   if (![results isKindOfClass:[NSArray class]] || ![NSJSONSerialization isValidJSONObject:results]) {
     [NSException raise:@"HmsInvalidResponse" format:@"ScanKit result cannot be serialized"];
   }
-  NSError *error = nil;
-  NSData *data = [NSJSONSerialization dataWithJSONObject:results options:0 error:&error];
-  if (data == nil || error != nil) {
+  // Foundation reports serialization failure through its nil return value.
+  NSData *data = [NSJSONSerialization dataWithJSONObject:results options:0 error:NULL];
+  if (data == nil) {
     [NSException raise:@"HmsInvalidResponse" format:@"ScanKit result cannot be serialized"];
   }
   NSString *json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];

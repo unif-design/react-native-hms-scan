@@ -332,3 +332,38 @@ describe('createHeadlessController external store', () => {
     });
   });
 });
+
+it.each(['check', 'request', 'openSettings'] as const)(
+  'ignores an obsolete %s rejection after a later permission operation',
+  async (operation) => {
+    const pending = deferred<ScanCameraPermission>();
+    const deps = createDeps();
+    if (operation === 'check') deps.getStatus = () => pending.promise;
+    else if (operation === 'request') deps.request = () => pending.promise;
+    else
+      deps.openSettings = async () => {
+        await pending.promise;
+      };
+    const controller = createHeadlessController(deps);
+    const old = controller[operation]();
+    if (operation === 'request') await controller.check();
+    else await controller.request();
+    pending.reject(new Error('obsolete'));
+    await old;
+    expect(controller.getSnapshot()).toMatchObject({
+      permission: 'granted',
+      shouldMountView: true,
+    });
+  }
+);
+
+it('normalizes non-Error permission failures without inventing a native reason', async () => {
+  const controller = createHeadlessController(
+    createDeps({ getStatus: () => Promise.reject(null) })
+  );
+  await controller.check();
+  expect(controller.getSnapshot().error).toEqual({
+    reason: 'unavailable',
+    message: '检查相机权限失败',
+  });
+});

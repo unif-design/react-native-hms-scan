@@ -126,7 +126,7 @@ test('Android integration matches React Native lock entries instead of unrelated
         [
           '@unif/react-native-design',
           {
-            version: '1.0.0',
+            version: '1.6.2',
             peerDependencies: {
               'react-native-gesture-handler': '>=3.0.0 <4.0.0',
             },
@@ -158,7 +158,7 @@ test('Android integration matches React Native lock entries instead of unrelated
     Object.assign(rootPackage.devDependencies, {
       '@babel/core': '^7.25.2',
       '@eslint/js': '^8.57.1',
-      '@react-native/metro-config': '0.86.3',
+      '@react-native/metro-config': '0.88.0',
       'eslint': '^8.57.1',
     });
     await writeFile(
@@ -169,22 +169,22 @@ test('Android integration matches React Native lock entries instead of unrelated
     const websitePackage = {
       dependencies: {
         '@callstack/liquid-glass': '0.8.2',
-        '@unif/react-native-design': '>=1.0.0',
-        '@unif/react-native-icons': '>=0.1.0',
+        '@unif/react-native-design': '^1.6.2',
+        '@unif/react-native-icons': '^0.4.1',
         '@unif/react-native-hms-scan': 'workspace:*',
-        'react': '19.2.3',
-        'react-dom': '19.2.3',
-        'react-native': '0.86.3',
+        'react': '19.3.0',
+        'react-dom': '19.3.0',
+        'react-native': '0.88.0',
         'react-native-gesture-handler': '^3.1.0',
-        'react-native-reanimated': '^4.6.0',
+        'react-native-reanimated': '4.7.1',
         'react-native-reanimated-carousel': '^5.0.0',
         'react-native-safe-area-context': '^5.7.0',
-        'react-native-svg': '^15.15.5',
-        'react-native-worklets': '^0.12.1',
+        'react-native-svg': '15.16.0',
+        'react-native-worklets': '0.13.0',
       },
       devDependencies: {
         '@babel/core': '^7.25.2',
-        '@react-native/metro-config': '0.86.3',
+        '@react-native/metro-config': '0.88.0',
         '@types/react': '^19.2.0',
       },
     };
@@ -194,9 +194,9 @@ test('Android integration matches React Native lock entries instead of unrelated
       `${JSON.stringify(websitePackage, null, 2)}\n`
     );
 
-    const safeLockfile = `"react-native@npm:0.86.3":
-  version: 0.86.3
-  resolution: "react-native@npm:0.86.3"
+    const safeLockfile = `"react-native@npm:0.88.0":
+  version: 0.88.0
+  resolution: "react-native@npm:0.88.0"
 
 "unrelated-tool@npm:0.85.3":
   version: 0.85.3
@@ -240,7 +240,7 @@ test('Android integration matches React Native lock entries instead of unrelated
       `${JSON.stringify(rootPackage, null, 2)}\n`
     );
     const mutatedLockfile = safeLockfile.replaceAll(
-      'react-native@npm:0.86.3',
+      'react-native@npm:0.88.0',
       'react-native@npm:0.85.3'
     );
     await writeFile(join(fixtureRoot, 'yarn.lock'), mutatedLockfile);

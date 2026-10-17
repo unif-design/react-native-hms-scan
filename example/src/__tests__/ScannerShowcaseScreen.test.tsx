@@ -224,3 +224,10 @@ describe('ScannerShowcaseScreen', () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 });
+
+it('selecting a format preset reaches the scanner through the real selector', () => {
+  const { getScannerProps } = renderWithScanner();
+  fireEvent.press(screen.getByText('二维码'));
+  fireEvent.press(screen.getByRole('button', { name: '进入全屏 Scanner' }));
+  expect(getScannerProps()?.formats).toEqual(['QR_CODE']);
+});

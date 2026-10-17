@@ -179,3 +179,62 @@ test('permission read failures are errors rather than denied', async () => {
     sourceCode: 'E_NO_ACTIVITY',
   });
 });
+
+test.each([undefined, { uri: 7 }, { uri: 'file:///tmp/%GG.jpg' }])(
+  'rejects malformed decode input %p',
+  async (input) => {
+    await expect(decodeImage(input as never)).rejects.toMatchObject({
+      reason: 'invalid_input',
+    });
+    expect(native.decodeImage).not.toHaveBeenCalled();
+  }
+);
+
+test.each(['denied', 'undetermined'])(
+  'preserves authoritative permission %s',
+  async (status) => {
+    native.getCameraPermissionStatus.mockResolvedValueOnce(status);
+    await expect(getCameraPermissionStatus()).resolves.toBe(status);
+  }
+);
+
+test.each([
+  undefined,
+  null,
+  'failure',
+  3,
+  {},
+  { code: 4 },
+  { code: 'UNKNOWN_VENDOR' },
+])('normalizes incomplete native errors %p', async (error) => {
+  native.decodeImage.mockRejectedValueOnce(error);
+  await expect(decodeImage({ uri: 'file:///tmp/a.jpg' })).rejects.toMatchObject(
+    { reason: 'decode_failed', message: '图片识别失败' }
+  );
+});
+
+test('view events remain safe without optional callbacks and forward native errors', () => {
+  const view = render(<HmsScanView testID="native-view" />);
+  for (const resultsJson of ['[]', '{}'])
+    fireEvent(view.getByTestId('native-view'), 'scanResult', {
+      nativeEvent: { resultsJson },
+    });
+  fireEvent(view.getByTestId('native-view'), 'scanError', {
+    nativeEvent: { code: 'E_CAMERA_INIT' },
+  });
+  fireEvent(view.getByTestId('native-view'), 'torchState', {
+    nativeEvent: { on: false },
+  });
+  const onScanError = jest.fn();
+  view.rerender(<HmsScanView testID="native-view" onScanError={onScanError} />);
+  fireEvent(view.getByTestId('native-view'), 'scanError', {
+    nativeEvent: { code: 'E_CAMERA_INIT', message: 'camera failed' },
+  });
+  expect(onScanError).toHaveBeenCalledWith(
+    expect.objectContaining({
+      sourceCode: 'E_CAMERA_INIT',
+      message: 'camera failed',
+    })
+  );
+  view.rerender(<HmsScanView formats={['UNKNOWN'] as never} />);
+});

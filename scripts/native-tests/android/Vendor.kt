@@ -14,6 +14,8 @@ object ScanUtil {
   var thread: String? = null
   var input: android.graphics.Bitmap? = null
   var fail = false
+  var failure: Throwable? = null
+  var response: Array<com.huawei.hms.ml.scan.HmsScan?>? = null
 
   fun decodeWithBitmap(
     context: android.content.Context,
@@ -24,6 +26,8 @@ object ScanUtil {
     input = bitmap
     entered?.countDown()
     check(release?.await(5, java.util.concurrent.TimeUnit.SECONDS) != false) { "blocked SDK timed out" }
+    failure?.let { throw it }
+    response?.let { return it }
     if (fail) throw IllegalStateException("vendor failure")
     return if (bitmap.width.toLong() * bitmap.height > 52_428_800L) {
       emptyArray()
@@ -41,16 +45,25 @@ class RemoteView {
     var throwsOnSwitchLight = false
     var rejectsSwitchLight = false
     var switchLightCalls = 0
+    val instances = mutableListOf<RemoteView>()
+    var failureOnBuild: Throwable? = null
+    var failureOnPause: Throwable? = null
+    var failureOnDestroy: Throwable? = null
+    var failureOnReadLight: Throwable? = null
   }
 
-  var lightStatus = false
+  private var light = false
+  var lightStatus: Boolean
+    get() { failureOnReadLight?.let { throw it }; return light }
+    set(value) { light = value }
+  var lightCallback: OnLightVisibleCallBack? = null
   var result: OnResultCallback? = null
 
   fun setOnResultCallback(cb: OnResultCallback) {
     result = cb
   }
 
-  fun setOnLightVisibleCallback(cb: OnLightVisibleCallBack) {}
+  fun setOnLightVisibleCallback(cb: OnLightVisibleCallBack) { lightCallback = cb }
 
   fun onCreate(bundle: android.os.Bundle) {}
 
@@ -62,11 +75,11 @@ class RemoteView {
 
   fun onStop() {}
 
-  fun onDestroy() {}
+  fun onDestroy() { failureOnDestroy?.let { throw it } }
 
-  fun pauseContinuouslyScan() {}
+  fun pauseContinuouslyScan() { failureOnPause?.let { throw it } }
 
-  fun resumeContinuouslyScan() {}
+  fun resumeContinuouslyScan() { failureOnPause?.let { throw it } }
 
   fun switchLight(): Boolean {
     switchLightCalls++
@@ -88,6 +101,6 @@ class RemoteView {
       vararg rest: Int,
     ) = this
 
-    fun build() = RemoteView()
+    fun build(): RemoteView { failureOnBuild?.let { throw it }; return RemoteView().also { instances.add(it) } }
   }
 }

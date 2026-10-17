@@ -2,8 +2,13 @@
 #import <AVFoundation/AVFoundation.h>
 #import <React/RCTViewComponentView.h>
 #import <ScanKitFrameWork/ScanKitFrameWork.h>
+BOOL failNextViewInitialization = NO;
 @implementation UIView
 - (instancetype)initWithFrame:(CGRect)frame {
+  if (failNextViewInitialization) {
+    failNextViewInitialization = NO;
+    return nil;
+  }
   if (self = [super init]) {
     self.frame = frame;
     self.bounds = frame;
@@ -28,6 +33,7 @@
 - (void)removeFromParentViewController {
 }
 @end
+BOOL parentControllerAvailable = YES;
 @implementation RCTViewComponentView
 - (instancetype)initWithFrame:(CGRect)frame {
   if (self = [super initWithFrame:frame])
@@ -40,12 +46,28 @@
 }
 - (void)prepareForRecycle {
 }
+- (void)updateEventEmitter:(const facebook::react::EventEmitter::Shared &)eventEmitter {
+  _eventEmitter = eventEmitter;
+}
 - (UIViewController *)reactViewController {
-  return [UIViewController new];
+  return parentControllerAvailable ? [UIViewController new] : nil;
 }
 @end
+AVAuthorizationStatus authorizationStatus = AVAuthorizationStatusNotDetermined;
+AVAuthorizationStatus authorizationAfterRequest = AVAuthorizationStatusAuthorized;
+int authorizationRequests = 0;
+BOOL captureDeviceAvailable = YES;
+AVCaptureDevice *captureDeviceOverride = nil;
 @implementation AVCaptureDevice
++ (AVAuthorizationStatus)authorizationStatusForMediaType:(NSString *)type { return authorizationStatus; }
++ (void)requestAccessForMediaType:(NSString *)type completionHandler:(void (^)(BOOL))handler {
+  authorizationRequests++;
+  authorizationStatus = authorizationAfterRequest;
+  handler(authorizationStatus == AVAuthorizationStatusAuthorized);
+}
 + (instancetype)defaultDeviceWithMediaType:(NSString *)type {
+  if (!captureDeviceAvailable) return nil;
+  if (captureDeviceOverride != nil) return captureDeviceOverride;
   static AVCaptureDevice *device;
   static dispatch_once_t once;
   dispatch_once(&once, ^{
@@ -66,7 +88,7 @@
 - (void)unlockForConfiguration {
 }
 - (BOOL)isTorchModeSupported:(AVCaptureTorchMode)mode {
-  return YES;
+  return !self.unsupportedTorchMode;
 }
 @end
 @implementation AVCaptureDeviceDiscoverySession
@@ -74,13 +96,16 @@
                                       mediaType:(NSString *)type
                                        position:(NSInteger)position {
   AVCaptureDeviceDiscoverySession *session = [self new];
-  session.devices = @[ [AVCaptureDevice defaultDeviceWithMediaType:type] ];
+  AVCaptureDevice *device = [AVCaptureDevice defaultDeviceWithMediaType:type];
+  session.devices = device ? @[ device ] : @[];
   return session;
 }
 @end
 int controllersCreated = 0;
+unsigned int lastDecodeFormats = 0;
 @implementation HmsScanOptions
 - (instancetype)initWithScanFormatType:(unsigned int)format Photo:(BOOL)photo {
+  lastDecodeFormats = format;
   return [super init];
 }
 @end
@@ -94,23 +119,17 @@ int controllersCreated = 0;
 - (void)resumeContinuouslyScan {
 }
 @end
-@implementation HmsScanResultMapper
-+ (NSString *)unsupportedFormatInCsv:(NSString *)csv {
-  return nil;
+
+@implementation UIImage
++ (instancetype)imageWithContentsOfFile:(NSString *)path {
+  return [[NSFileManager defaultManager] fileExistsAtPath:path] ? [self new] : nil;
 }
-+ (unsigned int)scanFormatTypeFromCsv:(NSString *)csv {
-  return 0;
-}
-+ (NSDictionary *)scanResultFromHuaweiDict:(NSDictionary *)value {
-  return value;
-}
-+ (NSArray *)scanResultsFromHuaweiArray:(NSArray *)value {
-  return value;
-}
-+ (NSString *)jsonStringFromScanResults:(NSArray *)value {
-  return @"[]";
-}
-+ (NSString *)jsonStringFromHuaweiArray:(NSArray *)value {
-  return @"[]";
+@end
+NSArray *decodeResults = @[];
+NSException *decodeException = nil;
+@implementation HmsBitMap
++ (NSArray *)multiDecodeBitMapForImage:(UIImage *)image withOptions:(HmsScanOptions *)options {
+  if (decodeException != nil) @throw decodeException;
+  return decodeResults;
 }
 @end

@@ -143,7 +143,8 @@ class HmsScanView(
           .setContinuouslyScan(continuous)
 
       val types = HmsScanResultMapper.parseFormatsCsv(formatsCsv)
-      if (types != null && types.isNotEmpty()) {
+      // parseFormatsCsv returns null when no supported formats remain.
+      if (types != null) {
         val first = types.first()
         val rest = if (types.size > 1) types.copyOfRange(1, types.size) else IntArray(0)
         builder.setFormat(first, *rest)
@@ -252,7 +253,8 @@ class HmsScanView(
       try {
         HmsScanResultMapper.toJson(result)
       } catch (error: InvalidScanResponse) {
-        emitError("E_INVALID_RESPONSE", error.message ?: "Invalid scan result")
+        // The mapper's sole InvalidScanResponse throw supplies a literal message.
+        emitError("E_INVALID_RESPONSE", error.message!!)
         return
       }
     // A batch containing only null vendor entries has no result to emit.

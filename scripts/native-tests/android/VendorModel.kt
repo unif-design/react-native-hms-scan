@@ -1,13 +1,18 @@
 package com.huawei.hms.ml.scan
 
-class HmsScan {
-  fun getOriginalValue(): String? = "code"
+class HmsScan(
+  val value: String? = "code",
+  val type: Int = QRCODE_SCAN_TYPE,
+  val form: Int = PURE_TEXT_FORM,
+  val points: Array<android.graphics.Point?>? = arrayOf(android.graphics.Point(10, 20)),
+) {
+  fun getOriginalValue(): String? = value
 
-  fun getScanType() = QRCODE_SCAN_TYPE
+  fun getScanType() = type
 
-  fun getScanTypeForm() = PURE_TEXT_FORM
+  fun getScanTypeForm() = form
 
-  fun getCornerPoints() = arrayOf(android.graphics.Point(10, 20))
+  fun getCornerPoints() = points
 
   companion object {
     const val ARTICLE_NUMBER_FORM = 2

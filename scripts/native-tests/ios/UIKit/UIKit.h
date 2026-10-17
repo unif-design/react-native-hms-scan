@@ -3,6 +3,7 @@
 #import <Foundation/Foundation.h>
 #define UIViewAutoresizingFlexibleWidth 1
 #define UIViewAutoresizingFlexibleHeight 2
+extern BOOL failNextViewInitialization;
 @interface UIView : NSObject
 @property CGRect frame;
 @property CGRect bounds;
@@ -17,4 +18,8 @@
 - (void)didMoveToParentViewController:(UIViewController *)parent;
 - (void)willMoveToParentViewController:(UIViewController *)parent;
 - (void)removeFromParentViewController;
+@end
+
+@interface UIImage : NSObject
++ (instancetype)imageWithContentsOfFile:(NSString *)path;
 @end

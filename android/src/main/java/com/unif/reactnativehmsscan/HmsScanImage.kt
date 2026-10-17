@@ -127,7 +127,9 @@ internal class HmsScanImage private constructor(
           (if (swapsAxes) width else height).toDouble() / bitmap.height,
         )
       } catch (error: Throwable) {
-        if (!bitmap.isRecycled) bitmap.recycle()
+        // This bitmap is still exclusively owned here; every successful recycle
+        // above immediately replaces it with the distinct upright bitmap.
+        bitmap.recycle()
         throw error
       }
     }

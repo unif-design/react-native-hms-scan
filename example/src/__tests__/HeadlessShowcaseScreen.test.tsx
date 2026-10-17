@@ -279,3 +279,55 @@ it('permission view error 立即卸载 probe 且复查失败前保持 fail-close
   expect(screen.queryByTestId('headless-preview')).not.toBeOnTheScreen();
   expect(getMountedInstances()).toEqual([1]);
 });
+
+it('renders absent and explicit torch/light capability reports', async () => {
+  const { getViewProps } = renderScreen();
+  await screen.findByTestId('headless-preview');
+  act(() =>
+    getViewProps()?.onTorchState?.({
+      on: false,
+      available: false,
+      lowLight: false,
+    })
+  );
+  expect(screen.getByText('手电硬件：否')).toBeTruthy();
+  expect(screen.getByText('暗光：否')).toBeTruthy();
+  act(() =>
+    getViewProps()?.onTorchState?.({
+      on: false,
+      available: true,
+      lowLight: true,
+    })
+  );
+  expect(screen.getByText('暗光：是')).toBeTruthy();
+});
+
+it('inactive lifecycle notifications do not recheck permission', async () => {
+  let listener: ((state: AppStateStatus) => void) | undefined;
+  jest
+    .spyOn(AppState, 'addEventListener')
+    .mockImplementation((_type, callback) => {
+      listener = callback;
+      return { remove: jest.fn() };
+    });
+  renderScreen();
+  await screen.findByTestId('headless-preview');
+  await act(async () => listener?.('background'));
+  expect(mockGetStatus).toHaveBeenCalledTimes(1);
+});
+
+it('late results cannot mount the preview while a permission recheck is still required', async () => {
+  const { getViewProps } = renderScreen();
+  await screen.findByTestId('headless-preview');
+  const previous = getViewProps()!;
+  act(() =>
+    previous.onScanError?.({
+      reason: 'permission_denied',
+      message: 'permission revoked',
+    })
+  );
+  expect(screen.queryByTestId('headless-preview')).toBeNull();
+  act(() => previous.onScanResult?.([qrResult]));
+  expect(screen.queryByTestId('headless-preview')).toBeNull();
+  expect(screen.getByRole('button', { name: '重新检查权限' })).toBeTruthy();
+});

@@ -82,3 +82,14 @@ describe('parseResultsJson', () => {
     expect(parseResultsJson(json)).toEqual([{ value: 'x', format: 'QR_CODE' }]);
   });
 });
+
+it('rejects non-string result payloads and filters every malformed corner', () => {
+  expect(() => parseResultsJson(null)).toThrow('原生扫码结果不符合约定');
+  expect(
+    parseResultsJson(
+      '[{"value":"value","format":"QR_CODE","cornerPoints":[null,{"x":1,"y":"bad"},{"x":1e999,"y":2},{"x":1,"y":1e999},{"x":2,"y":3}]}]'
+    )
+  ).toEqual([
+    { value: 'value', format: 'QR_CODE', cornerPoints: [{ x: 2, y: 3 }] },
+  ]);
+});

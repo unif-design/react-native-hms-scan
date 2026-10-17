@@ -170,3 +170,12 @@ describe('decodeReducer lifecycle', () => {
     });
   });
 });
+
+it('ignores repeated and older picker tokens', () => {
+  const state = decodeReducer(initialDecodeState, {
+    type: 'pickStarted',
+    token: 2,
+  });
+  expect(decodeReducer(state, { type: 'pickStarted', token: 2 })).toBe(state);
+  expect(decodeReducer(state, { type: 'pickStarted', token: 1 })).toBe(state);
+});

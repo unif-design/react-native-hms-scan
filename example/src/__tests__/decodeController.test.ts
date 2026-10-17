@@ -285,3 +285,14 @@ describe('createDecodeController external store', () => {
     expect(listener).toHaveBeenCalledTimes(3);
   });
 });
+
+it('reports the fallback message when the picker rejects a non-Error value', async () => {
+  const controller = createDecodeController(
+    createDeps({ pickImage: () => Promise.reject(null) })
+  );
+  await controller.pickAndDecode();
+  expect(controller.getSnapshot()).toMatchObject({
+    phase: 'error',
+    error: { kind: 'unexpected', message: '选择或识别图片失败' },
+  });
+});

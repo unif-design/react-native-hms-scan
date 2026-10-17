@@ -37,7 +37,9 @@ module.exports = function reactNativeWebPlugin(context) {
           // `website/src/clientModules/rn-globals.ts` 在 client boot 时 `window.global = window`
           // 真实注入(比 DefinePlugin 字面替换更稳;赋值/typeof 场景都能 handle)。
           new webpack.DefinePlugin({
-            __DEV__: JSON.stringify(!isServer ? process.env.NODE_ENV !== 'production' : false),
+            '__DEV__': JSON.stringify(
+              !isServer ? process.env.NODE_ENV !== 'production' : false
+            ),
             'process.env.JEST_WORKER_ID': JSON.stringify(undefined),
           }),
           // Worklets 0.12 的 Web 调度器在 Docusaurus SSG 的 Node runtime
@@ -63,7 +65,7 @@ module.exports = function reactNativeWebPlugin(context) {
               ) {
                 resource.request = rnghPressableShim;
               }
-            },
+            }
           ),
         ],
         // module.rules 必须 prepend，否则我们的 rule 会被 oneOf 短路掉。
@@ -89,7 +91,10 @@ module.exports = function reactNativeWebPlugin(context) {
             //  - 即便仓库内通过 yarn workspaces 把 npm 名 symlink 到本地源码,源码里又有 `@/*`
             //    barrel,也得让 webpack 解析到源码本体而非编译产物。
             //  - `$` 精确匹配,不影响 `@unif/react-native-hms-scan/<subpath>` 写法。
-            '@unif/react-native-hms-scan$': path.resolve(srcDir, 'index.web.tsx'),
+            '@unif/react-native-hms-scan$': path.resolve(
+              srcDir,
+              'index.web.tsx'
+            ),
           },
           // RNW / 多平台库会用 .web.js / .web.tsx 等后缀提供 web-specific 实现。
           extensions: [
@@ -106,6 +111,23 @@ module.exports = function reactNativeWebPlugin(context) {
         },
         module: {
           rules: [
+            {
+              // The registry forwards to RN Web 0.21.4 and mixes ESM with CommonJS.
+              test: /\.js$/,
+              include: path.dirname(
+                require.resolve('@react-native/assets-registry/registry')
+              ),
+              use: {
+                loader: require.resolve('babel-loader'),
+                options: {
+                  babelrc: false,
+                  configFile: false,
+                  plugins: [
+                    require.resolve('@babel/plugin-transform-modules-commonjs'),
+                  ],
+                },
+              },
+            },
             {
               test: /\.(tsx|ts|jsx|mjs|js)$/,
               include: [srcDir, rnPackagesPattern],

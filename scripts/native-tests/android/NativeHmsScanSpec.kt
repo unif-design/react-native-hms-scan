@@ -2,7 +2,7 @@ package com.unif.reactnativehmsscan
 
 abstract class NativeHmsScanSpec(
   val reactApplicationContext: com.facebook.react.bridge.ReactApplicationContext,
-) {
+) : com.facebook.react.bridge.NativeModule {
   val currentActivity get() = reactApplicationContext.currentActivity
 
   abstract fun getName(): String

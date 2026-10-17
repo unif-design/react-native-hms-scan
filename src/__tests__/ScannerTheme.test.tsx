@@ -1,4 +1,4 @@
-import { AppState, StyleSheet } from 'react-native';
+import { AccessibilityInfo, AppState, StyleSheet } from 'react-native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import {
   GlassLayer,
@@ -43,6 +43,10 @@ jest.mock('../HmsScanViewNativeComponent', () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Design uses a solid theme surface when the system requests reduced transparency.
+  jest
+    .spyOn(AccessibilityInfo, 'isReduceTransparencyEnabled')
+    .mockResolvedValue(true);
   jest
     .spyOn(AppState, 'addEventListener')
     .mockReturnValue({ remove: jest.fn() });

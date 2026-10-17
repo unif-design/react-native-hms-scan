@@ -79,3 +79,17 @@ describe('pickLocalImage', () => {
     await expect(pickLocalImage()).resolves.toBeNull();
   });
 });
+
+it.each([
+  [
+    { errorCode: 'permission', errorMessage: 'photo access denied' },
+    'photo access denied',
+  ],
+  [{ errorCode: 'others' }, 'others'],
+] as const)(
+  'rejects picker failure with its native message or code',
+  async (response, message) => {
+    mockLaunch.mockResolvedValueOnce(response);
+    await expect(pickLocalImage()).rejects.toThrow(message);
+  }
+);

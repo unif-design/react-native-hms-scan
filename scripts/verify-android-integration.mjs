@@ -28,16 +28,16 @@ const androidGradleProperties = read('example/android/gradle.properties');
 
 const sharedRuntimeDependencies = {
   '@callstack/liquid-glass': '0.8.2',
-  '@unif/react-native-design': '>=1.0.0',
-  '@unif/react-native-icons': '>=0.1.0',
-  'react': '19.2.3',
-  'react-native': '0.86.3',
+  '@unif/react-native-design': '^1.6.2',
+  '@unif/react-native-icons': '^0.4.1',
+  'react': '19.3.0',
+  'react-native': '0.88.0',
   'react-native-gesture-handler': '^3.1.0',
-  'react-native-reanimated': '^4.6.0',
+  'react-native-reanimated': '4.7.1',
   'react-native-reanimated-carousel': '^5.0.0',
   'react-native-safe-area-context': '^5.7.0',
-  'react-native-svg': '^15.15.5',
-  'react-native-worklets': '^0.12.1',
+  'react-native-svg': '15.16.0',
+  'react-native-worklets': '0.13.0',
 };
 
 const expectedPublicPeerDependencies = {
@@ -65,7 +65,7 @@ function assertExactDependencies(manifest, field, manifestPath, expected) {
 }
 
 function assertReactNativeLockfileResolution(contents) {
-  const expectedResolution = 'react-native@npm:0.86.3';
+  const expectedResolution = 'react-native@npm:0.88.0';
   const packageDescriptors = [
     ...contents.matchAll(/^"(react-native@npm:[^"]+)":$/gm),
   ].map(([, descriptor]) => descriptor);
@@ -89,12 +89,12 @@ assertExactDependencies(rootPackage, 'devDependencies', 'package.json', {
   ...sharedRuntimeDependencies,
   '@babel/core': '^7.25.2',
   '@eslint/js': '^8.57.1',
-  '@react-native/babel-preset': '0.86.3',
-  '@react-native/eslint-config': '0.86.3',
-  '@react-native/jest-preset': '0.86.3',
-  '@react-native/metro-config': '0.86.3',
+  '@react-native/babel-preset': '0.88.0',
+  '@react-native/eslint-config': '0.88.0',
+  '@react-native/jest-preset': '0.88.0',
+  '@react-native/metro-config': '0.88.0',
   'eslint': '^8.57.1',
-  'react-test-renderer': '19.2.3',
+  'react-test-renderer': '19.3.0',
 });
 assertExactDependencies(
   examplePackage,
@@ -113,7 +113,7 @@ assertExactDependencies(
   {
     ...sharedRuntimeDependencies,
     '@unif/react-native-hms-scan': 'workspace:*',
-    'react-dom': '19.2.3',
+    'react-dom': '19.3.0',
   }
 );
 assertExactDependencies(
@@ -122,7 +122,7 @@ assertExactDependencies(
   'website/package.json',
   {
     '@babel/core': '^7.25.2',
-    '@react-native/metro-config': '0.86.3',
+    '@react-native/metro-config': '0.88.0',
     '@types/react': '^19.2.0',
   }
 );
@@ -171,7 +171,7 @@ const installedCarousel = readPackageJson(
   'node_modules/react-native-reanimated-carousel/package.json'
 );
 
-assert.equal(installedDesign.version, '1.0.0');
+assert.equal(installedDesign.version, '1.6.2');
 assert.equal(
   installedDesign.peerDependencies['react-native-gesture-handler'],
   '>=3.0.0 <4.0.0'

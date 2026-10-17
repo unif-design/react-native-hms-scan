@@ -58,8 +58,8 @@ export function ExampleRouter() {
     return () => subscription.remove();
   }, [handleHardwareBack]);
 
-  const currentRoute =
-    navigation.stack[navigation.stack.length - 1] ?? homeRoute;
+  // Initial state and every reducer transition retain at least the home route.
+  const currentRoute = navigation.stack[navigation.stack.length - 1]!;
 
   switch (currentRoute.name) {
     case 'home':

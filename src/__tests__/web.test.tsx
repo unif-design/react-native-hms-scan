@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 jest.mock('../NativeHmsScan', () => {
   throw new Error('Web loaded TurboModule');
@@ -25,4 +25,21 @@ test('the browser entry loads without native modules and reports unsupported ope
       expect.objectContaining({ reason: 'unsupported' })
     )
   );
+});
+
+test('web Scanner reports unsupported once and exposes optional close', () => {
+  const { Scanner } = require('../Scanner/Scanner.web');
+  const onError = jest.fn();
+  const onClose = jest.fn();
+  const view = render(<Scanner onError={onError} onClose={onClose} />);
+  expect(onError).toHaveBeenCalledWith(
+    expect.objectContaining({ reason: 'unsupported' })
+  );
+  fireEvent.press(view.getByRole('button', { name: '返回' }));
+  expect(onClose).toHaveBeenCalledTimes(1);
+  view.rerender(<Scanner />);
+  expect(view.queryByRole('button')).toBeNull();
+  expect(onError).toHaveBeenCalledTimes(1);
+  view.unmount();
+  render(<Scanner />);
 });

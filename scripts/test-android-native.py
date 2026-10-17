@@ -11,6 +11,8 @@ import shutil
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
+from native.coverage_tools import jacoco_tools
+from native.check_library_coverage import main as check_coverage
 
 root = Path(__file__).resolve().parent.parent
 cache = (
@@ -58,10 +60,11 @@ java = (
 if not java:
     raise SystemExit("JDK 17+ is required; set JAVA_HOME")
 production = root / "android/src/main/java/com/unif/reactnativehmsscan"
-sources = [production / name for name in (
-    "HmsScanModule.kt", "HmsScanView.kt", "HmsScanResultMapper.kt", "HmsScanImage.kt"
-)]
+sources = sorted(production.glob("*.kt"))
 sources += sorted((root / "scripts/native-tests/android").glob("*.kt"))
+coverage = root / "coverage/native/android"
+coverage.mkdir(parents=True, exist_ok=True)
+agent, cli = jacoco_tools(root)
 with tempfile.TemporaryDirectory(prefix="hms-scan-native-") as target:
     command = [
         java, "-cp", os.pathsep.join(classpath),
@@ -71,5 +74,21 @@ with tempfile.TemporaryDirectory(prefix="hms-scan-native-") as target:
         "-d", target, *map(str, sources),
     ]
     subprocess.run(command, check=True)
-    result = subprocess.run([java, "-cp", target + os.pathsep + stdlib_jar, "HarnessKt"])
-    raise SystemExit(result.returncode)
+    result = subprocess.run([
+        java, "-javaagent:" + str(agent) + "=destfile=" + str(coverage / "jacoco.exec") + ",append=false",
+        "-cp", target + os.pathsep + stdlib_jar, "HarnessKt",
+    ])
+    report_classes = Path(target) / "report-classes"
+    report_classes.mkdir()
+    class_root = Path(target) / "com/unif/reactnativehmsscan"
+    for source in production.glob("*.kt"):
+        for compiled in class_root.glob(source.stem + "*.class"):
+            shutil.copy2(compiled, report_classes / compiled.name)
+    subprocess.run([
+        java, "-jar", str(cli), "report", str(coverage / "jacoco.exec"),
+        "--classfiles", str(report_classes), "--sourcefiles", str(production),
+        "--xml", str(coverage / "coverage.xml"), "--html", str(coverage / "html"),
+    ], check=True)
+    if result.returncode:
+        raise SystemExit(result.returncode)
+    check_coverage("android")
