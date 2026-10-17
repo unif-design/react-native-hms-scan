@@ -27,11 +27,15 @@
 
 ## 原生行为回归
 
-- `yarn test:native:android`：使用示例配置的 Kotlin 编译器执行真实生产类，Android/RN/厂商边界由窄测试替身提供。需 JDK 17 和正常 Android 构建已解析的 Gradle 缓存；首次可运行 `bash .github/ci/android.sh`，它先编译真实 Android 库。
-- `yarn test:native:ios`：macOS/Xcode 下编译真实 `HmsScanView.mm`，使用 Foundation KVO 和 UIKit/RN/相机/厂商边界替身，覆盖视图与手电生命周期。
+- `yarn test:coverage`：库和 example 的全部 JS/TS 运行源码，语句、分支、函数、行均设 100% 门禁。
+- `yarn test:native:android`：使用示例配置的 Kotlin 编译器执行全部六个生产文件，以 JaCoCo 0.8.13 测量。Android/RN/厂商边界由窄测试替身提供。需 JDK 17 和正常 Android 构建已解析的 Gradle 缓存；首次可运行 `bash .github/ci/android.sh`，它先编译真实 Android 库。JaCoCo 自动下载到 `node_modules/.cache/native-coverage` 并核验固定 SHA256，可设置 `JACOCO_HOME` 复用同版本的 agent/cli；下载或校验失败即阻断，代理使用 `HTTP_PROXY`/`HTTPS_PROXY`。
+- `yarn test:native:ios`：macOS/Xcode 下编译全部三个生产 `.mm`，以 LLVM profile instrumentation 测量。Foundation KVO、真实后台队列、CoreGraphics 与自有 mapper 实际运行，仅替换 UIKit/RN/相机/厂商边界。
+- `yarn test:example:native:android` 与 `yarn test:example:native:ios`：单独执行 example 全部原始宿主代码；iOS 同时执行 DEBUG/RELEASE。Swift 编译器未提供分支计数，明确记为 N/A，不转换成分支 100%。
 - 两项通过 `.github/ci/android.sh` 与 `ios.sh` 接入现有共享 CI 扩展钩子。普通 `yarn test` 保留 JS/集成契约测试入口。
 
 原生回归直接运行生产源码；不复制权限、图片队列或手电状态算法。替身不证明真实相机、图片编解码器、厂商识别率、驱动时序或设备峰值内存。测试范围和修复前后证据见[质量验证记录](scan-quality-verification.md)。
+
+原生脚本核对报告的完整源文件清单、记录源码 SHA256，并检查所有可测指标达到 100%。报告写入 `coverage/native/{android,ios,example-android,example-ios}`，RN 0.88 升级及各项分母见 [覆盖率记录](rn88-coverage.md)。
 
 ## LLM 文档生成
 

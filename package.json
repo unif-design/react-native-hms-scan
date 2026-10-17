@@ -51,7 +51,10 @@
     "verify:integration-contracts": "node --test scripts/__tests__/integration-contract.test.mjs",
     "verify:android-integration": "node scripts/verify-android-integration.mjs",
     "verify:ios-integration": "node scripts/verify-ios-integration.mjs",
-    "lint": "eslint \"**/*.{js,ts,tsx}\""
+    "lint": "eslint \"**/*.{js,ts,tsx}\"",
+    "test:coverage": "jest --coverage --runInBand",
+    "test:example:native:android": "python3 scripts/native/check_example_android.py",
+    "test:example:native:ios": "python3 scripts/native/check_example_ios.py"
   },
   "keywords": [
     "react-native",
@@ -83,17 +86,17 @@
     "@callstack/liquid-glass": "0.8.2",
     "@commitlint/config-conventional": "^20.5.0",
     "@eslint/js": "^8.57.1",
-    "@react-native/babel-preset": "0.86.3",
-    "@react-native/eslint-config": "0.86.3",
-    "@react-native/jest-preset": "0.86.3",
-    "@react-native/metro-config": "0.86.3",
+    "@react-native/babel-preset": "0.88.0",
+    "@react-native/eslint-config": "0.88.0",
+    "@react-native/jest-preset": "0.88.0",
+    "@react-native/metro-config": "0.88.0",
     "@release-it/conventional-changelog": "^11.0.0",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.0",
     "@types/react": "^19.2.0",
     "@types/react-test-renderer": "^19",
-    "@unif/react-native-design": ">=1.0.0",
-    "@unif/react-native-icons": ">=0.1.0",
+    "@unif/react-native-design": "^1.6.2",
+    "@unif/react-native-icons": "^0.4.1",
     "commitlint": "^20.5.0",
     "del-cli": "^7.0.0",
     "eslint": "^8.57.1",
@@ -102,16 +105,16 @@
     "jest": "^29.7.0",
     "lefthook": "^2.1.4",
     "prettier": "^3.8.1",
-    "react": "19.2.3",
-    "react-native": "0.86.3",
+    "react": "19.3.0",
+    "react-native": "0.88.0",
     "react-native-builder-bob": "^0.41.0",
     "react-native-gesture-handler": "^3.1.0",
-    "react-native-reanimated": "^4.6.0",
+    "react-native-reanimated": "4.7.1",
     "react-native-reanimated-carousel": "^5.0.0",
     "react-native-safe-area-context": "^5.7.0",
-    "react-native-svg": "^15.15.5",
-    "react-native-worklets": "^0.12.1",
-    "react-test-renderer": "19.2.3",
+    "react-native-svg": "15.16.0",
+    "react-native-worklets": "0.13.0",
+    "react-test-renderer": "19.3.0",
     "release-it": "^20.0.1",
     "turbo": "^2.8.21",
     "typescript": "^6.0.2",
@@ -217,6 +220,26 @@
       "<rootDir>/node_modules/",
       "<rootDir>/website/",
       "<rootDir>/lib/"
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.{ts,tsx}",
+      "example/src/**/*.{ts,tsx}",
+      "!**/__tests__/**",
+      "!**/*.d.ts"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 100,
+        "branches": 100,
+        "functions": 100,
+        "lines": 100
+      }
+    },
+    "coverageReporters": [
+      "text",
+      "json",
+      "json-summary",
+      "lcov"
     ]
   },
   "prettier": {
@@ -230,5 +253,8 @@
     "type": "fabric-view",
     "languages": "kotlin-objc",
     "version": "0.62.0"
+  },
+  "engines": {
+    "node": "^22.13.0 || ^24.3.0 || >=26.0.0"
   }
 }

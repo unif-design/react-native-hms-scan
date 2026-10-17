@@ -33,7 +33,7 @@ class Bitmap(
 ) {
   var isRecycled = false
   var recycleCount = 0
-  val allocationByteCount get() = width * height * 4
+  val allocationByteCount get() = allocationBytes ?: (width * height * 4)
 
   fun recycle() {
     recycleCount++
@@ -47,6 +47,7 @@ class Bitmap(
     val created = mutableListOf<Bitmap>()
     var transformFailure = false
     var sameInstance = false
+    var allocationBytes: Int? = null
 
     fun createBitmap(
       source: Bitmap,
@@ -72,6 +73,7 @@ object BitmapFactory {
   var largestPixels = 0L
   var pixelReads = 0
   var fail = false
+  var decodedSize: Pair<Int, Int>? = null
 
   class Options {
     var inJustDecodeBounds = false
@@ -93,7 +95,8 @@ object BitmapFactory {
     pixelReads++
     if (fail) return null
     val s = options?.inSampleSize ?: 1
-    val b = Bitmap((width + s - 1) / s, (height + s - 1) / s)
+    val b = decodedSize?.let { Bitmap(it.first, it.second) }
+      ?: Bitmap((width + s - 1) / s, (height + s - 1) / s)
     largestPixels = maxOf(largestPixels, b.width.toLong() * b.height)
     Bitmap.created.add(b)
     return b

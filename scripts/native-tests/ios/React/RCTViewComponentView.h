@@ -18,6 +18,7 @@ struct HmsScanViewComponentDescriptor {};
 using ComponentDescriptorProvider = int;
 template <typename T> int concreteComponentDescriptorProvider() { return 1; }
 struct EventEmitter {
+  using Shared = std::shared_ptr<const EventEmitter>;
   virtual ~EventEmitter() = default;
 };
 struct HmsScanViewEventEmitter : EventEmitter {
@@ -36,8 +37,10 @@ struct HmsScanViewEventEmitter : EventEmitter {
     bool on;
   };
   static inline std::vector<OnTorchState> torchEvents;
-  void onScanResult(OnScanResult) const {};
-  void onScanError(OnScanError) const {};
+  static inline std::vector<OnScanResult> resultEvents;
+  static inline std::vector<OnScanError> errorEvents;
+  void onScanResult(OnScanResult value) const { resultEvents.push_back(value); }
+  void onScanError(OnScanError value) const { errorEvents.push_back(value); }
   void onTorchState(OnTorchState state) const { torchEvents.push_back(state); }
 };
 } // namespace facebook::react
@@ -52,5 +55,8 @@ struct HmsScanViewEventEmitter : EventEmitter {
 - (void)updateProps:(facebook::react::Props::Shared const &)props
            oldProps:(facebook::react::Props::Shared const &)oldProps;
 - (void)prepareForRecycle;
+- (void)updateEventEmitter:(const facebook::react::EventEmitter::Shared &)eventEmitter;
 - (UIViewController *)reactViewController;
 @end
+
+extern BOOL parentControllerAvailable;

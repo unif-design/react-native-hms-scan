@@ -8,9 +8,7 @@ const rootDir = fileURLToPath(new URL('..', import.meta.url));
 const read = (relativePath) =>
   readFileSync(path.join(rootDir, relativePath), 'utf8');
 const readPackageJson = (relativePath) => JSON.parse(read(relativePath));
-const infoPlist = read(
-  'example/ios/ReactNativeHmsScanExample/Info.plist'
-);
+const infoPlist = read('example/ios/ReactNativeHmsScanExample/Info.plist');
 
 function assertChineseUsageDescription(key, label) {
   assert.match(
@@ -22,14 +20,8 @@ function assertChineseUsageDescription(key, label) {
   );
 }
 
-assertChineseUsageDescription(
-  'NSCameraUsageDescription',
-  '相机'
-);
-assertChineseUsageDescription(
-  'NSPhotoLibraryUsageDescription',
-  '相册'
-);
+assertChineseUsageDescription('NSCameraUsageDescription', '相机');
+assertChineseUsageDescription('NSPhotoLibraryUsageDescription', '相册');
 assert.equal(
   /<key>NSLocation[^<]*UsageDescription<\/key>/.test(infoPlist),
   false,
@@ -57,9 +49,7 @@ for (const forbidden of [
 }
 
 assert.equal(
-  existsSync(
-    path.join(rootDir, 'scripts/prepare-scankit-xcframework.sh')
-  ),
+  existsSync(path.join(rootDir, 'scripts/prepare-scankit-xcframework.sh')),
   false,
   '旧 XCFramework 生成脚本必须删除'
 );
@@ -73,8 +63,8 @@ assert.equal(
 const examplePackageJson = readPackageJson('example/package.json');
 assert.equal(
   examplePackageJson.dependencies['react-native'],
-  '0.86.3',
-  'example 必须使用 RN 0.86.3'
+  '0.88.0',
+  'example 必须使用 RN 0.88.0'
 );
 for (const preset of [
   '@react-native/babel-preset',
@@ -84,8 +74,8 @@ for (const preset of [
 ]) {
   assert.equal(
     examplePackageJson.devDependencies[preset],
-    '0.86.3',
-    `example ${preset} 必须与 RN 0.86.3 对齐`
+    '0.88.0',
+    `example ${preset} 必须与 RN 0.88.0 对齐`
   );
 }
 for (const cliPackage of [
@@ -95,20 +85,16 @@ for (const cliPackage of [
 ]) {
   assert.equal(
     examplePackageJson.devDependencies[cliPackage],
-    '20.1.0',
-    `example ${cliPackage} 必须使用 CLI 20.1.0`
+    '20.2.0',
+    `example ${cliPackage} 必须使用 CLI 20.2.0`
   );
 }
 
 const packResults = JSON.parse(
-  execFileSync(
-    'npm',
-    ['pack', '--dry-run', '--json', '--ignore-scripts'],
-    {
-      cwd: rootDir,
-      encoding: 'utf8',
-    }
-  )
+  execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  })
 );
 const [packResult] = Array.isArray(packResults)
   ? packResults
@@ -131,9 +117,7 @@ assert.deepEqual(
   'npm tarball 不得包含 repo-only scripts/'
 );
 assert.equal(
-  [...packedPaths].some((packedPath) =>
-    packedPath.startsWith('ios/vendor/')
-  ),
+  [...packedPaths].some((packedPath) => packedPath.startsWith('ios/vendor/')),
   false,
   'npm tarball 不得包含 Huawei 二进制'
 );

@@ -81,7 +81,8 @@ class HmsScanModule(
           HmsScanImage.read(uri).use { image ->
             val types = HmsScanResultMapper.parseFormatsCsv(formatsCsv)
             val creator = HmsScanAnalyzerOptions.Creator().setPhotoMode(true)
-            if (types != null && types.isNotEmpty()) {
+            // parseFormatsCsv returns null when no supported formats remain.
+            if (types != null) {
               creator.setHmsScanTypes(types.first(), *types.drop(1).toIntArray())
             } else {
               creator.setHmsScanTypes(HmsScan.ALL_SCAN_TYPE)

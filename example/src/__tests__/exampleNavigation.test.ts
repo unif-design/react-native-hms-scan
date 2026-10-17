@@ -71,3 +71,33 @@ describe('exampleNavigation', () => {
     expect(canGoBack(childState)).toBe(true);
   });
 });
+
+it('navigating home replaces a previous showcase route', () => {
+  expect(
+    navigationReducer(
+      { stack: [{ name: 'home' }, { name: 'scanner' }] },
+      { type: 'navigate', route: { name: 'home' } }
+    )
+  ).toEqual({ stack: [{ name: 'home' }] });
+});
+
+it('every reachable navigation transition retains a home entry', () => {
+  const routes = ['home', 'scanner', 'headless', 'decode-image'] as const;
+  for (const from of routes) {
+    const state = navigationReducer(
+      { stack: [{ name: 'home' }] },
+      { type: 'navigate', route: { name: from } }
+    );
+    for (const next of routes) {
+      const navigated = navigationReducer(state, {
+        type: 'navigate',
+        route: { name: next },
+      });
+      const back = navigationReducer(navigated, { type: 'back' });
+      expect(back.stack.length).toBeGreaterThan(0);
+      expect(navigationReducer(back, { type: 'back' }).stack).toEqual([
+        { name: 'home' },
+      ]);
+    }
+  }
+});

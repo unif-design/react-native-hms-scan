@@ -44,7 +44,6 @@ example/ios/*.xcworkspace
 
 # Ruby
 example/vendor/
-example/Gemfile.lock
 
 # Docusaurus
 website/.docusaurus

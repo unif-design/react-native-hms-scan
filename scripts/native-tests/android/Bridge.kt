@@ -64,3 +64,5 @@ class WritableMap {
 object Arguments {
   fun createMap() = WritableMap()
 }
+
+interface NativeModule
