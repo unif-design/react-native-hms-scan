@@ -1,5 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { r, rf, useThemedStyles, fw } from '@unif/react-native-design';
+import {
+  r,
+  tracking,
+  type as typography,
+  useThemedStyles,
+  fw,
+} from '@unif/react-native-design';
 import { scanChrome } from './scanChrome';
 
 interface ScanTopBarProps {
@@ -40,9 +46,9 @@ const makeTextStyles = () =>
   StyleSheet.create({
     title: {
       color: scanChrome.white,
-      fontSize: rf(16),
+      fontSize: typography.bodyLg,
       fontWeight: fw.semi,
-      letterSpacing: 0.2,
+      letterSpacing: tracking.wide,
       textShadowColor: scanChrome.textShadow,
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 6,

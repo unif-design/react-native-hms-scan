@@ -6247,9 +6247,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@unif/react-native-design@npm:^1.6.2":
-  version: 1.6.2
-  resolution: "@unif/react-native-design@npm:1.6.2"
+"@unif/react-native-design@npm:^1.7.0":
+  version: 1.7.0
+  resolution: "@unif/react-native-design@npm:1.7.0"
   dependencies:
     react-is: "npm:^19.2.8"
   peerDependencies:
@@ -6263,7 +6263,7 @@ __metadata:
     react-native-safe-area-context: ">=5"
     react-native-svg: ">=15"
     react-native-worklets: ">=0.11.0 <0.14.0"
-  checksum: 10c0/1caba047019af0018b3cc641477a067965fdc5d2f5c2dc46621acfc3c127a7cccf8a678288d425c23d0ea9527d781106cc248129ed0e26924c0a8ce295b7890d
+  checksum: 10c0/ba27a2a545f5c10f32375af34f9dad673006f363de63c52e6a37f6316dd868ee4c9da04f3d2a49151ed96a184ed5b9fa484acd234453a9f2197bd3d8ce7a455b
   languageName: node
   linkType: hard
 
@@ -6283,7 +6283,7 @@ __metadata:
     "@react-native/metro-config": "npm:0.88.0"
     "@react-native/typescript-config": "npm:0.88.0"
     "@types/react": "npm:^19.2.0"
-    "@unif/react-native-design": "npm:^1.6.2"
+    "@unif/react-native-design": "npm:^1.7.0"
     "@unif/react-native-hms-scan": "workspace:*"
     "@unif/react-native-icons": "npm:^0.4.1"
     react: "npm:19.3.0"
@@ -6317,7 +6317,7 @@ __metadata:
     "@react-native/assets-registry": "npm:0.88.0"
     "@react-native/metro-config": "npm:0.88.0"
     "@types/react": "npm:^19.2.0"
-    "@unif/react-native-design": "npm:^1.6.2"
+    "@unif/react-native-design": "npm:^1.7.0"
     "@unif/react-native-hms-scan": "workspace:*"
     "@unif/react-native-icons": "npm:^0.4.1"
     clsx: "npm:^2.0.0"
@@ -6353,7 +6353,7 @@ __metadata:
     "@types/jest": "npm:^29.5.0"
     "@types/react": "npm:^19.2.0"
     "@types/react-test-renderer": "npm:^19"
-    "@unif/react-native-design": "npm:^1.6.2"
+    "@unif/react-native-design": "npm:^1.7.0"
     "@unif/react-native-icons": "npm:^0.4.1"
     commitlint: "npm:^20.5.0"
     del-cli: "npm:^7.0.0"
@@ -6379,7 +6379,7 @@ __metadata:
     typescript-eslint: "npm:^8.20.0"
   peerDependencies:
     "@callstack/liquid-glass": ">=0.8.2 <0.9.0"
-    "@unif/react-native-design": ">=1.0.0"
+    "@unif/react-native-design": ^1.7.0
     "@unif/react-native-icons": ">=0.1.0"
     react: ">=19.2.3 <20.0.0"
     react-native: ">=0.86.0"

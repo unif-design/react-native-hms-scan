@@ -42,3 +42,7 @@
 `website/docs` 是使用文档源；运行 `node website/scripts/build-llms.js` 可单独生成。共同实现由组织 `templates/llms` 分发，维护源后使用 `sync-llms.cjs` 同步，不手改生成副本。
 
 索引按任务列出单页，全文位于 Optional；包版本取当前 package.json。`node website/scripts/build-llms.test.js` 验证公共生成契约与本库资料，文档站构建沿既有 CI 运行。
+
+## 共享主题接入
+
+字体、字重、字距以及固定媒体／品牌调色板统一来自 Design 1.7。取景文字、照片水印与第三方品牌颜色保持原值和语义，普通页面仍随系统明暗主题切换；玻璃材质和减少透明度由 Design 维护。
