@@ -1,5 +1,12 @@
 # Changelog
 
+# [3.1.0](https://github.com/unif-design/react-native-hms-scan/compare/v3.0.2...v3.1.0) (2026-10-18)
+
+
+### Features
+
+* adopt shared scanner theme tokens ([#84](https://github.com/unif-design/react-native-hms-scan/issues/84)) ([a713bbb](https://github.com/unif-design/react-native-hms-scan/commit/a713bbbf5c6676d1432749453734db34070bacdd))
+
 ## [3.0.2](https://github.com/unif-design/react-native-hms-scan/compare/v3.0.1...v3.0.2) (2026-10-17)
 
 
