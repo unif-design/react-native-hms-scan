@@ -12,7 +12,8 @@ import {
   darkColors,
   useColors,
   r,
-  rf,
+  mediaPalette,
+  type as typography,
   useThemedStyles,
   fw,
 } from '@unif/react-native-design';
@@ -136,10 +137,10 @@ const styles = StyleSheet.create({
 const makeTextStyles = () =>
   StyleSheet.create({
     label: {
-      fontSize: rf(12),
+      fontSize: typography.xxs,
       fontWeight: fw.medium,
       color: scanChrome.toolbarLabel,
-      textShadowColor: 'rgba(0,0,0,0.4)',
+      textShadowColor: mediaPalette.overlay,
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 4,
     },

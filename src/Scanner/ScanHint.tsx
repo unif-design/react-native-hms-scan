@@ -1,5 +1,12 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { Spinner, r, rf, useThemedStyles, fw } from '@unif/react-native-design';
+import {
+  Spinner,
+  r,
+  tracking,
+  type as typography,
+  useThemedStyles,
+  fw,
+} from '@unif/react-native-design';
 import { scanChrome } from './scanChrome';
 
 interface ScanHintProps {
@@ -33,9 +40,9 @@ const makeTextStyles = () =>
   StyleSheet.create({
     text: {
       color: scanChrome.hintText,
-      fontSize: rf(13.5),
+      fontSize: typography.xsPlus,
       fontWeight: fw.medium,
-      letterSpacing: 0.2,
+      letterSpacing: tracking.wide,
       textShadowColor: scanChrome.textShadow,
       textShadowOffset: { width: 0, height: 1 },
       textShadowRadius: 6,

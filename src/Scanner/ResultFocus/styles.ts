@@ -1,7 +1,8 @@
 import { StyleSheet } from 'react-native';
 import {
   r,
-  rf,
+  leading,
+  type as typography,
   fw,
   fontMono,
   type ColorTokens,
@@ -24,12 +25,20 @@ export const makeStyles = (colors: ColorTokens, shadow: ShadowTokens) =>
   StyleSheet.create({
     shadow: { borderRadius: r(16), ...shadow.card },
     border: { borderColor: colors.primary },
-    badge: { fontSize: rf(13), fontWeight: fw.semi, color: colors.foreground },
+    badge: {
+      fontSize: typography.xs,
+      fontWeight: fw.semi,
+      color: colors.foreground,
+    },
     format: {
-      fontSize: rf(12),
+      fontSize: typography.xxs,
       color: colors.foregroundMuted,
       fontFamily: fontMono,
       marginTop: r(4),
     },
-    value: { fontSize: rf(16), lineHeight: rf(21), color: colors.foreground },
+    value: {
+      fontSize: typography.bodyLg,
+      lineHeight: leading.body,
+      color: colors.foreground,
+    },
   });
