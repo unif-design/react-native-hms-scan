@@ -47,8 +47,7 @@
         "RCT_REMOVE_LEGACY_ARCH",
         "RCT_USE_RN_DEP",
         "RCT_USE_PREBUILT_RNCORE",
-        "XCODE_VERSION",
-        "XCODE_XCCONFIG_FILE"
+        "XCODE_VERSION"
       ],
       "inputs": [
         "$TURBO_ROOT$/.github/workflows/ci.yml",
