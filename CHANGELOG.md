@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.1](https://github.com/unif-design/react-native-hms-scan/compare/v3.1.0...v3.1.1) (2026-10-24)
+
+
+### Bug Fixes
+
+* **android:** remove global warning suppression from consumer rules ([#86](https://github.com/unif-design/react-native-hms-scan/issues/86)) ([fab1f6e](https://github.com/unif-design/react-native-hms-scan/commit/fab1f6eece3e635663531f6ae6ed0d688f9b436b))
+
 # [3.1.0](https://github.com/unif-design/react-native-hms-scan/compare/v3.0.2...v3.1.0) (2026-10-18)
 
 
