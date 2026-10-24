@@ -1,7 +1,6 @@
 # Keep rules for HUAWEI Scan Kit (Scan SDK-Plus). Shipped to the consuming app via
 # consumerProguardFiles so release (minified) builds keep the HMS reflection targets.
 # Mirrors the official hms-scan-demo proguard configuration.
--ignorewarnings
 -keepattributes *Annotation*
 -keepattributes Exceptions
 -keepattributes InnerClasses
