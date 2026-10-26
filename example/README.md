@@ -32,6 +32,8 @@ iOS 首次运行先准备 Pods：
 
 ## 接入与验证
 
+示例原生宿主测试随平台放在 `android/__tests__/` 和 `ios/__tests__/`，从仓库根目录执行 `yarn test:example:native:android`、`yarn test:example:native:ios`；Podfile 命令测试由 `yarn verify:integration-contracts` 执行。测试编译示例原生源码，外部平台与 React Native 使用边界替身，不能替代真机验收。
+
 - [Scanner API](../website/docs/api/scanner.md)：成品页面参数和回调。
 - [HmsScanView API](../website/docs/api/hms-scan-view.md)：自定义界面的预览与事件。
 - [函数 API](../website/docs/api/functions.md)：图片 URI、权限、空结果和错误语义。
