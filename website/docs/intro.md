@@ -27,6 +27,6 @@ description: 'React Native 扫码库：成品页面、自定义预览与本地�
 - Android 使用内置 Scan SDK-Plus 引擎，不要求华为手机或 HMS Core；宿主配置 Huawei Maven。
 - iOS 使用官方 ScanKit CocoaPod，原生构建和运行仅支持真机。
 - 两端均需要 React Native 新架构，无需 AppGallery Connect 或 API Key。
-- Web 不提供原生扫码；mock 仅用于逻辑测试。
+- 浏览器可阅读文档；本库的扫码能力没有 Web 实现，请在 Android／iOS 原生 `example/` 中体验。mock 仅用于逻辑测试。
 
 [权限处理](/docs/guides/permissions) · [平台差异](/docs/platform-differences) · [测试](/docs/testing) · [常见问题](/docs/troubleshooting)
