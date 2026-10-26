@@ -29,7 +29,7 @@ description: '安装依赖，配置原生权限、构建环境与宿主接线。
 
 ```sh
 yarn add @unif/react-native-hms-scan \
-  '@unif/react-native-design@>=1.0.0' react-native-svg \
+  '@unif/react-native-design@^1.7.0' @unif/react-native-icons react-native-svg \
   '@callstack/liquid-glass@0.8.2' \
   react-native-gesture-handler react-native-reanimated \
   react-native-reanimated-carousel react-native-safe-area-context \
@@ -43,7 +43,7 @@ yarn add @unif/react-native-hms-scan \
 | 包                                 | 版本约束           | 作用                                                 |
 | ---------------------------------- | ------------------ | ---------------------------------------------------- |
 | `@unif/react-native-icons`         | `>=0.1.0`          | 独立命名图标组件                                     |
-| `@unif/react-native-design`        | `>=1.0.0`          | `<Scanner>` 的主题、取景框、工具栏、结果卡全用它绘制 |
+| `@unif/react-native-design`        | `^1.7.0`           | `<Scanner>` 的主题、字体、取景框、工具栏和结果卡     |
 | `react-native-svg`                 | `>=15`             | `<Scanner>` 图标                                     |
 | `@callstack/liquid-glass`          | `>=0.8.2 <0.9.0`   | Design Liquid Glass 原生材质                         |
 | `react-native-gesture-handler`     | `>=3.0.0 <4.0.0`   | design / 手势                                        |
@@ -58,7 +58,25 @@ yarn add @unif/react-native-hms-scan \
 
 ---
 
-## 2. Android 配置
+## 2. 配置 Babel 与手势根 {#babel-and-gesture-root}
+
+在宿主 Babel 配置中把 Worklets plugin 放在 `plugins` 的最后一项：
+
+```js title="babel.config.js"
+module.exports = {
+  presets: ['module:@react-native/babel-preset'],
+  plugins: [
+    // 其它 plugin 在前
+    'react-native-worklets/plugin',
+  ],
+};
+```
+
+在承载 `<Scanner>` 的应用根使用 `GestureHandlerRootView`，并设置 `style={{ flex: 1 }}`；已有手势根时直接复用。`Scanner` 会在缺少安全区宿主时创建局部 `SafeAreaProvider`，但不会创建手势根。完整宿主示例见[快速上手](/docs/getting-started/quick-start)。
+
+---
+
+## 3. Android 配置
 
 ### 添加 Huawei Maven {#android-huawei-maven}
 
@@ -109,7 +127,7 @@ buildscript {
 
 ---
 
-## 3. iOS 配置
+## 4. iOS 配置
 
 ### pod install {#ios-pod-install}
 
@@ -146,7 +164,7 @@ iOS 相机扫码与 `decodeImage` 原生路径都只支持真机。Simulator 的
 
 ---
 
-## 4. 最小示例
+## 5. 最小示例
 
 安装完成后,参阅[快速上手](/docs/getting-started/quick-start)用 `<Scanner>` 跑通第一个扫码页。
 

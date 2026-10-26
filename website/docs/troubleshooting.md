@@ -6,7 +6,7 @@ description: '按使用场景排查接入、平台和结果处理问题。'
 
 # 常见问题
 
-按**症状 → 原因 → 解法**排查。多数问题集中在「iOS 目标选成 Simulator」「Android minSdk / 权限」「把 `decodeImage` 空数组当错误」三类。
+按**症状 → 原因 → 解法**排查。多数问题集中在「iOS 目标选成 Simulator」「Android minSdk / 权限」「`decodeImage` 空数组的含义」三类。
 
 ---
 
@@ -93,12 +93,13 @@ maven { url 'https://developer.huawei.com/repo/' }
 
 ## 症状:`decodeImage` 返回空数组 `[]`
 
-✅ **空数组是正常结果,不是错误,也不会抛异常。** 可能原因:
+`[]` 表示 SDK 本次未交付识别结果，Promise 正常结束，但不能据此断言图片中没有码。可能原因：
 
-1. **图里确实没码** —— 图片内容不含有效条码 / 二维码,返回 `[]` 完全正常。**别把 `!results.length` 当失败抛异常。**
-2. **传了远程 URL** —— `decodeImage` **不下载网络图**;远程 URL 会抛 `reason: "invalid_input"`,而非返回空数组。请宿主先下到本地再传。
-3. **传了不支持的 uri** —— 公共入口只接受可读的 `file:///...` URI。相册资源、绝对路径和网络地址先由调用方准备为 file URI。
-4. **码制被 `formats` 限掉** —— 若传了 `formats`,确认目标码制在列表里。
+1. **没有识别到有效码** —— 图片可能不含码，或码过小、模糊而未被识别。
+2. **码制被 `formats` 限掉** —— 若传了 `formats`，确认目标码制在列表里。
+3. **Android SDK 静默失败** —— Scan Kit Plus `2.15.0.301` 内部创建解码器失败或捕获 `RemoteException` 后可能返回默认空数组；本库无法与无识别结果区分。
+
+应用可展示“未识别”并允许重试或换图。本库可检测的读取、解码和桥接错误仍通过 `ScanError` 报告，不会主动转成 `[]`。远程 URL、绝对路径和相册资源 URI 属于非法输入；调用方应先准备可读的 `file:///...` URI。
 
 详见[图片识别](/docs/guides/decode-image)。
 

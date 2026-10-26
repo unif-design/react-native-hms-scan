@@ -27,7 +27,7 @@ try {
     uri: 'file:///path/to/photo.jpg',
     formats: ['QR_CODE', 'EAN_13'],
   });
-  // results 包含本次全部命中；[] 表示成功解码但没有识别到码。
+  // results 包含本次全部命中；[] 表示 SDK 本次未交付识别结果。
 } catch (error) {
   if (error instanceof ScanError) {
     console.log(error.reason, error.message, error.sourceCode);
@@ -43,7 +43,9 @@ Promise 结束表示这次原生读取已结束，调用方可以归还或删除
 
 ### 错误 {#errors}
 
-非法输入抛 `invalid_input`，不可读文件抛 `image_unavailable`，解码异常抛 `decode_failed`，非法桥接结果抛 `invalid_response`。原生模块缺失为 `unavailable`，Web 为 `unsupported`。原生诊断代码保留在可选的 `sourceCode`。完整类型见 [ScanFailure](/docs/api/types#scan-failure)。
+非法输入抛 `invalid_input`，检测到文件读取失败时抛 `image_unavailable`，捕获到解码或识别异常时抛 `decode_failed`，非法桥接结果抛 `invalid_response`。原生模块缺失为 `unavailable`，Web 为 `unsupported`。原生诊断代码保留在可选的 `sourceCode`。完整类型见 [ScanFailure](/docs/api/types#scan-failure)。
+
+Android Scan Kit Plus `2.15.0.301` 可能把内部解码器故障转为空数组，本库无法区分这种 SDK 静默失败与无识别结果。因此 `[]` 不能证明图片中没有码；详见[图片识别的 SDK 边界](/docs/guides/decode-image#android-图片预算与坐标)。
 
 ## getCameraPermissionStatus {#get-status}
 

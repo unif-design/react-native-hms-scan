@@ -16,7 +16,7 @@ description: 'React Native 扫码库：成品页面、自定义预览与本地�
 | 自定义扫码界面     | [HmsScanView](/docs/api/hms-scan-view)   |
 | 只识别本地图片     | [decodeImage](/docs/guides/decode-image) |
 
-`Scanner` 组合预览、权限和确认界面；`HmsScanView` 提供预览与事件，应用负责界面和权限协调。`decodeImage` 独立处理本地图片，正常识别但没有码时返回 `[]`，读取或解码失败抛出错误。
+`Scanner` 组合预览、权限和确认界面；`HmsScanView` 提供预览与事件，应用负责界面和权限协调。`decodeImage` 独立处理本地图片，`[]` 表示 SDK 本次未交付识别结果；本库检测到的读取或解码错误会抛出。Android SDK 的部分内部故障可能静默返回 `[]`，详见[图片识别](/docs/guides/decode-image)。
 
 ## 开始使用
 
