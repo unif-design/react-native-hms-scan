@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.5](https://github.com/unif-design/react-native-hms-scan/compare/v3.1.4...v3.1.5) (2026-10-27)
+
+
+### Bug Fixes
+
+* adopt responsive docs home styles ([#90](https://github.com/unif-design/react-native-hms-scan/issues/90)) ([d9ec1b6](https://github.com/unif-design/react-native-hms-scan/commit/d9ec1b6a46b1c82e299c30eba7bf9d73d1b16656))
+
 ## [3.1.4](https://github.com/unif-design/react-native-hms-scan/compare/v3.1.3...v3.1.4) (2026-10-27)
 
 ## [3.1.3](https://github.com/unif-design/react-native-hms-scan/compare/v3.1.2...v3.1.3) (2026-10-26)
