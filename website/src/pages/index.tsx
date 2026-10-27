@@ -181,7 +181,7 @@ const CODE_LINES: CodeLine[] = [
   <>{'  '}{K('return')} (</>,
   <>{'    '}{DIM('<')}{FN('Scanner')}</>,
   <>{'      '}formats={'{'}[{ST("'QR_CODE'")}, {ST("'EAN_13'")}]{'}'}</>,
-  <>{'      '}onScan={'{'}(r) {DIM('=>')} {FN('save')}(r.value){'}'}</>,
+  <>{'      '}onConfirm={'{'}(r) {DIM('=>')} {FN('save')}(r.value){'}'}</>,
   <>{'    '}{DIM('/>')}</>,
   <>{'  '})</>,
   <>{'}'}</>,

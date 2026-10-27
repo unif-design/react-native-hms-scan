@@ -33,7 +33,7 @@ const results = await decodeImage({
 });
 ```
 
-正常识别但没有发现码时返回 `[]`；读取或解码失败抛出 `ScanError`。函数不下载网络图片，应用需先准备本地文件。
+`[]` 表示 SDK 本次未交付识别结果；本库检测到的读取或解码错误抛出 `ScanError`。Android SDK 的部分内部故障可能静默返回 `[]`，因此空数组不能证明图片中没有码，详见[图片识别](website/docs/guides/decode-image.md)。函数不下载网络图片，应用需先准备本地文件。
 
 ## 文档与开发
 
