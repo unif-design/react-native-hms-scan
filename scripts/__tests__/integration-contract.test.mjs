@@ -104,7 +104,7 @@ test('CI code filter treats ESLint and Jest setup changes as executable code', a
   }
 });
 
-test('Android integration matches React Native lock entries instead of unrelated 0.85.3 values', async () => {
+test('Android integration keeps workspace dependencies exact and ignores unrelated 0.85.3 lock values', async () => {
   const fixtureRoot = await mkdtemp(
     join(tmpdir(), 'hms-scan-android-contract-')
   );
@@ -169,7 +169,7 @@ test('Android integration matches React Native lock entries instead of unrelated
     const websitePackage = {
       dependencies: {
         '@callstack/liquid-glass': '0.8.2',
-        '@unif/react-native-design': '^1.7.0',
+        '@unif/react-native-design': '^1.13.4',
         '@unif/react-native-icons': '^0.4.1',
         '@unif/react-native-hms-scan': 'workspace:*',
         'react': '19.3.0',
@@ -193,10 +193,24 @@ test('Android integration matches React Native lock entries instead of unrelated
       join(fixtureRoot, 'website/package.json'),
       `${JSON.stringify(websitePackage, null, 2)}\n`
     );
+    const websiteDesignPath = join(
+      fixtureRoot,
+      'website/node_modules/@unif/react-native-design/package.json'
+    );
+    await mkdir(dirname(websiteDesignPath), { recursive: true });
+    await writeFile(websiteDesignPath, '{"version":"1.13.4"}\n');
 
     const safeLockfile = `"react-native@npm:0.88.0":
   version: 0.88.0
   resolution: "react-native@npm:0.88.0"
+
+"@unif/react-native-design@npm:^1.7.0":
+  version: 1.7.0
+  resolution: "@unif/react-native-design@npm:1.7.0"
+
+"@unif/react-native-design@npm:^1.13.4":
+  version: 1.13.4
+  resolution: "@unif/react-native-design@npm:1.13.4"
 
 "unrelated-tool@npm:0.85.3":
   version: 0.85.3
@@ -213,6 +227,29 @@ test('Android integration matches React Native lock entries instead of unrelated
       0,
       `unrelated 0.85.3 entries must remain valid:\n${verifierOutput(safeResult)}`
     );
+
+    for (const [manifestPath, field, version, error] of [
+      ['website/package.json', 'dependencies', '^1.7.0', /website\/package\.json.*design as \^1\.13\.4/],
+      ['package.json', 'devDependencies', '^1.13.4', /package\.json.*design as \^1\.7\.0/],
+      ['example/package.json', 'dependencies', '^1.13.4', /example\/package\.json.*design as \^1\.7\.0/],
+      ['package.json', 'peerDependencies', '^1.13.4', /peerDependencies.*public contract/i],
+    ]) {
+      const manifestFile = join(fixtureRoot, manifestPath);
+      const original = await readFile(manifestFile, 'utf8');
+      const manifest = JSON.parse(original);
+      manifest[field]['@unif/react-native-design'] = version;
+      await writeFile(manifestFile, JSON.stringify(manifest));
+      const result = runVerifier(fixtureRoot, 'verify-android-integration.mjs');
+      assert.notEqual(result.status, 0, `${manifestPath} ${field} must reject Design ${version}`);
+      assert.match(verifierOutput(result), error);
+      await writeFile(manifestFile, original);
+    }
+
+    await writeFile(websiteDesignPath, '{"version":"1.7.0"}\n');
+    const staleWebsiteInstall = runVerifier(fixtureRoot, 'verify-android-integration.mjs');
+    assert.notEqual(staleWebsiteInstall.status, 0);
+    assert.match(verifierOutput(staleWebsiteInstall), /website.*Design.*1\.13\.4/);
+    await writeFile(websiteDesignPath, '{"version":"1.13.4"}\n');
 
     const peerDriftPackage = JSON.parse(JSON.stringify(rootPackage));
     peerDriftPackage.peerDependencies['react-native-svg'] = '>=16';
