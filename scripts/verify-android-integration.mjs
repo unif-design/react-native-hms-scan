@@ -112,6 +112,7 @@ assertExactDependencies(
   'website/package.json',
   {
     ...sharedRuntimeDependencies,
+    '@unif/react-native-design': '^1.13.4',
     '@unif/react-native-hms-scan': 'workspace:*',
     'react-dom': '19.3.0',
   }
@@ -164,6 +165,9 @@ assert.deepEqual(
 const installedDesign = readPackageJson(
   'node_modules/@unif/react-native-design/package.json'
 );
+const installedWebsiteDesign = readPackageJson(
+  'website/node_modules/@unif/react-native-design/package.json'
+);
 const installedGestureHandler = readPackageJson(
   'node_modules/react-native-gesture-handler/package.json'
 );
@@ -172,6 +176,11 @@ const installedCarousel = readPackageJson(
 );
 
 assert.equal(installedDesign.version, '1.7.0');
+assert.equal(
+  installedWebsiteDesign.version,
+  '1.13.4',
+  'website must resolve Design 1.13.4'
+);
 assert.equal(
   installedDesign.peerDependencies['react-native-gesture-handler'],
   '>=3.0.0 <4.0.0'
