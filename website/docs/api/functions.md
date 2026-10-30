@@ -1,6 +1,7 @@
 ---
 sidebar_position: 3
 title: 函数
+description: '本地图片解码、权限查询与申请的输入、结果和错误。'
 ---
 
 # 函数
@@ -10,7 +11,9 @@ title: 函数
 ## decodeImage {#decode-image}
 
 ```ts
-function decodeImage(input: Readonly<DecodeScanImageInput>): Promise<readonly ScanResult[]>;
+function decodeImage(
+  input: Readonly<DecodeScanImageInput>
+): Promise<readonly ScanResult[]>;
 interface DecodeScanImageInput {
   uri: string;
   formats?: readonly RequestedScanFormat[];

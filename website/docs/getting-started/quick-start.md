@@ -1,34 +1,26 @@
 ---
 sidebar_position: 2
 title: 快速上手
+description: '挂载 Scanner，由页面处理识别结果、关闭和错误。'
 ---
 
 # 快速开始
 
 完成 [安装](/docs/getting-started/installation) 后，在原生页面使用 Scanner。宿主 Babel 的 `plugins` 最后一项需为 `react-native-worklets/plugin`，并在应用根接入 `GestureHandlerRootView`；已有手势根时直接复用。
 
+下面的页面组件接收应用提供的结果、关闭和错误回调。应用在确认或关闭时结束扫码页，在错误回调中记录或显示原因。
+
 ```tsx
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Scanner } from '@unif/react-native-hms-scan';
+import { Scanner, type ScannerProps } from '@unif/react-native-hms-scan';
 
-export default function App() {
+type ScanPageProps = Pick<ScannerProps, 'onConfirm' | 'onClose' | 'onError'>;
+
+export function ScanPage({ onConfirm, onClose, onError }: ScanPageProps) {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ScanPage />
+      <Scanner onConfirm={onConfirm} onClose={onClose} onError={onError} />
     </GestureHandlerRootView>
-  );
-}
-
-export function ScanPage() {
-  return (
-    <Scanner
-      onConfirm={(result) => {
-        console.log(result.value, result.format);
-        // 在所属场景消费原文，并结束这次扫码页面。
-      }}
-      onClose={() => navigation.goBack()}
-      onError={(error) => reportError(error.reason, error.message)}
-    />
   );
 }
 ```

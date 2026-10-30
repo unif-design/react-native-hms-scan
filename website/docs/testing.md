@@ -1,6 +1,7 @@
 ---
 sidebar_position: 7
 title: 测试(Mock)
+description: '使用随包 mock 验证消费者逻辑，并区分原生和设备验证。'
 ---
 
 # 测试
@@ -14,14 +15,16 @@ jest.mock('@unif/react-native-hms-scan', () =>
 
 import { decodeImage, ScanError } from '@unif/react-native-hms-scan';
 
-jest.mocked(decodeImage).mockResolvedValueOnce([
-  { value: '00123', format: 'EAN_13' },
-]);
+jest
+  .mocked(decodeImage)
+  .mockResolvedValueOnce([{ value: '00123', format: 'EAN_13' }]);
 await decodeImage({ uri: 'file:///tmp/photo.jpg' });
 
-jest.mocked(decodeImage).mockRejectedValueOnce(
-  new ScanError({ reason: 'image_unavailable', message: '文件不可读' })
-);
+jest
+  .mocked(decodeImage)
+  .mockRejectedValueOnce(
+    new ScanError({ reason: 'image_unavailable', message: '文件不可读' })
+  );
 ```
 
 decodeImage 默认返回 []，两个权限函数默认 granted，组件返回 null。Mock 不模拟相机硬件、真实权限或文件可读性。结果转换和格式映射是库内部实现，不通过 mock 导出。

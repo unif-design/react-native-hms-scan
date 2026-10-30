@@ -27,11 +27,20 @@ interface CodeWindowProps {
   lines: CodeLine[];
 }
 
-function CodeWindow({ file, tag, hl, lines }: CodeWindowProps): React.JSX.Element {
+function CodeWindow({
+  file,
+  tag,
+  hl,
+  lines,
+}: CodeWindowProps): React.JSX.Element {
   return (
     <div className="hp-code compact">
       <div className="hp-code-bar">
-        <span className="hp-code-dots"><i /><i /><i /></span>
+        <span className="hp-code-dots">
+          <i />
+          <i />
+          <i />
+        </span>
         <span className="hp-code-file">{file}</span>
         <span className="hp-code-tag">{tag}</span>
       </div>
@@ -39,7 +48,8 @@ function CodeWindow({ file, tag, hl, lines }: CodeWindowProps): React.JSX.Elemen
         <pre>
           {lines.map((node, i) => (
             <div key={i} className={'hp-cl' + (hl === i + 1 ? ' hl' : '')}>
-              <span className="ln">{i + 1}</span>{node}
+              <span className="ln">{i + 1}</span>
+              {node}
             </div>
           ))}
         </pre>
@@ -68,7 +78,7 @@ function ScannerScene(): React.JSX.Element {
     h: number,
     top: string,
     tone: string,
-    blur: number,
+    blur: number
   ) => (
     <div
       style={{
@@ -106,34 +116,50 @@ function ScannerScreen(): React.JSX.Element {
       <ScannerScene />
       <div className="hp-scan-content">
         <div className="hp-scan-top">
-          <span className="hp-scan-disc"><IconClose s={18} /></span>
+          <span className="hp-scan-disc">
+            <IconClose s={18} />
+          </span>
           <span className="hp-scan-title">扫一扫</span>
-          <span className="hp-scan-disc"><IconSearch s={18} /></span>
+          <span className="hp-scan-disc">
+            <IconSearch s={18} />
+          </span>
         </div>
         <div className="hp-scan-stage">
           <div className="hp-scan-frame">
-            <span className="hp-corner tl" /><span className="hp-corner tr" />
-            <span className="hp-corner bl" /><span className="hp-corner br" />
+            <span className="hp-corner tl" />
+            <span className="hp-corner tr" />
+            <span className="hp-corner bl" />
+            <span className="hp-corner br" />
             <div className="hp-scan-laser" />
           </div>
           <div className="hp-scan-hint">将条码 / 二维码放入框内，自动扫描</div>
         </div>
         <div className="hp-scan-tools">
           <span className="hp-scan-act">
-            <span className="hp-scan-disc lg"><IconFlash s={22} /></span>手电筒
+            <span className="hp-scan-disc lg">
+              <IconFlash s={22} />
+            </span>
+            手电筒
           </span>
           <span className="hp-scan-act">
-            <span className="hp-scan-disc lg"><IconAlbum s={22} /></span>相册
+            <span className="hp-scan-disc lg">
+              <IconAlbum s={22} />
+            </span>
+            相册
           </span>
         </div>
       </div>
       <div className="hp-scan-confirm">
-        <span className="hp-scan-ok"><IconCheck s={14} /></span>
+        <span className="hp-scan-ok">
+          <IconCheck s={14} />
+        </span>
         <div className="hp-scan-result">
-          <div className="r1">识别成功 · 桂花乌龙 500ml</div>
-          <div className="r2">6921168·EAN-13</div>
+          <div className="r1">识别结果 · EAN_13</div>
+          <div className="r2">6901234567892</div>
         </div>
-        <span className="hp-scan-go"><IconArrowRight s={16} /></span>
+        <span className="hp-scan-go">
+          <IconArrowRight s={16} />
+        </span>
       </div>
     </div>
   );
@@ -175,14 +201,33 @@ const DIM = (s: string) => <span className="tok-dim">{s}</span>;
 
 // ScanScreen.tsx — Scanner, highlights the formats line (line 6)
 const CODE_LINES: CodeLine[] = [
-  <>{K('import')} <span className="tok-id">{'{ Scanner }'}</span> {K('from')} {ST("'@unif/react-native-hms-scan'")}</>,
-  <>{' '}</>,
-  <>{K('export function')} {FN('ScanScreen')}() {'{'}</>,
-  <>{'  '}{K('return')} (</>,
-  <>{'    '}{DIM('<')}{FN('Scanner')}</>,
-  <>{'      '}formats={'{'}[{ST("'QR_CODE'")}, {ST("'EAN_13'")}]{'}'}</>,
-  <>{'      '}onConfirm={'{'}(r) {DIM('=>')} {FN('save')}(r.value){'}'}</>,
-  <>{'    '}{DIM('/>')}</>,
+  <>
+    {K('import')} <span className="tok-id">{'{ Scanner }'}</span> {K('from')}{' '}
+    {ST("'@unif/react-native-hms-scan'")}
+  </>,
+  <> </>,
+  <>
+    {K('export function')} {FN('ScanScreen')}() {'{'}
+  </>,
+  <>
+    {'  '}
+    {K('return')} (
+  </>,
+  <>
+    {'    '}
+    {DIM('<')}
+    {FN('Scanner')}
+  </>,
+  <>
+    {'      '}formats={'{'}[{ST("'QR_CODE'")}, {ST("'EAN_13'")}]{'}'}
+  </>,
+  <>
+    {'      '}onConfirm={'{'}(r) {DIM('=>')} {FN('console.log')}(r.value){'}'}
+  </>,
+  <>
+    {'    '}
+    {DIM('/>')}
+  </>,
   <>{'  '})</>,
   <>{'}'}</>,
 ];
@@ -202,7 +247,7 @@ const FEATURES: Feature[] = [
   },
   {
     Icon: IconGrid,
-    title: '底层 headless 组件',
+    title: '自定义扫码预览',
     desc: 'HmsScanView 只输出相机预览与扫码事件，取景框 / 按钮等 UI 完全自定义。',
   },
   {
@@ -216,8 +261,8 @@ const FEATURES: Feature[] = [
 export default function Home(): React.JSX.Element {
   return (
     <Layout
-      title="Unif HMS Scan — 华为统一扫码"
-      description="@unif/react-native-hms-scan — 华为 HMS 统一扫码服务 React Native 封装（新架构）：成品扫一扫页 + 底层 headless 相机组件 + 图片识别。"
+      title="Unif HMS Scan — 实时扫码与本地图片识别"
+      description="基于 HUAWEI Scan Kit 的 React Native 扫码库，提供成品扫码页、自定义预览与本地图片识别。"
     >
       <main className="unif-home">
         {/* ── Hero ── */}
@@ -227,23 +272,34 @@ export default function Home(): React.JSX.Element {
             <div className="hp-hero-copy">
               <span className="hp-eyebrow">{PKG}</span>
               <h1 className="hp-title">
-                华为统一扫码，<br />
-                <span className="accent">定制视图 + 图片识别</span>
+                实时扫码，
+                <br />
+                <span className="accent">图片识别</span>
               </h1>
               <p className="hp-tagline">
-                华为 HMS 统一扫码服务的 React Native 封装（新架构）：成品扫一扫页 + 底层 headless 相机组件 + 图片识别。
+                基于 HUAWEI Scan Kit，提供成品扫码页、自定义预览和本地图片识别。
+                应用接收原始码值，再处理自己的业务。
               </p>
               <div className="hp-cta-row">
                 <Link to="/docs/intro" className="hp-btn hp-btn-primary">
-                  开始使用 <span className="hp-arrow"><IconArrowRight s={18} /></span>
+                  开始使用{' '}
+                  <span className="hp-arrow">
+                    <IconArrowRight s={18} />
+                  </span>
                 </Link>
-                <Link to="/docs/getting-started/quick-start" className="hp-btn hp-btn-outline">
+                <Link
+                  to="/docs/getting-started/quick-start"
+                  className="hp-btn hp-btn-outline"
+                >
                   快速开始
                 </Link>
               </div>
               <InstallBlock />
               <div className="hp-meta-row">
-                <span className="hp-chip"><span className="dot" />Scan SDK-Plus</span>
+                <span className="hp-chip">
+                  <span className="dot" />
+                  Scan SDK-Plus
+                </span>
                 <span className="hp-chip">ScanKitFrameWork</span>
                 <span className="hp-chip">新架构 Fabric</span>
               </div>
@@ -260,10 +316,13 @@ export default function Home(): React.JSX.Element {
                 />
               </div>
               <div className="hp-combo-phone">
-                <Phone><ScannerScreen /></Phone>
+                <Phone>
+                  <ScannerScreen />
+                </Phone>
               </div>
               <span className="hp-combo-badge">
-                <span className="dot" />浮层确认卡
+                <span className="dot" />
+                扫码界面示意
               </span>
             </div>
           </div>
@@ -272,10 +331,15 @@ export default function Home(): React.JSX.Element {
         {/* ── Features ── */}
         <section className="hp-features">
           <div className="hp-sec-label">核心能力</div>
-          <div className="hp-feature-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          <div
+            className="hp-feature-grid"
+            style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}
+          >
             {FEATURES.map((f, i) => (
               <div className="hp-feature" key={i}>
-                <div className="hp-feat-icon"><f.Icon s={24} /></div>
+                <div className="hp-feat-icon">
+                  <f.Icon s={24} />
+                </div>
                 <h3 className="hp-feat-title">{f.title}</h3>
                 <p className="hp-feat-desc">{f.desc}</p>
               </div>

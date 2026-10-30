@@ -1,6 +1,7 @@
 ---
 sidebar_position: 2
 title: HmsScanView
+description: '自定义扫码预览的属性、批次结果与实际手电状态。'
 ---
 
 # HmsScanView
@@ -24,14 +25,14 @@ title: HmsScanView
 
 继承 React Native ViewProps。
 
-| 属性 | 类型 | 默认值 |
-| --- | --- | --- |
-| formats | readonly RequestedScanFormat[] | 无额外过滤 |
-| paused | boolean | false |
-| continuous | boolean | true |
-| torch | boolean | false |
-| onScanResult | (results: readonly ScanResult[]) => void | 本次完整集合 |
-| onScanError | `(error: Readonly<ScanFailure>) => void` | 技术错误 |
+| 属性         | 类型                                        | 默认值                 |
+| ------------ | ------------------------------------------- | ---------------------- |
+| formats      | readonly RequestedScanFormat[]              | 无额外过滤             |
+| paused       | boolean                                     | false                  |
+| continuous   | boolean                                     | true                   |
+| torch        | boolean                                     | false                  |
+| onScanResult | (results: readonly ScanResult[]) => void    | 本次完整集合           |
+| onScanError  | `(error: Readonly<ScanFailure>) => void`    | 技术错误               |
 | onTorchState | `(state: Readonly<ScanTorchState>) => void` | 实际手电与已知环境状态 |
 
 结果与图片解码使用同一转换边界。非法桥接数据上报 invalid_response，不伪装为空数组。未知格式为 UNKNOWN，可选字段只在取得时提供。

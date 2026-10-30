@@ -1,6 +1,7 @@
 ---
 sidebar_position: 4
 title: 类型
+description: '扫码结果、格式、错误、权限和图片借用的公开类型。'
 ---
 
 # 类型
@@ -10,9 +11,22 @@ title: 类型
 ## ScanFormat 与 RequestedScanFormat {#scan-format}
 
 ```ts
-type ScanFormat = 'QR_CODE' | 'AZTEC' | 'DATA_MATRIX' | 'PDF417'
-  | 'CODABAR' | 'CODE_39' | 'CODE_93' | 'CODE_128' | 'EAN_8'
-  | 'EAN_13' | 'UPC_A' | 'UPC_E' | 'ITF14' | 'MULTI_FUNCTIONAL' | 'UNKNOWN';
+type ScanFormat =
+  | 'QR_CODE'
+  | 'AZTEC'
+  | 'DATA_MATRIX'
+  | 'PDF417'
+  | 'CODABAR'
+  | 'CODE_39'
+  | 'CODE_93'
+  | 'CODE_128'
+  | 'EAN_8'
+  | 'EAN_13'
+  | 'UPC_A'
+  | 'UPC_E'
+  | 'ITF14'
+  | 'MULTI_FUNCTIONAL'
+  | 'UNKNOWN';
 type RequestedScanFormat = Exclude<ScanFormat, 'UNKNOWN'>;
 ```
 
@@ -21,9 +35,24 @@ type RequestedScanFormat = Exclude<ScanFormat, 'UNKNOWN'>;
 ## ScanResult {#scan-result}
 
 ```ts
-type ScanContentType = 'TEXT' | 'URL' | 'EMAIL' | 'PHONE' | 'SMS'
-  | 'WIFI' | 'CONTACT' | 'EVENT' | 'LOCATION' | 'DRIVER' | 'ISBN' | 'ARTICLE' | 'OTHER';
-interface ScanPoint { x: number; y: number }
+type ScanContentType =
+  | 'TEXT'
+  | 'URL'
+  | 'EMAIL'
+  | 'PHONE'
+  | 'SMS'
+  | 'WIFI'
+  | 'CONTACT'
+  | 'EVENT'
+  | 'LOCATION'
+  | 'DRIVER'
+  | 'ISBN'
+  | 'ARTICLE'
+  | 'OTHER';
+interface ScanPoint {
+  x: number;
+  y: number;
+}
 interface ScanResult {
   value: string;
   format: ScanFormat;
@@ -38,8 +67,14 @@ interface ScanResult {
 
 ```ts
 interface ScanFailure {
-  reason: 'invalid_input' | 'permission_denied' | 'image_unavailable'
-    | 'decode_failed' | 'invalid_response' | 'unavailable' | 'unsupported';
+  reason:
+    | 'invalid_input'
+    | 'permission_denied'
+    | 'image_unavailable'
+    | 'decode_failed'
+    | 'invalid_response'
+    | 'unavailable'
+    | 'unsupported';
   message: string;
   sourceCode?: string;
 }

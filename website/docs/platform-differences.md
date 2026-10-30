@@ -1,19 +1,20 @@
 ---
 sidebar_position: 5
 title: 平台差异
+description: '核对两端的码制、手电、图片和权限边界。'
 ---
 
 # 平台差异
 
-| 能力 | Android | iOS |
-| --- | --- | --- |
-| 原生 SDK | Huawei Scan Kit Plus / RemoteView | ScanKitFrameWork 1.1.2.305 |
-| 本地图片公共输入 | file URI | file URI |
-| MULTI_FUNCTIONAL 过滤 | 支持 | unsupported |
-| torch 请求 | RemoteView 控制 | AVFoundation 尽力控制 |
-| 手电 available | 硬件能力 | 硬件能力 |
-| lowLight | 厂商暗光回报后提供 | 无可用报告时省略 |
-| 原生平台 | 以实际 Gradle/SDK 接线为准 | 官方二进制为 iOS 真机，不包含模拟器切片 |
+| 能力                  | Android                           | iOS                                     |
+| --------------------- | --------------------------------- | --------------------------------------- |
+| 原生 SDK              | Huawei Scan Kit Plus / RemoteView | ScanKitFrameWork 1.1.2.305              |
+| 本地图片公共输入      | file URI                          | file URI                                |
+| MULTI_FUNCTIONAL 过滤 | 支持                              | unsupported                             |
+| torch 请求            | RemoteView 控制                   | AVFoundation 尽力控制                   |
+| 手电 available        | 硬件能力                          | 硬件能力                                |
+| lowLight              | 厂商暗光回报后提供                | 无可用报告时省略                        |
+| 原生平台              | 以实际 Gradle/SDK 接线为准        | 官方二进制为 iOS 真机，不包含模拟器切片 |
 
 ## 格式 {#formats}
 

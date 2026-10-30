@@ -1,12 +1,17 @@
 ---
 sidebar_position: 4
 title: 权限处理
+description: '读取和申请相机权限，处理拒绝、受限及查询错误。'
 ---
 
 # 相机权限
 
 ```tsx
-import { getCameraPermissionStatus, requestCameraPermission, ScanError } from '@unif/react-native-hms-scan';
+import {
+  getCameraPermissionStatus,
+  requestCameraPermission,
+  ScanError,
+} from '@unif/react-native-hms-scan';
 
 try {
   let status = await getCameraPermissionStatus();
