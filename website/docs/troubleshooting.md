@@ -119,7 +119,7 @@ maven { url 'https://developer.huawei.com/repo/' }
 
 ## 症状:手电筒在 iOS 上不生效 / 暗光提示不来
 
-✅ **这是已知限制,不是 bug。** iOS 端 HMS 无公开手电 API,本库走 `AVCaptureDevice` **尽力而为**:
+iOS 端 HMS 无公开手电 API，本库通过 `AVCaptureDevice` 尝试控制。先检查实际状态回报与硬件能力：
 
 - `torch={true}` **不保证**点亮(设备 / 系统差异)。
 - iOS 会在 `torch` 初次应用和后续 prop 变更时上报 `onTorchState`;`available` 表示硬件是否有手电,`on` 表示真实点亮状态,**不是暗光提示**。Android 的暗光回报使用独立 `lowLight` 字段。
@@ -130,7 +130,7 @@ maven { url 'https://developer.huawei.com/repo/' }
 
 ## 症状:相机权限为 `blocked`,无法再弹授权框
 
-✅ 用户已**永久拒绝**,系统不再允许弹框。引导去系统设置手动开启:
+`blocked` 表示系统当前不允许再次弹出授权框；iOS 的拒绝和受限状态都映射到该值。应用可提供系统设置入口，返回后重新读取实际权限；受系统限制时不保证用户能够自行开启：
 
 ```ts
 import { Linking } from 'react-native';

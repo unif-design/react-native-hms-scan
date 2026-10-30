@@ -1,6 +1,7 @@
 ---
 sidebar_position: 1
 title: 成品扫一扫页
+description: '使用 Scanner 组合实时扫码、选图识别与结果确认。'
 ---
 
 # 组合扫码页

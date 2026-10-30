@@ -1,6 +1,7 @@
 ---
 sidebar_position: 2
 title: 底层 headless 组件
+description: '取得权限后组合 HmsScanView、自有界面和扫码事件。'
 ---
 
 # 自定义扫码预览
@@ -8,7 +9,11 @@ title: 底层 headless 组件
 先读取或申请相机权限，仅在 granted 时挂载 HmsScanView。设备事件只交付识别结果，业务选择由你的页面处理。
 
 ```tsx
-import { HmsScanView, getCameraPermissionStatus, requestCameraPermission } from '@unif/react-native-hms-scan';
+import {
+  HmsScanView,
+  getCameraPermissionStatus,
+  requestCameraPermission,
+} from '@unif/react-native-hms-scan';
 
 let permission = await getCameraPermissionStatus();
 if (permission === 'denied' || permission === 'undetermined') {
@@ -17,15 +22,17 @@ if (permission === 'denied' || permission === 'undetermined') {
 // 将 permission 保存到页面状态。
 
 // 页面中：
-{permission === 'granted' && (
-  <HmsScanView
-    style={{ flex: 1 }}
-    continuous={false}
-    onScanResult={(results) => setResults(results)}
-    onScanError={(error) => showError(error)}
-    onTorchState={(state) => setTorchState(state)}
-  />
-)}
+{
+  permission === 'granted' && (
+    <HmsScanView
+      style={{ flex: 1 }}
+      continuous={false}
+      onScanResult={(results) => setResults(results)}
+      onScanError={(error) => showError(error)}
+      onTorchState={(state) => setTorchState(state)}
+    />
+  );
+}
 ```
 
 每次事件包含完整批次。value 不做业务解析，可选角点是图像坐标。paused 控制本轮接受；continuous 默认 true。格式省略/空数组不增加过滤，iOS 请求 MULTI_FUNCTIONAL 返回 unsupported。

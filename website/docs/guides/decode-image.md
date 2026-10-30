@@ -1,6 +1,7 @@
 ---
 sidebar_position: 3
 title: 图片识别
+description: '识别本地图片，处理空结果、错误与文件释放。'
 ---
 
 # 图片识别

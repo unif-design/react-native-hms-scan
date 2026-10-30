@@ -1,6 +1,7 @@
 ---
 sidebar_position: 1
 title: Scanner
+description: '完整扫码页的配置、结果选用与图片借用生命周期。'
 ---
 
 # Scanner
@@ -19,18 +20,18 @@ import { Scanner } from '@unif/react-native-hms-scan';
 
 ## Props
 
-| 属性 | 类型 | 默认值 / 行为 |
-| --- | --- | --- |
-| title | string | 扫一扫 |
-| hintText | string | 将条码 / 二维码放入框内，自动扫描 |
-| formats | readonly RequestedScanFormat[] | 无额外过滤 |
-| topInset / bottomInset | number | 读取所在 SafeArea 环境；独立使用时局部 Provider 测量 |
-| showTorch | boolean | true；按钮采用实际点亮回报 |
-| autoConfirm | boolean | false；true 直接交付首项结果 |
-| pickImage | `() => Promise<ScannerImage \| null>` | 有回调才显示相册入口 |
-| onConfirm | `(result: Readonly<ScanResult>) => void` | 必填；每轮最多交付一次 |
-| onClose | () => void | 停止本轮设备和结果采用后通知 |
-| onError | `(error: Readonly<ScanFailure>) => void` | 读取、权限、解码或相机技术错误 |
+| 属性                   | 类型                                     | 默认值 / 行为                                        |
+| ---------------------- | ---------------------------------------- | ---------------------------------------------------- |
+| title                  | string                                   | 扫一扫                                               |
+| hintText               | string                                   | 将条码 / 二维码放入框内，自动扫描                    |
+| formats                | readonly RequestedScanFormat[]           | 无额外过滤                                           |
+| topInset / bottomInset | number                                   | 读取所在 SafeArea 环境；独立使用时局部 Provider 测量 |
+| showTorch              | boolean                                  | true；按钮采用实际点亮回报                           |
+| autoConfirm            | boolean                                  | false；true 直接交付首项结果                         |
+| pickImage              | `() => Promise<ScannerImage \| null>`    | 有回调才显示相册入口                                 |
+| onConfirm              | `(result: Readonly<ScanResult>) => void` | 必填；每轮最多交付一次                               |
+| onClose                | () => void                               | 停止本轮设备和结果采用后通知                         |
+| onError                | `(error: Readonly<ScanFailure>) => void` | 读取、权限、解码或相机技术错误                       |
 
 ## 结果和重扫
 
