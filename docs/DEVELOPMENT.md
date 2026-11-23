@@ -29,8 +29,8 @@
 
 - [公共源码入口](../src/index.tsx)
 - [实时扫码](../src/HmsScanView/HmsScanView.tsx)
-- [图片解码](../src/decodeImage.ts)
-- [权限](../src/permissions.ts)
+- [图片解码](../src/image/decodeImage.ts)
+- [权限](../src/camera/permissions.ts)
 - [成品交互](../src/Scanner/Scanner.tsx)
 - [单元测试](../src/__tests__/)
 

@@ -1,5 +1,5 @@
-import { unsupportedScanError } from './errors';
-import type { DecodeScanImageInput, ScanResult } from './types';
+import { unsupportedScanError } from '../errors';
+import type { DecodeScanImageInput, ScanResult } from '../types';
 
 export async function decodeImage(
   _input: Readonly<DecodeScanImageInput>

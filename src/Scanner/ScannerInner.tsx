@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HmsScanView } from '../HmsScanView/HmsScanView';
-import { decodeImage } from '../decodeImage';
+import { decodeImage } from '../image/decodeImage';
 import {
   getCameraPermissionStatus,
   requestCameraPermission,
-} from '../permissions';
+} from '../camera/permissions';
 import { formatConfiguration } from '../format';
 import { scanError } from '../errors';
 import type {

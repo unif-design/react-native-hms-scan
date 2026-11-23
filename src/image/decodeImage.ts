@@ -1,8 +1,8 @@
-import NativeHmsScan from './NativeHmsScan';
-import { formatsToCsv, parseResultsJson } from './format';
-import { scanError } from './errors';
-import { ScanError } from './ScanError';
-import type { DecodeScanImageInput, ScanResult } from './types';
+import NativeHmsScan from '../NativeHmsScan';
+import { formatsToCsv, parseResultsJson } from '../format';
+import { scanError } from '../errors';
+import { ScanError } from '../ScanError';
+import type { DecodeScanImageInput, ScanResult } from '../types';
 
 export async function decodeImage(
   input: Readonly<DecodeScanImageInput>

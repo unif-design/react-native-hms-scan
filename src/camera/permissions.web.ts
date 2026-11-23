@@ -1,5 +1,5 @@
-import { unsupportedScanError } from './errors';
-import type { ScanCameraPermission } from './types';
+import { unsupportedScanError } from '../errors';
+import type { ScanCameraPermission } from '../types';
 
 export async function getCameraPermissionStatus(): Promise<ScanCameraPermission> {
   throw unsupportedScanError();
