@@ -1,7 +1,7 @@
-import NativeHmsScan from './NativeHmsScan';
-import { scanError } from './errors';
-import { ScanError } from './ScanError';
-import type { ScanCameraPermission } from './types';
+import NativeHmsScan from '../NativeHmsScan';
+import { scanError } from '../errors';
+import { ScanError } from '../ScanError';
+import type { ScanCameraPermission } from '../types';
 
 async function permission(request: boolean): Promise<ScanCameraPermission> {
   if (!NativeHmsScan)

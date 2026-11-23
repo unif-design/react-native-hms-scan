@@ -13,10 +13,10 @@ export type {
 } from './types';
 export { HmsScanView } from './HmsScanView/HmsScanView.web';
 export type { HmsScanViewProps } from './HmsScanView/types';
-export { decodeImage } from './decodeImage.web';
+export { decodeImage } from './image/decodeImage.web';
 export {
   getCameraPermissionStatus,
   requestCameraPermission,
-} from './permissions.web';
+} from './camera/permissions.web';
 export { Scanner } from './Scanner/Scanner.web';
 export type { ScannerProps } from './Scanner/types';

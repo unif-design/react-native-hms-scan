@@ -1,9 +1,9 @@
 jest.mock('react-native', () => ({ TurboModuleRegistry: { get: () => null } }));
-import { decodeImage } from '../decodeImage';
+import { decodeImage } from '../image/decodeImage';
 import {
   getCameraPermissionStatus,
   requestCameraPermission,
-} from '../permissions';
+} from '../camera/permissions';
 it('reports missing native registration without starting device work', async () => {
   await expect(decodeImage({ uri: 'file:///tmp/a.jpg' })).rejects.toMatchObject(
     { reason: 'unavailable' }
