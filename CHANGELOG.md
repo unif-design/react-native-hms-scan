@@ -1,5 +1,7 @@
 # Changelog
 
+## [3.1.6](https://github.com/unif-design/react-native-hms-scan/compare/v3.1.5...v3.1.6) (2026-11-23)
+
 ## [3.1.5](https://github.com/unif-design/react-native-hms-scan/compare/v3.1.4...v3.1.5) (2026-10-27)
 
 
